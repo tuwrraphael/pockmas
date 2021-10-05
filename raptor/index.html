@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+</head>
+
+<body>
+    <script type="module">
+        async function init() {
+            const { instance } = await WebAssembly.instantiateStreaming(
+                fetch("raptor.wasm")
+            );
+
+            let view = new DataView(instance.exports.memory.buffer, instance.exports.get_serving_routes_memory(1));
+            view.setBigUint64(0, 0n);
+            view.setBigUint64(8, 0n);
+            view.setUint32(16, 3);
+            view.setUint32(20, 1);
+
+            view = new DataView(instance.exports.memory.buffer, instance.exports.get_stoptimes_memory(1));
+            view.setBigUint64(0, 10n);
+            view.setBigUint64(8, 10n);
+            view.setBigUint64(16, 30n);
+            view.setBigUint64(24, 30n);
+            view.setBigUint64(32, 50n);
+            view.setBigUint64(40, 50n);
+
+            view = new DataView(instance.exports.memory.buffer, instance.exports.get_route_stops_memory(3));
+            view.setUint32(0, 0);
+            view.setUint32(4, 1);
+            view.setUint32(8, 2);
+
+            view = new DataView(instance.exports.memory.buffer, instance.exports.get_serving_routes_memory(3));
+            view.setUint32(0, 0);
+            view.setUint32(4, 0);
+            view.setUint32(8, 0);
+
+            view = new DataView(instance.exports.memory.buffer, instance.exports.get_stops_memory(3));
+            view.setBigUint64(0, 0n);
+            view.setBigUint64(8, 1n);
+            view.setBigUint64(16, 0n);
+            view.setBigUint64(24, 1n);
+            view.setBigUint64(32, 0n);
+            view.setBigUint64(40, 1n);
+
+            console.log(instance.exports.raptor(0, 0, 2));
+        }
+        init();
+    </script>
+</body>
+
+</html>
