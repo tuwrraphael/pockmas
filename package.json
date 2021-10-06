@@ -8,5 +8,9 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "cli-progress": "^3.9.1",
+    "timezone-support": "^2.0.2"
+  }
 }
