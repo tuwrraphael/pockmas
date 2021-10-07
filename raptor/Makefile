@@ -6,18 +6,17 @@ FILES = build/raptor.o \
 build/bump_allocator.o \
 build/memset.o
 
-CC = clang-13
-LD = wasm-ld-13
+CC = clang
+LD = wasm-ld
 
 build:
 	mkdir $@
 
-build/%.o: %.c | build
-	$(CC) --target=wasm32 -O0 -g -c $< -o $@
+build/%.o: %.c Makefile | build
+	$(CC) -DWASM_BUILD --target=wasm32 -g -O0 -c $< -o $@
 
 clean:
-	rm -rf build raptor.wasm raptor.wasm.map
+	rm -rf build raptor.wasm
 
 raptor.wasm: $(FILES)
-	$(LD) --no-entry --export-all -o $@ $^
-	python ./wasm-sourcemap.py --dwarfdump /usr/bin/llvm-dwarfdump-13 raptor.wasm -o raptor.wasm.map -u "http://127.0.0.1:8080/raptor/raptor.wasm.map" -w raptor.wasm --basepath .
+	$(LD) --no-entry --export-all -O0 -o $@ $^
