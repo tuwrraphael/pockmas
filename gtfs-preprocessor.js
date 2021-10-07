@@ -114,6 +114,33 @@ async function readCalendar(gtfsPath) {
     return calendar.sort((a, b) => a.serviceId.localeCompare(b.serviceId));
 }
 
+async function readRoutes(gtfsPath) {
+    const routesStream = fs.createReadStream(path.join(gtfsPath, "routes.txt"));
+    const routesRl = readline.createInterface({
+        input: routesStream,
+        crlfDelay: Infinity
+    });
+
+    let first = true;
+    let routes = {};
+    for await (const line of routesRl) {
+        if (first) {
+            if (line.trim() !== "route_id,agency_id,route_short_name,route_long_name,route_type,route_color,route_text_color") {
+                throw new Error("Invalid routes.txt file");
+            }
+            first = false;
+            continue;
+        }
+        let [routeId, , routeShortName, routeLongName] = line.split(",");
+        routes[removeQuotes(routeId)] = {
+            routeId: removeQuotes(routeId),
+            routeShortName: removeQuotes(routeShortName),
+            routeLongName: removeQuotes(routeLongName)
+        };
+    }
+    return routes;
+}
+
 function parseTime(time) {
     let [hour, minute, second] = time.split(":");
     return parseInt(hour) * 3600 + parseInt(minute) * 60 + parseInt(second);
@@ -143,7 +170,7 @@ async function process(gtfsPath) {
     let calendar = await readCalendar(gtfsPath);
     console.log(`Found ${calendar.length} serviceIds. Writing calendar`);
     let calendarOutput = await fs.promises.open("calendar.bin", "w");
-    for(let c of calendar) {
+    for (let c of calendar) {
         let calendarArray = new Uint32Array([c.startDate, c.endDate, c.weekdays]);
         calendarOutput.write(new Uint8Array(calendarArray.buffer));
     }
@@ -279,19 +306,13 @@ async function process(gtfsPath) {
     await stopsOutput.close();
     await transfersOutput.close();
 
-    let routeTranslation = tripsByRouteOrdered.map(([routeId, trips], idx) => {
-        return {
-            idx: idx,
-            originalId: originalIdMap[routeId],
-            trips: trips.map(t => t.tripId)
-        };
-    });
-
-
-    await fs.promises.writeFile("route_translation.txt", JSON.stringify(routeTranslation));
-    await fs.promises.writeFile("stops.txt", stopList.join("\n"));
+    let routesWithNames = await readRoutes(gtfsPath);
+    await fs.promises.writeFile("routenames.txt", tripsByRouteOrdered.map(([routeId,]) => {
+        let route = routesWithNames[originalIdMap[routeId]];
+        return `${route.routeShortName} ${route.routeLongName}`;
+    }).join("\n"));
+    await fs.promises.writeFile("stopnames.txt", stops.map(s => s.name).join("\n"));
 
 }
-
 
 process("./gtfs").catch(console.error);
