@@ -92,9 +92,38 @@ typedef enum {
 typedef struct {
 	route_id_t route;
 	uint32_t trip;
+	uint32_t route_stopindex;
 	stop_id_t origin_stop;
 	backtracking_type_t type;
 } backtracking_t;
+
+typedef uint32_t leg_type_t;
+
+#define LEG_TYPE_WALKING (0)
+#define LEG_TYPE_TRANSIT (1)
+
+#define MAX_LEGS (10)
+#define MAX_ITINERARYS (8)
+
+typedef struct {
+	leg_type_t type;
+	stop_id_t origin_stop;
+	stop_id_t destination_stop;
+	timeofday_t departure;
+	timeofday_t arrival;
+	route_id_t route;
+	uint32_t trip;
+} leg_t;
+
+typedef struct {
+	uint32_t num_legs;
+	leg_t legs[MAX_LEGS];
+} itinerary_t;
+
+typedef struct {
+	uint32_t num_itineraries;
+	itinerary_t itineraries[MAX_ITINERARYS];
+} results_t;
 
 typedef uint8_t marking_t;
 
@@ -124,7 +153,7 @@ extern "C" {
 
 	trip_calendar_t* get_trip_calendars_memory(uint32_t number_of_trip_calendars);
 
-	unsigned int raptor(datetime_t depaturedate, uint8_t weekday, timeofday_t departure_time, stop_id_t start, stop_id_t target);
+	results_t* raptor(datetime_t depaturedate, uint8_t weekday, timeofday_t departure_time, stop_id_t start, stop_id_t target);
 
 #ifdef __cplusplus
 }
