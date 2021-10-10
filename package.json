@@ -9,8 +9,10 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "cli-progress": "^3.9.1",
+  "dependencies": {},
+  "devDependencies": {
+    "csv-parser": "^3.0.0",
+    "js-levenshtein": "^1.1.6",
     "timezone-support": "^2.0.2"
   }
 }

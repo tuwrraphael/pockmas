@@ -18,7 +18,7 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="raptor.c">
+    <ClCompile Include="stopsearch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\stdlib\bump_allocator.c">
@@ -26,10 +26,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="raptor.h">
+    <ClInclude Include="..\raptor\bump_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\stdlib\bump_allocator.h">
+    <ClInclude Include="stopsearch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,8 +1,8 @@
 
 .PHONY: clean
-default: raptor.wasm
+default: stopsearch.wasm
 
-FILES = build/raptor.o \
+FILES = build/stopsearch.o \
 build/stdlib/bump_allocator.o \
 build/stdlib/memset.o
 
@@ -29,7 +29,7 @@ build/stdlib/%.o: ../stdlib/%.c Makefile | build/stdlib
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf build raptor.wasm
+	rm -rf build stopsearch.wasm
 
-raptor.wasm: $(FILES)
+stopsearch.wasm: $(FILES)
 	$(LD) --no-entry --export-all -O0 -o $@ $^

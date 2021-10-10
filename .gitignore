@@ -15,3 +15,9 @@ stopnames.txt
 routenames.txt
 *.bin
 *.bin.gz
+stop-popularity.txt
+stopsearch/.vs
+stopsearch/Debug
+stopsearch/build
+stopsearch/stopsearch.wasm
+stopgroupnames.txt
