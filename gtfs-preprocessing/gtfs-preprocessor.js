@@ -3,7 +3,7 @@ const readline = require("readline");
 const path = require("path");
 const { readStops } = require("./read-stops");
 const { removeQuotes } = require("./remove-quotes");
-const { findTimeZone, getUnixTime, getZonedTime } = require("timezone-support");
+const { findTimeZone, getUnixTime } = require("timezone-support");
 const { coordinateDistance } = require("./coordinate-distance");
 
 const maxDistance = 0.2;
@@ -66,7 +66,7 @@ function parseDate(date) {
     }, timezone) / 1000;
 }
 
-async function readCalendar(gtfsPath) {
+async function readCalendar(gtfsPath, outputPath) {
     const calendarStream = fs.createReadStream(path.join(gtfsPath, "calendar.txt"));
     const calendarRl = readline.createInterface({
         input: calendarStream,
@@ -146,7 +146,7 @@ function tripEquals(tripa, tripb) {
     return true;
 }
 
-async function process(gtfsPath) {
+async function process(gtfsPath, outputPath) {
     console.log("Reading trips");
     let trips = await readTrips(gtfsPath);
     console.log(`Found ${Object.keys(trips).length} trips`);
@@ -157,7 +157,7 @@ async function process(gtfsPath) {
     console.log("Reading calendar");
     let calendar = await readCalendar(gtfsPath);
     console.log(`Found ${calendar.length} serviceIds. Writing calendar`);
-    let calendarOutput = await fs.promises.open("calendar.bin", "w");
+    let calendarOutput = await fs.promises.open(path.join(outputPath, "calendar.bin"), "w");
     for (let c of calendar) {
         let calendarArray = new Uint32Array([c.startDate, c.endDate, c.weekdays]);
         calendarOutput.write(new Uint8Array(calendarArray.buffer));
@@ -227,10 +227,10 @@ async function process(gtfsPath) {
     let tripsByRouteOrdered = routes.sort(([routeId,], [routeId2,]) => routeId.localeCompare(routeId2));
     let routeStops = tripsByRouteOrdered.map(([routeId, trips]) => [routeId, trips[0].stopTimes.map(s => s.stopId)]);
     console.log("Writing routes");
-    let stoptimesOutput = await fs.promises.open("stoptimes.bin", "w");
-    let routeStopsOutput = await fs.promises.open("route_stops.bin", "w");
-    let routeOutput = await fs.promises.open("routes.bin", "w");
-    let tripCalendarsOutput = await fs.promises.open("trip_calendars.bin", "w");
+    let stoptimesOutput = await fs.promises.open(path.join(outputPath, "stoptimes.bin"), "w");
+    let routeStopsOutput = await fs.promises.open(path.join(outputPath, "route_stops.bin"), "w");
+    let routeOutput = await fs.promises.open(path.join(outputPath, "routes.bin"), "w");
+    let tripCalendarsOutput = await fs.promises.open(path.join(outputPath, "trip_calendars.bin"), "w");
     let routeIndex = tripsByRouteOrdered.map(([routeId,]) => routeId);
     let stopTimeIndex = 0;
     let stopIndex = 0;
@@ -262,9 +262,9 @@ async function process(gtfsPath) {
     await tripCalendarsOutput.close();
     console.log("Processing Stops");
 
-    let stopServingRoutesOutput = await fs.promises.open("stop_serving_routes.bin", "w");
-    let transfersOutput = await fs.promises.open("transfers.bin", "w");
-    let stopsOutput = await fs.promises.open("stops.bin", "w");
+    let stopServingRoutesOutput = await fs.promises.open(path.join(outputPath, "stop_serving_routes.bin"), "w");
+    let transfersOutput = await fs.promises.open(path.join(outputPath, "transfers.bin"), "w");
+    let stopsOutput = await fs.promises.open(path.join(outputPath, "stops.bin"), "w");
     let stopServingRoutesIdx = 0;
     let transfersIdx = 0;
     for (let stopId = 0; stopId < stops.length; stopId++) {
@@ -295,12 +295,12 @@ async function process(gtfsPath) {
     await transfersOutput.close();
 
     let routesWithNames = await readRoutes(gtfsPath);
-    await fs.promises.writeFile("routenames.txt", tripsByRouteOrdered.map(([routeId,]) => {
+    await fs.promises.writeFile(path.join(outputPath, "routenames.txt"), tripsByRouteOrdered.map(([routeId,]) => {
         let route = routesWithNames[originalIdMap[routeId]];
         return `${route.routeShortName} ${route.routeLongName}`;
     }).join("\n"));
-    await fs.promises.writeFile("stopnames.txt", stops.map(s => s.name).join("\n"));
+    await fs.promises.writeFile(path.join(outputPath, "stopnames.txt"), stops.map(s => s.name).join("\n"));
 
 }
 
-process("./gtfs").catch(console.error);
+exports.preprocessGtfs = process;

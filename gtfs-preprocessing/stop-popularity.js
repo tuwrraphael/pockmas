@@ -1,11 +1,9 @@
 const { readStops } = require("./read-stops.js");
-const levenshtein = require("js-levenshtein");
-const { coordinateDistance } = require("./coordinate-distance");
 const fs = require("fs");
-const path = require("path");
 const csv = require("csv-parser");
+const path = require("path");
 
-async function getStopPopularity(gtfsPath) {
+async function createStopPopularity(gtfsPath, outputPath) {
     const stops = await readStops(gtfsPath);
     const stopPopularity = {};
     const stopsStream = fs.createReadStream(path.join(gtfsPath, "stop_times.txt"));
@@ -15,10 +13,10 @@ async function getStopPopularity(gtfsPath) {
                 stopPopularity[data.stop_id] = (stopPopularity[data.stop_id] || 0) + 1;
             })
             .on('end', () => {
-                fs.promises.writeFile("stop-popularity.txt", stops.map(stop => {
+                fs.promises.writeFile(path.join(outputPath, "stop-popularity.txt"), stops.map(stop => {
                     return stopPopularity[stop.stopId] || 0;
                 }).join("\n")).then(() => resolve());
             });
     })
 }
-getStopPopularity("./gtfs").catch(console.error);
+exports.getStopPopularity = createStopPopularity;

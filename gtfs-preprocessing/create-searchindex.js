@@ -3,11 +3,12 @@ const levenshtein = require("js-levenshtein");
 const { coordinateDistance } = require("./coordinate-distance");
 const fs = require("fs");
 const possibleTypos = require("./possible-typos");
+const path = require("path");
 
 const maxDistance = 0.4;
 const maxEditDistance = 0.2;
 const resultsPerNode = 10;
-const maxTypos = 3;
+const maxTypos = 2;
 const stopIdSize = 16;
 
 
@@ -140,9 +141,9 @@ class TrieNode {
     }
 }
 
-async function createSearchIndex(gtfsPath) {
+async function createSearchIndex(gtfsPath, outputPath) {
     const stops = await readStops(gtfsPath);
-    const popularity = (await fs.promises.readFile("stop-popularity.txt", "utf8")).split("\n").map(n => parseInt(n));
+    const popularity = (await fs.promises.readFile(path.join(outputPath, "stop-popularity.txt"), "utf8")).split("\n").map(n => parseInt(n));
     for (let stop of stops) {
         stop.cleanedName = stop.name
             .replace(/\bU\b/g, "")
@@ -196,18 +197,18 @@ async function createSearchIndex(gtfsPath) {
         g.popularity = g.groupedStops.reduce((acc, stop) => {
             return acc + popularity[stop.idx];
         }, 0);
-        g.name = [g.name, ...g.groupedStops.map(s => s.name)].sort((a,b) => a.length - b.length)[0];
+        g.name = [g.name, ...g.groupedStops.map(s => s.name)].sort((a, b) => a.length - b.length)[0];
     }
     let root = new TrieNode(groupedStops.map(g => ({ group: g, typos: 0, level: 0 })));
     console.log(`Alphabet size: ${TrieNode.alphabet.length}`);
     console.log("Alphabet", TrieNode.alphabet.sort((a, b) => a.localeCompare(b)));
     console.log(`Trie will take up ${TrieNode.trieSize / (1024 * 1024)} MB of space.`)
     console.log(`Result list will take up ${Math.ceil(TrieNode.numResultValues * stopIdSize / 8 / (1024 * 1024))} MB of space.`);
-    let destination = await fs.promises.open("stop_search.bin", "w");
+    let destination = await fs.promises.open(path.join(outputPath, "stop_search.bin"), "w");
     let binary = TrieNode.getBinary();
     await destination.write(binary);
     destination.close();
-    await fs.promises.writeFile("stopgroupnames.txt", groupedStops.map(g => g.name).join("\n"));
+    await fs.promises.writeFile(path.join(outputPath, "stopgroupnames.txt"), groupedStops.map(g => g.name).join("\n"));
 }
 
 // async function concatResults() {
@@ -226,4 +227,4 @@ async function createSearchIndex(gtfsPath) {
 //     destination.close();
 // }
 
-createSearchIndex("./gtfs").catch(console.error);
+exports.createSearchIndex = createSearchIndex;
