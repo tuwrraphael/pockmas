@@ -3,6 +3,9 @@
 #include <stdint.h>
 
 #define MAX_INTERCHANGES (16)
+#define MAX_LEGS (10)
+#define MAX_ITINERARYS (8)
+#define MAX_REQUEST_STATIONS (10)
 
 typedef uint8_t boolean_t;
 #define TRUE (1)
@@ -102,9 +105,6 @@ typedef uint32_t leg_type_t;
 #define LEG_TYPE_WALKING (0)
 #define LEG_TYPE_TRANSIT (1)
 
-#define MAX_LEGS (10)
-#define MAX_ITINERARYS (8)
-
 typedef struct {
 	leg_type_t type;
 	stop_id_t origin_stop;
@@ -125,6 +125,21 @@ typedef struct {
 	itinerary_t itineraries[MAX_ITINERARYS];
 } results_t;
 
+typedef uint8_t time_type_t;
+#define TIME_TYPE_DEPARTURE (0)
+#define TIME_TYPE_ARRIVAL (1)
+
+typedef struct {
+	time_type_t type;
+	uint8_t num_departure_stations;
+	uint8_t num_arrival_stations;
+	uint8_t weekday;
+	stop_id_t departure_stations[MAX_REQUEST_STATIONS];
+	stop_id_t arrival_stations[MAX_REQUEST_STATIONS];
+	timeofday_t times[MAX_REQUEST_STATIONS];	
+	datetime_t date;
+} request_t;
+
 typedef uint8_t marking_t;
 
 #define MARKED (1)
@@ -132,7 +147,6 @@ typedef uint8_t marking_t;
 
 
 #define TIME_INFINITY (INT32_MAX)
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -153,7 +167,9 @@ extern "C" {
 
 	trip_calendar_t* get_trip_calendars_memory(uint32_t number_of_trip_calendars);
 
-	results_t* raptor(datetime_t depaturedate, uint8_t weekday, timeofday_t departure_time, stop_id_t start, stop_id_t target);
+	request_t *get_request_memory();
+
+	results_t* raptor();
 
 #ifdef __cplusplus
 }

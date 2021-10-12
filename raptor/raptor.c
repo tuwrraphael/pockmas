@@ -2,6 +2,8 @@
 #include "bump_allocator.h"
 
 static input_data_t input_data;
+static results_t *results = NULL;
+static request_t *request = NULL;
 
 stop_time_t *get_stoptimes_memory(uint32_t number_of_stoptimes)
 {
@@ -155,11 +157,16 @@ static void collect_results(uint8_t rounds, backtracking_t *backtracking[], time
 	}
 }
 
-#define INFINITY (INT32_MAX)
+request_t *get_request_memory()
+{
+	if (request == NULL)
+	{
+		request = malloc(sizeof(request_t));
+	}
+	return request;
+}
 
-static results_t *results = NULL;
-
-results_t *raptor(datetime_t depaturedate, uint8_t weekday, timeofday_t departure_time, stop_id_t start, stop_id_t target)
+results_t *raptor()
 {
 	if (results == NULL)
 	{
@@ -180,8 +187,11 @@ results_t *raptor(datetime_t depaturedate, uint8_t weekday, timeofday_t departur
 		earliest_known_arrival_times_with_trips[0][i] = TIME_INFINITY;
 		marking[i] = UNMARKED;
 	}
-	marking[start] = MARKED;
-	earliest_known_arrival_times_with_trips[0][start] = departure_time;
+	for (uint8_t i = 0; i < request->num_departure_stations; i++)
+	{
+		marking[request->departure_stations[i]] = MARKED;
+		earliest_known_arrival_times_with_trips[0][request->departure_stations[i]] = request->times[i];
+	}
 
 	uint8_t round = 0;
 	while (round < MAX_INTERCHANGES)
@@ -252,7 +262,7 @@ results_t *raptor(datetime_t depaturedate, uint8_t weekday, timeofday_t departur
 				{
 					stop_time_t *current_stoptime = &input_data.stop_times[route->stop_time_idx + j + current_trip * route->stop_count];
 					timeofday_t arrival_at_j = current_stoptime->arrival_time;
-					if (arrival_at_j < min_time(earliest_known_arrival_times[current_stop_id], earliest_known_arrival_times[target]))
+					if (arrival_at_j < min_time(earliest_known_arrival_times[current_stop_id], earliest_known_arrival_times[request->arrival_stations[0]]))
 					{
 						earliest_known_arrival_times_with_trips[round][current_stop_id] = arrival_at_j;
 						earliest_known_arrival_times[current_stop_id] = arrival_at_j;
@@ -266,7 +276,7 @@ results_t *raptor(datetime_t depaturedate, uint8_t weekday, timeofday_t departur
 					}
 					if (earliest_known_arrival_times_with_trips[round - 1][current_stop_id] < current_stoptime->departure_time)
 					{
-						current_trip = earliest_trip(i, j, earliest_known_arrival_times_with_trips[round - 1][current_stop_id], depaturedate, weekday);
+						current_trip = earliest_trip(i, j, earliest_known_arrival_times_with_trips[round - 1][current_stop_id], request->date, request->weekday);
 						if (current_trip > -1)
 						{
 							boarded_at = current_stop_id;
@@ -276,7 +286,7 @@ results_t *raptor(datetime_t depaturedate, uint8_t weekday, timeofday_t departur
 				}
 				else if (earliest_known_arrival_times_with_trips[round - 1][current_stop_id] != TIME_INFINITY)
 				{
-					current_trip = earliest_trip(i, j, earliest_known_arrival_times_with_trips[round - 1][current_stop_id], depaturedate, weekday);
+					current_trip = earliest_trip(i, j, earliest_known_arrival_times_with_trips[round - 1][current_stop_id], request->date, request->weekday);
 					if (current_trip > -1)
 					{
 						boarded_at = current_stop_id;
@@ -323,7 +333,7 @@ results_t *raptor(datetime_t depaturedate, uint8_t weekday, timeofday_t departur
 			break;
 		}
 	}
-	collect_results(round, backtracking, earliest_known_arrival_times_with_trips, target, results);
-	// reset_to_savepoint();
+	collect_results(round, backtracking, earliest_known_arrival_times_with_trips, request->arrival_stations[0], results);
+	reset_to_savepoint();
 	return results;
 }
