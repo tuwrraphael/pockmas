@@ -18,7 +18,7 @@ jobs:
     - run: npm ci
     - name: Download GTFS
       working-directory: ./gtfs-preprocessing
-      run: ./download.sh
+      run: chmod +x ./download.sh && ./download.sh
     - name: Preprocess GTFS
       run: npm run preprocess
     - run: npm run build -- --mode="production" --env environment="gh-pages"
