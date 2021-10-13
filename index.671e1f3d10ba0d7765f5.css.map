@@ -1,0 +1,1 @@
+{"version":3,"file":"index.671e1f3d10ba0d7765f5.css","mappings":"AAAA,wBAKI,gC","sources":["webpack://pockmas/./src/styles.scss"],"sourcesContent":["body,\nbutton,\ninput,\nul,\nol {\n    font-family: 'Roboto', sans-serif;\n}"],"names":[],"sourceRoot":""}
