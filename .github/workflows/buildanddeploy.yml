@@ -1,0 +1,36 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js 14.x
+      uses: actions/setup-node@v1
+      with:
+        node-version: 14.x
+    - run: npm ci
+    - name: Download GTFS
+      working-directory: ./gtfs-preprocessing
+      run: ./download.sh
+    - name: Preprocess GTFS
+      run: npm run preprocess
+    - run: npm run build -- --mode="production" --env environment="gh-pages"
+    - run: cp dist/index.html dist/404.html
+    - name: Install SSH Client 🔑
+      uses: webfactory/ssh-agent@v0.4.1
+      with:
+        ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+    - name: Deploy 🚀
+      uses: JamesIves/github-pages-deploy-action@releases/v3
+      with:
+        SSH: true
+        BRANCH: gh-pages
+        FOLDER: dist
+        CLEAN: false
