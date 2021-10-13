@@ -208,7 +208,8 @@ async function createSearchIndex(gtfsPath, outputPath) {
     let binary = TrieNode.getBinary();
     await destination.write(binary);
     destination.close();
-    await fs.promises.writeFile(path.join(outputPath, "stopgroupnames.txt"), groupedStops.map(g => g.name).join("\n"));
+    let stopGroupIndex = groupedStops.map(g => ({ name: g.name, stopIds: [g.idx, ...g.groupedStops.map(s => s.idx)] }));
+    await fs.promises.writeFile(path.join(outputPath, "stopgroup-index.json"), JSON.stringify(stopGroupIndex));
 }
 
 // async function concatResults() {

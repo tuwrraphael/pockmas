@@ -101,6 +101,18 @@ module.exports = (env, argv) => {
                         }
                     ]
                 },
+                {
+                    test: /\.wasm/,
+                    type: 'asset/resource'
+                },
+                {
+                    test: /\.bin/,
+                    type: 'asset/resource'
+                },
+                {
+                    test: /\.json/,
+                    type: 'asset/resource'
+                }
             ],
         },
         resolve: {
@@ -136,7 +148,8 @@ module.exports = (env, argv) => {
                 ],
             }),
             new InjectManifest({
-                swSrc: "./src/sw.ts"
+                swSrc: "./src/sw.ts",
+                maximumFileSizeToCacheInBytes : (1024*1024) * 26
             }),
             ...(analyze ? [new BundleAnalyzerPlugin()] : [])
         ],
