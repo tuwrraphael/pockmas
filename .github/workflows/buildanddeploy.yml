@@ -11,6 +11,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - run: which clang
+    - name: Build raptor wasm module
+      working-directory: ./raptor
+      run: make
+      env:
+        LD: wasm-ld-10
+    - name: Build stopsearch wasm module
+      working-directory: ./stopsearch
+      run: make
+      env:
+        LD: wasm-ld-10
     - name: Use Node.js 14.x
       uses: actions/setup-node@v1
       with:
@@ -21,12 +32,6 @@ jobs:
       run: chmod +x ./download.sh && ./download.sh
     - name: Preprocess GTFS
       run: npm run preprocess
-    - name: Build raptor wasm module
-      working-directory: ./raptor
-      run: make
-    - name: Build stopsearch wasm module
-      working-directory: ./stopsearch
-      run: make
     - name: Build webapp
       run: npm run build -- --mode="production" --env environment="gh-pages"
     - name: Copy index.html to 404.html

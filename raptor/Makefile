@@ -11,8 +11,13 @@ INCLUDE = -I../stdlib
 OPT = -O0
 DEFINE = -DWASM_BUILD
 
+ifeq ($(LD),)
+	LD = wasm-ld
+endif
+ifeq ($(LD),ld)
+	LD = wasm-ld
+endif
 CC = clang
-LD = wasm-ld
 
 CFLAGS = $(INCLUDE) $(OPT) $(DEFINE) --target=wasm32 -g
 
