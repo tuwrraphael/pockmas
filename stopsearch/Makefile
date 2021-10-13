@@ -17,7 +17,13 @@ endif
 ifeq ($(LD),ld)
 	LD = wasm-ld
 endif
-CC = clang
+ifeq ($(CC),)
+	CC = clang
+endif
+ifeq ($(CC),cc)
+	CC = clang
+endif
+
 
 CFLAGS = $(INCLUDE) $(OPT) $(DEFINE) --target=wasm32 -g
 
