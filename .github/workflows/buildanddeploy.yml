@@ -21,8 +21,16 @@ jobs:
       run: chmod +x ./download.sh && ./download.sh
     - name: Preprocess GTFS
       run: npm run preprocess
-    - run: npm run build -- --mode="production" --env environment="gh-pages"
-    - run: cp dist/index.html dist/404.html
+    - name: Build raptor wasm module
+      working-directory: ./raptor
+      run: make
+    - name: Build stopsearch wasm module
+      working-directory: ./stopsearch
+      run: make
+    - name: Build webapp
+      run: npm run build -- --mode="production" --env environment="gh-pages"
+    - name: Copy index.html to 404.html
+      run: cp dist/index.html dist/404.html
     - name: Install SSH Client 🔑
       uses: webfactory/ssh-agent@v0.4.1
       with:
