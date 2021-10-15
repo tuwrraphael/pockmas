@@ -16,6 +16,21 @@ function getCanonicalName(stopGroup) {
     return stopGroup.cleanedName.replace(/\s+/g, "");
 }
 
+function samePossibleChildren(possibleChildrenA, possibleChildrenB) {
+    if (possibleChildrenA.length != possibleChildrenB.length) {
+        return false;
+    }
+    for (let stopGroup of possibleChildrenA) {
+        if (!possibleChildrenB.some(g =>
+            g.group.stopGroupIdx == stopGroup.group.stopGroupIdx &&
+            g.typos == stopGroup.typos &&
+            g.level == stopGroup.level)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 class TrieNode {
     static numNodes = 0;
     static numResultValues = 0;
@@ -31,7 +46,23 @@ class TrieNode {
         TrieNode.allNodes.push(this);
 
         TrieNode.numNodes++;
-        if (stopGroups.length > resultsPerNode) {
+        let sorted = stopGroups.sort((a, b) => {
+            if (a.typos == 0 && b.typos > 0) {
+                return -1;
+            } else if (a.typos > 0 && b.typos == 0) {
+                return 1;
+            }
+            else {
+                return b.group.popularity - a.group.popularity;
+            }
+        });
+
+        let allResults = sorted
+            .filter((stopGroup, index) => index == sorted.findIndex(stopGroup2 => stopGroup2.group.stopGroupIdx == stopGroup.group.stopGroupIdx))
+            .map(g => g.group)
+        this.value = allResults.slice(0, resultsPerNode);
+        TrieNode.numResultValues += this.value.length;
+        if (allResults.length > resultsPerNode) {
 
             let possibleChildren = {};
             for (let stopGroup of stopGroups) {
@@ -69,27 +100,31 @@ class TrieNode {
                 });
             }
             this.children = {};
+            let done = new Set();
             for (let letter in possibleChildren) {
+                if (done.has(letter)) {
+                    continue;
+                }
+                done.add(letter);
                 this.children[letter] = new TrieNode(possibleChildren[letter]);
                 if (TrieNode.alphabet.indexOf(letter) < 0) {
                     TrieNode.alphabet.push(letter);
+                    done.add(letter);
+                }
+                for(let letter2 in possibleChildren) {
+                    if (samePossibleChildren(possibleChildren[letter], possibleChildren[letter2])) {
+                        this.children[letter2] = this.children[letter];
+                        if (TrieNode.alphabet.indexOf(letter2) < 0) {
+                            TrieNode.alphabet.push(letter2);
+                        }
+                        done.add(letter2);
+                    }
                 }
             }
         }
         else {
             this.children = {};
         }
-        this.value = stopGroups.sort((a, b) => {
-            if (a.typos == 0 && b.typos > 0) {
-                return -1;
-            } else if (a.typos > 0 && b.typos == 0) {
-                return 1;
-            }
-            else {
-                return b.group.popularity - a.group.popularity;
-            }
-        }).map(g => g.group).slice(0, resultsPerNode);
-        TrieNode.numResultValues += this.value.length;
         TrieNode.trieSize += ((16 + 16 + 32 + 32) / 8) + Object.keys(this.children).length * ((32 + 8) / 8);
 
     }
