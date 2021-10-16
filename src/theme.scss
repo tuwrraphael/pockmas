@@ -1,0 +1,24 @@
+@use "sass:color";
+
+$primary : #00e676;
+$focus : color.adjust($primary, $lightness: 50%);
+
+:root {
+    --primary : #{$primary};
+    --background: white;
+    --text : black;
+    --border : #e0e0e0;
+    --hover : #f0f0f0;
+    --focus: #{$focus};
+    --border-radius : 0.4em;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: #383838;
+        --text:#eeeeee;
+        --border : #999999;
+        --hover : #666666;
+        --focus: #667667;
+    }
+}

@@ -44,6 +44,29 @@ module.exports = (env, argv) => {
     };
 
     const cacheName = production ? getRevision() : "development";
+
+    let scssRules = [
+        {
+            loader: "css-loader", options: {
+
+            }
+        },
+        { loader: "postcss-loader", options: {} },
+        {
+            loader: "sass-loader", options: {
+                implementation: require('sass'),
+                sassOptions: {
+                    includePaths: ["node_modules"],
+                },
+            }
+        }
+    ];
+    if (production) {
+        scssRules.unshift(MiniCssExtractPlugin.loader)
+    } else {
+        scssRules.unshift("style-loader")
+    }
+
     return {
         target: production ? "browserslist" : "web",
         entry: {
@@ -83,23 +106,7 @@ module.exports = (env, argv) => {
                 },
                 {
                     test: /\.s[ac]ss$/i,
-                    use: [
-                        MiniCssExtractPlugin.loader,
-                        {
-                            loader: "css-loader", options: {
-
-                            }
-                        },
-                        { loader: "postcss-loader", options: {} },
-                        {
-                            loader: "sass-loader", options: {
-                                implementation: require('sass'),
-                                sassOptions: {
-                                    includePaths: ["node_modules"],
-                                },
-                            }
-                        }
-                    ]
+                    use: scssRules
                 },
                 {
                     test: /\.wasm/,
@@ -149,7 +156,7 @@ module.exports = (env, argv) => {
             }),
             new InjectManifest({
                 swSrc: "./src/sw.ts",
-                maximumFileSizeToCacheInBytes : (1024*1024) * 26
+                maximumFileSizeToCacheInBytes: (1024 * 1024) * 26
             }),
             ...(analyze ? [new BundleAnalyzerPlugin()] : [])
         ],

@@ -1,3 +1,14 @@
+import { ActionType } from "./actions/ActionType";
+import { ArrivalStopTermChanged } from "./actions/ArrivalStopTermChanged";
+import { DepartureStopTermChanged } from "./actions/DepartureStopTermChanged";
+import { InitializeStopSearch } from "./actions/InitializeStopSearch";
+import { State } from "./state";
+
+type Actions = InitializeStopSearch
+    | DepartureStopTermChanged
+    | ArrivalStopTermChanged;
+
+
 interface WebAssemblyInstantiatedSource<TExports extends WebAssembly.Exports> extends WebAssembly.WebAssemblyInstantiatedSource {
     instance: WebAssemblyInstance<TExports>;
 }
@@ -57,29 +68,38 @@ async function populateSearchIndex(instance: WebAssemblyInstance<StopSearchExpor
 
 
 async function initStopSearch() {
-    let stopGroupIndexTask = fetch(new URL("../preprocessing-dist/stopgroup-index.json", import.meta.url).toString()).then(res => res.json()).then(idx => stopGroupIndex = idx);
+    if (stopSearchInstance) {
+        return;
+    }
+    let stopGroupIndexTask = fetch(new URL("../../preprocessing-dist/stopgroup-index.json", import.meta.url).toString()).then(res => res.json()).then(idx => stopGroupIndex = idx);
     let [instantiatedSource, binaryResponse] = await Promise.all([<Promise<WebAssemblyInstantiatedSource<StopSearchExports>>>WebAssembly.instantiateStreaming(
-        fetch(new URL("../stopsearch/stopsearch.wasm", import.meta.url).toString())
-    ), fetch(new URL("../preprocessing-dist/stop_search.bin", import.meta.url).toString())]);
+        fetch(new URL("../../stopsearch/stopsearch.wasm", import.meta.url).toString())
+    ), fetch(new URL("../../preprocessing-dist/stop_search.bin", import.meta.url).toString())]);
     await Promise.all([stopGroupIndexTask, populateSearchIndex(instantiatedSource.instance, binaryResponse)]);
     instantiatedSource.instance.exports.stopsearch_reset();
     stopSearchInstance = instantiatedSource.instance;
 }
 
-let lastValue: string = "";
-
-interface State {
-    results: { id: number, name: string }[];
-}
-
-let state: State = {
-    results: []
+let lastValueBy = {
+    departure: "",
+    arrival: ""
 };
 
-function searchTermChanged(term: string) {
+let state: State = {
+    arrivalStopResults: [],
+    departureStopResults: []
+};
+
+function updateState(updateFn: (oldState: State) => State) {
+    state = updateFn(state);
+    self.postMessage(state);
+}
+
+function searchTermChanged(term: string, departure: boolean) {
     if (null == stopSearchInstance) {
         return;
     }
+    let lastValue = lastValueBy[departure ? "departure" : "arrival"];
     let value = term.toLowerCase()
         .replace(/ä/g, "a")
         .replace(/ö/g, "o")
@@ -105,29 +125,37 @@ function searchTermChanged(term: string) {
     let resultsCount = resultArrayView.getUint32(0, true);
     let resultsOffset = resultArrayView.getUint32(4, true);
     let resultsArray = new Uint16Array(stopSearchInstance.exports.memory.buffer, resultsOffset, resultsCount);
-    state.results = [];
+    let results: { id: number, name: string }[] = [];
     for (let i = 0; i < resultsCount; i++) {
         let stopGroupId = resultsArray[i];
         let stopGroup = stopGroupIndex[stopGroupId];
-        state.results.push({ id: stopGroupId, name: stopGroup.name });
+        results.push({ id: stopGroupId, name: stopGroup.name });
     }
-    self.postMessage(state);
+    updateState(s => {
+        return {
+            ...s,
+            [departure ? "departureStopResults" : "arrivalStopResults"]: results
+        }
+    });
+}
+
+async function handleMessage(msg: Actions) {
+    switch (msg.type) {
+        case ActionType.InitializeStopSearch:
+            await initStopSearch();
+            break;
+        case ActionType.DepartureStopTermChanged: {
+            searchTermChanged(msg.term, true);
+            break;
+        }
+        case ActionType.ArrivalStopTermChanged: {
+            searchTermChanged(msg.term, false);
+            break;
+        }
+    }
 }
 
 self.addEventListener("message", ev => {
-    (async () => {
-        switch (ev.data.type) {
-            case "initStopSearch": {
-                await initStopSearch();
-                break;
-            }
-            case "searchTermChanged": {
-                let term = ev.data.term;
-                searchTermChanged(term);
-                break;
-            }
-            default:
-                break;
-        }
-    })().catch(console.error);
-})
+    let msg: Actions = ev.data;
+    handleMessage(msg).catch(err => console.error(err));
+});

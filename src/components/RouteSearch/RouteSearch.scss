@@ -1,0 +1,12 @@
+route-search {
+    border-radius: var(--border-radius);
+    width: 100%;
+    max-width: 40em;
+    overflow: visible;
+}
+
+.route-search {
+    &__abfahrt {
+        border-bottom: 0.1em solid var(--border);
+    }
+}

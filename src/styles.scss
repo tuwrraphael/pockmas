@@ -1,7 +1,30 @@
+@import "./theme.scss";
+
+body {
+    margin: 0;
+    padding: 0;    
+}
+
+body, input {
+    background-color: var(--background);
+}
+
 body,
 button,
 input,
 ul,
 ol {
     font-family: 'Roboto', sans-serif;
+    color: var(--text);
+}
+
+.header {
+    background-color: var(--primary);
+    margin: 0;
+    display:flex;
+    justify-content: center;
+    padding: 1em;
+    & > * {
+        background-color: var(--background);
+    }
 }

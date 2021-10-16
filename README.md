@@ -9,7 +9,7 @@ The public transport routing algorithm is inspired / an extension of the algorit
 
 ## Datenquellen
 ### Wiener Linien – Fahrplandaten GTFS Wien
-Datenquelle: Stadt Wien – [data.wien.gv.at](data.wien.gv.at)
+Datenquelle: Stadt Wien – [data.wien.gv.at](https://data.wien.gv.at)
 
 Lizenz: Creative Commons Namensnennung 4.0 International
 

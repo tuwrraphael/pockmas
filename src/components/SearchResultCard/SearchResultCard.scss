@@ -1,0 +1,23 @@
+@use "../../utils.scss";
+
+search-result-card {
+    display: block;
+}
+
+.search-result-card {
+    &__button {
+        @include utils.reset-button;
+        padding : 0.5em;
+        width: 100%;
+        text-align: start;
+        &:hover {
+            background:var(--hover);
+        }
+
+        &:focus-visible {
+            background-color: var(--focus); 
+        }
+    }
+
+    
+}
