@@ -17,7 +17,7 @@ self.addEventListener("install", function (event) {
         if (next.url.indexOf("favicons/") > -1) {
             acc.asset.push(next.url);
         }
-        else if (!next.url.endsWith(".bin")) {
+        else if (!next.url.endsWith(".bin.bmp")) {
             acc.code.push(next.url);
         }
         return acc;
@@ -83,7 +83,7 @@ self.addEventListener("fetch", function (event) {
                     let cache = await caches.open(cacheNames.webfont);
                     await cache.put(event.request, res.clone());
                 }
-                else if (event.request.url.endsWith(".bin")) {
+                else if (event.request.url.endsWith(".bin.bmp")) {
                     let cache = await caches.open(cacheNames.data);
                     await cache.put(event.request, res.clone());
                 }

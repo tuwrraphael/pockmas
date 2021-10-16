@@ -74,7 +74,7 @@ async function initStopSearch() {
     let stopGroupIndexTask = fetch(new URL("../../preprocessing-dist/stopgroup-index.json", import.meta.url).toString()).then(res => res.json()).then(idx => stopGroupIndex = idx);
     let [instantiatedSource, binaryResponse] = await Promise.all([<Promise<WebAssemblyInstantiatedSource<StopSearchExports>>>WebAssembly.instantiateStreaming(
         fetch(new URL("../../stopsearch/stopsearch.wasm", import.meta.url).toString())
-    ), fetch(new URL("../../preprocessing-dist/stop_search.bin", import.meta.url).toString())]);
+    ), fetch(new URL("../../preprocessing-dist/stop_search.bin.bmp", import.meta.url).toString())]);
     await Promise.all([stopGroupIndexTask, populateSearchIndex(instantiatedSource.instance, binaryResponse)]);
     instantiatedSource.instance.exports.stopsearch_reset();
     stopSearchInstance = instantiatedSource.instance;

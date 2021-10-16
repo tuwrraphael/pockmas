@@ -137,14 +137,14 @@
             performance.mark("loading-start");
             document.writeln(`wasm finished in ${performance.measure("wasm", "init", "loading-start").duration}`);
             let tasks = [
-                writeMemory("../routes.bin", instance.exports.memory, bytes => instance.exports.get_routes_memory(bytes / routeSize)),
-                writeGzippedMemory("../stoptimes.bin.gz", 51975256, instance.exports.memory, bytes => instance.exports.get_stoptimes_memory(bytes / stoptimesSize)),
-                writeMemory("../calendar.bin", instance.exports.memory, bytes => instance.exports.get_calendars_memory(bytes / calendarSize)),
-                writeMemory("../route_stops.bin", instance.exports.memory, bytes => instance.exports.get_route_stops_memory(bytes / routeStopSize)),
-                writeMemory("../stop_serving_routes.bin", instance.exports.memory, bytes => instance.exports.get_serving_routes_memory(bytes / stopServingRouteSize)),
-                writeMemory("../stops.bin", instance.exports.memory, bytes => instance.exports.get_stops_memory(bytes / stopSize)),
-                writeMemory("../transfers.bin", instance.exports.memory, bytes => instance.exports.get_transfers_memory(bytes / transfersSize)),
-                writeMemory("../trip_calendars.bin", instance.exports.memory, bytes => instance.exports.get_trip_calendars_memory(bytes / tripCalendarsSize)),
+                writeMemory("../routes.bin.bmp", instance.exports.memory, bytes => instance.exports.get_routes_memory(bytes / routeSize)),
+                writeMemory("../stoptimes.bin.bmp", instance.exports.memory, bytes => instance.exports.get_stoptimes_memory(bytes / stoptimesSize)),
+                writeMemory("../calendar.bin.bmp", instance.exports.memory, bytes => instance.exports.get_calendars_memory(bytes / calendarSize)),
+                writeMemory("../route_stops.bin.bmp", instance.exports.memory, bytes => instance.exports.get_route_stops_memory(bytes / routeStopSize)),
+                writeMemory("../stop_serving_routes.bin.bmp", instance.exports.memory, bytes => instance.exports.get_serving_routes_memory(bytes / stopServingRouteSize)),
+                writeMemory("../stops.bin.bmp", instance.exports.memory, bytes => instance.exports.get_stops_memory(bytes / stopSize)),
+                writeMemory("../transfers.bin.bmp", instance.exports.memory, bytes => instance.exports.get_transfers_memory(bytes / transfersSize)),
+                writeMemory("../trip_calendars.bin.bmp", instance.exports.memory, bytes => instance.exports.get_trip_calendars_memory(bytes / tripCalendarsSize)),
                 getTranslation("../routenames.txt").then(r => routeNames = r),
                 getTranslation("../stopnames.txt").then(r => stopNames = r)
             ];

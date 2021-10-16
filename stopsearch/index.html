@@ -12,7 +12,7 @@
             const { instance } = await WebAssembly.instantiateStreaming(
                 fetch("stopsearch.wasm")
             );
-            let res = await fetch("../stop_search.bin");
+            let res = await fetch("../stop_search.bin.bmp");
             let reader = await res.body.getReader();
             let done = false;
             let offset;

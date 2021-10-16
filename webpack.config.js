@@ -113,7 +113,7 @@ module.exports = (env, argv) => {
                     type: 'asset/resource'
                 },
                 {
-                    test: /\.bin/,
+                    test: /\.bin\.bmp/,
                     type: 'asset/resource'
                 },
                 {

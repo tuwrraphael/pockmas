@@ -157,7 +157,7 @@ async function process(gtfsPath, outputPath) {
     console.log("Reading calendar");
     let calendar = await readCalendar(gtfsPath);
     console.log(`Found ${calendar.length} serviceIds. Writing calendar`);
-    let calendarOutput = await fs.promises.open(path.join(outputPath, "calendar.bin"), "w");
+    let calendarOutput = await fs.promises.open(path.join(outputPath, "calendar.bin.bmp"), "w");
     for (let c of calendar) {
         let calendarArray = new Uint32Array([c.startDate, c.endDate, c.weekdays]);
         calendarOutput.write(new Uint8Array(calendarArray.buffer));
@@ -227,10 +227,10 @@ async function process(gtfsPath, outputPath) {
     let tripsByRouteOrdered = routes.sort(([routeId,], [routeId2,]) => routeId.localeCompare(routeId2));
     let routeStops = tripsByRouteOrdered.map(([routeId, trips]) => [routeId, trips[0].stopTimes.map(s => s.stopId)]);
     console.log("Writing routes");
-    let stoptimesOutput = await fs.promises.open(path.join(outputPath, "stoptimes.bin"), "w");
-    let routeStopsOutput = await fs.promises.open(path.join(outputPath, "route_stops.bin"), "w");
-    let routeOutput = await fs.promises.open(path.join(outputPath, "routes.bin"), "w");
-    let tripCalendarsOutput = await fs.promises.open(path.join(outputPath, "trip_calendars.bin"), "w");
+    let stoptimesOutput = await fs.promises.open(path.join(outputPath, "stoptimes.bin.bmp"), "w");
+    let routeStopsOutput = await fs.promises.open(path.join(outputPath, "route_stops.bin.bmp"), "w");
+    let routeOutput = await fs.promises.open(path.join(outputPath, "routes.bin.bmp"), "w");
+    let tripCalendarsOutput = await fs.promises.open(path.join(outputPath, "trip_calendars.bin.bmp"), "w");
     let routeIndex = tripsByRouteOrdered.map(([routeId,]) => routeId);
     let stopTimeIndex = 0;
     let stopIndex = 0;
@@ -262,9 +262,9 @@ async function process(gtfsPath, outputPath) {
     await tripCalendarsOutput.close();
     console.log("Processing Stops");
 
-    let stopServingRoutesOutput = await fs.promises.open(path.join(outputPath, "stop_serving_routes.bin"), "w");
-    let transfersOutput = await fs.promises.open(path.join(outputPath, "transfers.bin"), "w");
-    let stopsOutput = await fs.promises.open(path.join(outputPath, "stops.bin"), "w");
+    let stopServingRoutesOutput = await fs.promises.open(path.join(outputPath, "stop_serving_routes.bin.bmp"), "w");
+    let transfersOutput = await fs.promises.open(path.join(outputPath, "transfers.bin.bmp"), "w");
+    let stopsOutput = await fs.promises.open(path.join(outputPath, "stops.bin.bmp"), "w");
     let stopServingRoutesIdx = 0;
     let transfersIdx = 0;
     for (let stopId = 0; stopId < stops.length; stopId++) {

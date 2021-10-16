@@ -239,7 +239,7 @@ async function createSearchIndex(gtfsPath, outputPath) {
     console.log("Alphabet", TrieNode.alphabet.sort((a, b) => a.localeCompare(b)));
     console.log(`Trie will take up ${TrieNode.trieSize / (1024 * 1024)} MB of space.`)
     console.log(`Result list will take up ${Math.ceil(TrieNode.numResultValues * stopIdSize / 8 / (1024 * 1024))} MB of space.`);
-    let destination = await fs.promises.open(path.join(outputPath, "stop_search.bin"), "w");
+    let destination = await fs.promises.open(path.join(outputPath, "stop_search.bin.bmp"), "w");
     let binary = TrieNode.getBinary();
     await destination.write(binary);
     destination.close();
