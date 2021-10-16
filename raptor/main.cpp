@@ -20,14 +20,14 @@ T* readfile(std::string filename, T* (*alloc)(T2)) {
 
 int main()
 {
-	route_t* routes = readfile("C:\\git\\pockmas\\preprocessing-dist\\routes.bin", get_routes_memory);
-	stop_time_t* stoptimes = readfile("C:\\git\\pockmas\\preprocessing-dist\\stoptimes.bin", get_stoptimes_memory);
-	route_stop_t* routestops = readfile("C:\\git\\pockmas\\preprocessing-dist\\route_stops.bin", get_route_stops_memory);
-	stop_serving_route_t* stop_serving_route = readfile("C:\\git\\pockmas\\preprocessing-dist\\stop_serving_routes.bin", get_serving_routes_memory);
-	stop_t* stops = readfile("C:\\git\\pockmas\\preprocessing-dist\\stops.bin", get_stops_memory);
-	transfer_t* transfers = readfile("C:\\git\\pockmas\\preprocessing-dist\\transfers.bin", get_transfers_memory);
-	calendar_t* calendars = readfile("C:\\git\\pockmas\\preprocessing-dist\\calendar.bin", get_calendars_memory);
-	trip_calendar_t* trip_calendars = readfile("C:\\git\\pockmas\\preprocessing-dist\\trip_calendars.bin", get_trip_calendars_memory);
+	route_t* routes = readfile("C:\\git\\pockmas\\preprocessing-dist\\routes.bin.bmp", get_routes_memory);
+	stop_time_t* stoptimes = readfile("C:\\git\\pockmas\\preprocessing-dist\\stoptimes.bin.bmp", get_stoptimes_memory);
+	route_stop_t* routestops = readfile("C:\\git\\pockmas\\preprocessing-dist\\route_stops.bin.bmp", get_route_stops_memory);
+	stop_serving_route_t* stop_serving_route = readfile("C:\\git\\pockmas\\preprocessing-dist\\stop_serving_routes.bin.bmp", get_serving_routes_memory);
+	stop_t* stops = readfile("C:\\git\\pockmas\\preprocessing-dist\\stops.bin.bmp", get_stops_memory);
+	transfer_t* transfers = readfile("C:\\git\\pockmas\\preprocessing-dist\\transfers.bin.bmp", get_transfers_memory);
+	calendar_t* calendars = readfile("C:\\git\\pockmas\\preprocessing-dist\\calendar.bin.bmp", get_calendars_memory);
+	trip_calendar_t* trip_calendars = readfile("C:\\git\\pockmas\\preprocessing-dist\\trip_calendars.bin.bmp", get_trip_calendars_memory);
 
 	request_t *request = get_request_memory();
 	request->arrival_stations[0] = 3731;
