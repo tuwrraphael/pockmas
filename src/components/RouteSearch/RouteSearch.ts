@@ -3,7 +3,7 @@ import "./RouteSearch.scss";
 import "../StopSearch/StopSearch";
 import { Store } from "../../state/Store";
 import { InitializeStopSearch } from "../../state/actions/InitializeStopSearch";
-import { State } from "../../state/state";
+import { State } from "../../state/State";
 import { StopSearch } from "../StopSearch/StopSearch";
 import { abortableEventListener } from "../../utils/abortableEventListener";
 import { DepartureStopTermChanged } from "../../state/actions/DepartureStopTermChanged";

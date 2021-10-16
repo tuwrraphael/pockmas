@@ -1,5 +1,5 @@
 import { Action } from "./actions/Action";
-import { State } from "./state";
+import { State } from "./State";
 
 interface Subscription<State> {
     call(a: State): void;

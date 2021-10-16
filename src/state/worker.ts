@@ -2,7 +2,7 @@ import { ActionType } from "./actions/ActionType";
 import { ArrivalStopTermChanged } from "./actions/ArrivalStopTermChanged";
 import { DepartureStopTermChanged } from "./actions/DepartureStopTermChanged";
 import { InitializeStopSearch } from "./actions/InitializeStopSearch";
-import { State } from "./state";
+import { State } from "./State";
 
 type Actions = InitializeStopSearch
     | DepartureStopTermChanged

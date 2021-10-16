@@ -4,9 +4,6 @@ import "../../utils/popup";
 import { Popup } from "../../utils/popup";
 import { abortableEventListener } from "../../utils/abortableEventListener";
 import "../SearchResultCard/SearchResultCard";
-import { Store } from "../../state/Store";
-import { InitializeStopSearch } from "../../state/actions/InitializeStopSearch";
-import { State } from "../../state/state";
 import { SearchResultCard } from "../SearchResultCard/SearchResultCard";
 
 const LabelAttribute = "label";
