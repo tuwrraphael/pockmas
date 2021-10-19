@@ -20,7 +20,7 @@ type Actions = InitializeStopSearch
 let stopSearchInstance: WebAssemblyInstance<StopSearchExports>;
 let routingInstance: WebAssemblyInstance<RaptorExports>;
 let stopGroupIndex: { name: string; stopIds: number[] }[];
-let routeNames: string[];
+let routeNames: [string, string, number, string | null][];
 let stopNames: string[];
 
 async function copyToWasmMemory<T extends WebAssembly.Exports & { memory: WebAssembly.Memory; }>(instance: WebAssemblyInstance<T>,
@@ -69,7 +69,7 @@ async function initRouting() {
     if (routingInstance) {
         return;
     }
-    let routeNamesTask = fetch(new URL("../../preprocessing-dist/routenames.txt", import.meta.url).toString()).then(res => res.text()).then(text => routeNames = text.split("\n"));
+    let routeNamesTask = fetch(new URL("../../preprocessing-dist/routes.json", import.meta.url).toString()).then(res => res.json()).then(j => routeNames = j);
     let stopNamesTask = fetch(new URL("../../preprocessing-dist/stopnames.txt", import.meta.url).toString()).then(res => res.text()).then(text => stopNames = text.split("\n"));
     let populateTimezonesTask = import("timezone-support/dist/data-2012-2022").then(d => populateTimeZones(d));
     let [instantiatedSource, binaryResponse] = await Promise.all([<Promise<WebAssemblyInstantiatedSource<RaptorExports>>>WebAssembly.instantiateStreaming(
@@ -204,7 +204,7 @@ function readLeg(buffer: ArrayBuffer, offset: number): Leg {
     if (leg.type == 1) {
         let routeId = view.getUint16(16, true);
         leg.route = {
-            name: routeNames[routeId],
+            name: routeNames[routeId][0],
             id: routeId
         };
         leg.tripId = view.getUint32(18, true);
