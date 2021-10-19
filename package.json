@@ -27,6 +27,7 @@
     "postcss-loader": "^6.1.1",
     "sass": "^1.30.0",
     "sass-loader": "^12.2.0",
+    "strip-bom-stream": "^4.0.0",
     "style-loader": "^3.3.0",
     "timezone-support": "^2.0.2",
     "ts-loader": "^9.1.1",

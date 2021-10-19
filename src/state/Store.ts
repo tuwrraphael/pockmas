@@ -2,7 +2,7 @@ import { Action } from "./actions/Action";
 import { State } from "./State";
 
 interface Subscription<State> {
-    call(a: State): void;
+    call(a: State, changes: (keyof State)[]): void;
 }
 
 export class Store {
@@ -26,10 +26,11 @@ export class Store {
         this.subscriptions = [];
         this.worker = new Worker(new URL("./worker", import.meta.url));
         this.worker.addEventListener("message", ev => {
-            this._state = ev.data;
+            let [update, changes] = ev.data;
+            this._state = { ...this._state, ...update };
             for (let s of this.subscriptions) {
                 try {
-                    s.call(this._state);
+                    s.call(this._state, changes);
                 }
                 catch (err) {
                     console.error(`Error while updating`, err);
@@ -39,8 +40,8 @@ export class Store {
         });
     }
 
-    subscribe(call: (a: State) => void, signal?: AbortSignal) {
-        let sub = { call };
+    subscribe(call: (a: State, changed: (keyof State)[]) => void, signal?: AbortSignal) {
+        let sub: Subscription<State> = { call };
         this.subscriptions.push(sub);
         if (signal) {
             signal.addEventListener("abort", () => {

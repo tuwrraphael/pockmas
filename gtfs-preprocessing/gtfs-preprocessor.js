@@ -1,13 +1,13 @@
 const fs = require("fs");
-const readline = require("readline");
 const path = require("path");
 const { readStops } = require("./read-stops");
-const { removeQuotes } = require("./remove-quotes");
 const { findTimeZone, getUnixTime } = require("timezone-support");
 const { coordinateDistance } = require("./coordinate-distance");
+const csv = require("csv-parser");
+const stripBom = require("strip-bom-stream");
 
-const maxDistance = 0.2;
-const walkingSpeed = 1.4;
+const maxDistance = 0.6;
+const walkingSpeed = 3.6;
 
 let timezone = findTimeZone("Europe/Vienna");
 
@@ -25,32 +25,25 @@ function groupBy(xs, key) {
 
 async function readTrips(gtfsPath) {
     const tripsStream = fs.createReadStream(path.join(gtfsPath, "trips.txt"));
-    const tripsRl = readline.createInterface({
-        input: tripsStream,
-        crlfDelay: Infinity
+    return new Promise(resolve => {
+        let trips = {};
+        tripsStream
+            .pipe(stripBom())
+            .pipe(csv())
+            .on("data", (data) => {
+                trips[data.trip_id] = {
+                    tripId: data.trip_id,
+                    routeId: data.route_id,
+                    serviceId: data.service_id,
+                    direction_id: parseInt(data.direction_id),
+                    tripHeadsign: data.trip_headsign,
+                };
+            })
+            .on('end', () => {
+                resolve(trips);
+            });
     });
-
-    let first = true;
-    let trips = {};
-    for await (const line of tripsRl) {
-        if (first) {
-            if (line.trim() !== "route_id,service_id,trip_id,shape_id,trip_headsign,trip_short_name,direction_id,block_id") {
-                throw new Error("Invalid trips.txt file");
-            }
-            first = false;
-            continue;
-        }
-        let [routeId, serviceId, tripId, , , , direction_id] = line.split(",");
-        trips[tripId] = {
-            tripId: removeQuotes(tripId),
-            routeId: removeQuotes(routeId),
-            serviceId: removeQuotes(serviceId),
-            direction_id: parseInt(removeQuotes(direction_id)),
-        };
-    }
-    return trips;
 }
-
 
 function parseDate(date) {
     let year = date.substring(0, 4);
@@ -66,67 +59,77 @@ function parseDate(date) {
     }, timezone) / 1000;
 }
 
-async function readCalendar(gtfsPath, outputPath) {
+async function readCalendar(gtfsPath) {
     const calendarStream = fs.createReadStream(path.join(gtfsPath, "calendar.txt"));
-    const calendarRl = readline.createInterface({
-        input: calendarStream,
-        crlfDelay: Infinity
+    return new Promise(resolve => {
+        let calendar = [];
+        calendarStream
+            .pipe(stripBom())
+            .pipe(csv())
+            .on("data", (data) => {
+                let weekdays = 0;
+                weekdays += data.monday === '1' ? 1 : 0;
+                weekdays += data.tuesday === '1' ? 2 : 0;
+                weekdays += data.wednesday === '1' ? 4 : 0;
+                weekdays += data.thursday === '1' ? 8 : 0;
+                weekdays += data.friday === '1' ? 16 : 0;
+                weekdays += data.saturday === '1' ? 32 : 0;
+                weekdays += data.sunday === '1' ? 64 : 0;
+                calendar.push({
+                    serviceId: data.service_id,
+                    weekdays: weekdays,
+                    startDate: parseDate(data.start_date),
+                    endDate: parseDate(data.end_date) + 24 * 3600
+                });
+            })
+            .on('end', () => {
+                resolve(calendar.sort((a, b) => a.serviceId.localeCompare(b.serviceId)));
+            });
     });
-
-    let first = true;
-    let calendar = [];
-    for await (const line of calendarRl) {
-        if (first) {
-            if (line.trim() !== "service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date") {
-                throw new Error("Invalid calendar.txt file");
-            }
-            first = false;
-            continue;
-        }
-        let [serviceId, monday, tuesday, wednesday, thursday, friday, saturday, sunday, startDate, endDate] = line.split(",");
-        let weekdays = 0;
-        weekdays += monday === '"1"' ? 1 : 0;
-        weekdays += tuesday === '"1"' ? 2 : 0;
-        weekdays += wednesday === '"1"' ? 4 : 0;
-        weekdays += thursday === '"1"' ? 8 : 0;
-        weekdays += friday === '"1"' ? 16 : 0;
-        weekdays += saturday === '"1"' ? 32 : 0;
-        weekdays += sunday === '"1"' ? 64 : 0;
-        calendar.push({
-            serviceId: removeQuotes(serviceId),
-            weekdays: weekdays,
-            startDate: parseDate(removeQuotes(startDate)),
-            endDate: parseDate(removeQuotes(endDate)) + 24 * 3600
-        });
-    }
-    return calendar.sort((a, b) => a.serviceId.localeCompare(b.serviceId));
 }
 
 async function readRoutes(gtfsPath) {
     const routesStream = fs.createReadStream(path.join(gtfsPath, "routes.txt"));
-    const routesRl = readline.createInterface({
-        input: routesStream,
-        crlfDelay: Infinity
+    return new Promise(resolve => {
+        let routes = {};
+        routesStream
+            .pipe(stripBom())
+            .pipe(csv())
+            .on("data", (data) => {
+                routes[data.route_id] = {
+                    routeId: data.route_id,
+                    routeShortName: data.route_short_name,
+                    routeLongName: data.route_long_name,
+                    routeType: parseInt(data.route_type),
+                    routeColor: data.route_color
+                };
+            })
+            .on('end', () => {
+                resolve(routes);
+            });
     });
+}
 
-    let first = true;
-    let routes = {};
-    for await (const line of routesRl) {
-        if (first) {
-            if (line.trim() !== "route_id,agency_id,route_short_name,route_long_name,route_type,route_color,route_text_color") {
-                throw new Error("Invalid routes.txt file");
-            }
-            first = false;
-            continue;
-        }
-        let [routeId, , routeShortName, routeLongName] = line.split(",");
-        routes[removeQuotes(routeId)] = {
-            routeId: removeQuotes(routeId),
-            routeShortName: removeQuotes(routeShortName),
-            routeLongName: removeQuotes(routeLongName)
-        };
-    }
-    return routes;
+async function enhanceWithStopTimes(gtfsPath, trips, stopList) {
+    const stopTimesStream = fs.createReadStream(path.join(gtfsPath, "stop_times.txt"));
+    return new Promise(resolve => {
+        stopTimesStream
+            .pipe(stripBom())
+            .pipe(csv())
+            .on("data", (data) => {
+                // "trip_id,arrival_time,departure_time,stop_id,stop_sequence,pickup_type,drop_off_type,shape_dist_traveled")
+                trips[data.trip_id].stopTimes = trips[data.trip_id].stopTimes || [];
+                trips[data.trip_id].stopTimes.push({
+                    arrivalTime: parseTime(data.arrival_time),
+                    departureTime: parseTime(data.departure_time),
+                    stopSequence: parseInt(data.stop_sequence),
+                    stopId: stopList.indexOf(data.stop_id)
+                });
+            })
+            .on('end', () => {
+                resolve(trips);
+            });
+    });
 }
 
 function parseTime(time) {
@@ -156,40 +159,9 @@ async function process(gtfsPath, outputPath) {
     console.log(`Found ${stops.length} stops`);
     console.log("Reading calendar");
     let calendar = await readCalendar(gtfsPath);
-    console.log(`Found ${calendar.length} serviceIds. Writing calendar`);
-    let calendarOutput = await fs.promises.open(path.join(outputPath, "calendar.bin.bmp"), "w");
-    for (let c of calendar) {
-        let calendarArray = new Uint32Array([c.startDate, c.endDate, c.weekdays]);
-        calendarOutput.write(new Uint8Array(calendarArray.buffer));
-    }
-    await calendarOutput.close();
-    const stopTimesStream = fs.createReadStream(path.join(gtfsPath, "stop_times.txt"));
-    const stopTimesRl = readline.createInterface({
-        input: stopTimesStream,
-        crlfDelay: Infinity
-    });
-    let first = true;
-    for await (const line of stopTimesRl) {
-        if (first) {
-            if (line.trim() !== "trip_id,arrival_time,departure_time,stop_id,stop_sequence,pickup_type,drop_off_type,shape_dist_traveled") {
-                console.log(line);
-                throw new Error("Invalid stop_times.txt file");
-            }
-            first = false;
-            continue;
-        }
-        let [tripId, arrivalTime, departureTime, stop_id, stopSequence] = line.split(",");
-        if (!trips[tripId]) {
-            throw new Error("Invalid trip_id");
-        }
-        trips[tripId].stopTimes = trips[tripId].stopTimes || [];
-        trips[tripId].stopTimes.push({
-            arrivalTime: parseTime(removeQuotes(arrivalTime)),
-            departureTime: parseTime(removeQuotes(departureTime)),
-            stopSequence: parseInt(removeQuotes(stopSequence)),
-            stopId: stopList.indexOf(removeQuotes(stop_id))
-        });
-    }
+    console.log(`Found ${calendar.length} serviceIds.`);
+    let routesWithNames = await readRoutes(gtfsPath);
+    trips = await enhanceWithStopTimes(gtfsPath, trips, stopList);
     console.log("Ordering stoptimes in trips");
     for (let tripId in trips) {
         trips[tripId].stopTimes.sort((a, b) => a.stopSequence - b.stopSequence);
@@ -285,22 +257,54 @@ async function process(gtfsPath, outputPath) {
         let transfersArray = new Uint16Array(transfers);
         await transfersOutput.write(new Uint8Array(transfersArray.buffer));
 
-        let stopArray = new Uint16Array([stopServingRoutesIdx, routeIds.length, transfersIdx, transfers.length / 2]);
+        let stopArray = new Uint32Array([stopServingRoutesIdx, transfersIdx]);
         await stopsOutput.write(new Uint8Array(stopArray.buffer));
+        await stopsOutput.write(new Uint8Array(new Uint16Array([routeIds.length, transfers.length / 2]).buffer));
         stopServingRoutesIdx += routeIds.length;
         transfersIdx += transfers.length / 2;
     }
     await stopServingRoutesOutput.close();
     await stopsOutput.close();
     await transfersOutput.close();
-
-    let routesWithNames = await readRoutes(gtfsPath);
-    await fs.promises.writeFile(path.join(outputPath, "routenames.txt"), tripsByRouteOrdered.map(([routeId,]) => {
+    console.log("Writing calendar");
+    let calendarArray = new Uint32Array(calendar.flatMap(c => [c.startDate, c.endDate, c.weekdays]));
+    let calendarOutput = await fs.promises.open(path.join(outputPath, "calendar.bin.bmp"), "w");
+    await calendarOutput.write(new Uint8Array(calendarArray.buffer));
+    await calendarOutput.close();
+    await fs.promises.writeFile(path.join(outputPath, "routes.json"), JSON.stringify(tripsByRouteOrdered.map(([routeId, trips]) => {
         let route = routesWithNames[originalIdMap[routeId]];
-        return `${route.routeShortName} ${route.routeLongName}`;
-    }).join("\n"));
+        let arr = [route.routeShortName, trips[0].tripHeadsign, route.routeType];
+        if (route.routeColor) {
+            arr.push(route.routeColor);
+        }
+        return arr;
+    })));
     await fs.promises.writeFile(path.join(outputPath, "stopnames.txt"), stops.map(s => s.name).join("\n"));
+    await concatResults(outputPath, stopTimeIndex, tripsByRouteOrdered.length, stopIndex, stopServingRoutesIdx,
+        transfersIdx, stops.length, calendar.length, tripCalendarsIdx);
+}
 
+async function concatResults(outputPath, numberOfStoptimes, numberOfRoutes, numberOfRouteStops,
+    numberOfStopRoutes, numberOfTransfers, numberOfStops,
+    numberOfCalendars, numberOfTripCalendars) {
+    let destination = await fs.promises.open(path.join(outputPath, "raptor_data.bin.bmp"), "w");
+    let files = ["stoptimes.bin.bmp",
+        "routes.bin.bmp",
+        "transfers.bin.bmp",
+        "stops.bin.bmp",
+        "calendar.bin.bmp",
+        "route_stops.bin.bmp",
+        "stop_serving_routes.bin.bmp",
+        "trip_calendars.bin.bmp"];
+    let sizes = [numberOfStoptimes, numberOfRoutes, numberOfTransfers,
+        numberOfStops, numberOfCalendars, numberOfRouteStops,
+        numberOfStopRoutes, numberOfTripCalendars];
+    destination.write(new Uint8Array(new Uint32Array(sizes).buffer));
+    for (let file of files) {
+        let binary = await fs.promises.readFile(path.join(outputPath, file));
+        destination.write(new Uint8Array(binary));
+    }
+    destination.close();
 }
 
 exports.preprocessGtfs = process;

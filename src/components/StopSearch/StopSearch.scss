@@ -1,4 +1,5 @@
 @use "../../utils.scss";
+@use "../../variables.scss";
 stop-search {
     display: block;
     position: relative;
@@ -8,21 +9,17 @@ stop-search {
     }
     background-color: inherit;
     &:first-of-type {
-        --top-radius : var(--border-radius);
-        border-top-left-radius: var(--border-radius);
-        border-top-right-radius: var(--border-radius);
+        --top-radius : #{variables.$card-border-radius};
+        border-top-left-radius: variables.$card-border-radius;
+        border-top-right-radius: variables.$card-border-radius;
     }
     &:not(:first-of-type) {
         --top-radius : 0;
     }
     &:last-of-type {
-        border-bottom-left-radius: var(--border-radius);
-        border-bottom-right-radius: var(--border-radius);
+        border-bottom-left-radius: variables.$card-border-radius;
+        border-bottom-right-radius: variables.$card-border-radius;
     }
-}
-
-@mixin default-shadow {
-    box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
 }
 
 .stop-search {    
@@ -49,12 +46,12 @@ stop-search {
         width: 100%;
         border-top-left-radius: var(--top-radius);
         border-top-right-radius: var(--top-radius);
-        border-bottom-left-radius: var(--border-radius);
-        border-bottom-right-radius: var(--border-radius);
+        border-bottom-left-radius: variables.$card-border-radius;
+        border-bottom-right-radius: variables.$card-border-radius;
         position: absolute;
         min-height: 20em;
         top:0;
-        @include default-shadow();
+        @include utils.default-shadow();
         z-index: 1;
     }
 

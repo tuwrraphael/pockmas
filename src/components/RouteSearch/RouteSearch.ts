@@ -8,6 +8,7 @@ import { StopSearch } from "../StopSearch/StopSearch";
 import { abortableEventListener } from "../../utils/abortableEventListener";
 import { DepartureStopTermChanged } from "../../state/actions/DepartureStopTermChanged";
 import { ArrivalStopTermChanged } from "../../state/actions/ArrivalStopTermChanged";
+import { StopsSelected } from "../../state/actions/StopsSelected";
 
 export class RouteSearch extends HTMLElement {
     private rendered: boolean;
@@ -15,11 +16,14 @@ export class RouteSearch extends HTMLElement {
     private abortController: AbortController;
     private departureStopSearch: StopSearch;
     private arrivalStopSearch: StopSearch;
+    private selectedDepartureStop: number;
+    private selectedArrivalStop: number;
 
     constructor() {
         super();
         this.store = Store.getInstance();
         this.store.postAction(new InitializeStopSearch());
+
     }
 
     connectedCallback() {
@@ -30,14 +34,32 @@ export class RouteSearch extends HTMLElement {
             this.arrivalStopSearch = this.querySelector("#arrival-stop-search");
             this.rendered = true;
         }
-        this.store.subscribe(s => this.update(s), this.abortController.signal);
+        this.store.subscribe((s, c) => this.update(s, c), this.abortController.signal);
         abortableEventListener(this.departureStopSearch, "input", () => this.store.postAction(new DepartureStopTermChanged(this.departureStopSearch.searchTerm)), this.abortController.signal);
         abortableEventListener(this.arrivalStopSearch, "input", () => this.store.postAction(new ArrivalStopTermChanged(this.arrivalStopSearch.searchTerm)), this.abortController.signal);
+        abortableEventListener(this.departureStopSearch, "stop-selected", (e: CustomEvent) => {
+            this.selectedDepartureStop = e.detail;
+            this.onStopsSelected();
+        }, this.abortController.signal);
+        abortableEventListener(this.arrivalStopSearch, "stop-selected", (e: CustomEvent) => {
+            this.selectedArrivalStop = e.detail;
+            this.onStopsSelected();
+        }, this.abortController.signal);
     }
 
-    private update(s: State) {
-        this.departureStopSearch.setResults(s.departureStopResults);
-        this.arrivalStopSearch.setResults(s.arrivalStopResults);
+    private update(s: State, changes: (keyof State)[]) {
+        if (changes.includes("departureStopResults")) {
+            this.departureStopSearch.setResults(s.departureStopResults);
+        }
+        if (changes.includes("arrivalStopResults")) {
+            this.arrivalStopSearch.setResults(s.arrivalStopResults);
+        }
+    }
+
+    onStopsSelected() {
+        if (null != this.selectedDepartureStop && null != this.selectedArrivalStop) {
+            this.store.postAction(new StopsSelected(this.selectedDepartureStop, this.selectedArrivalStop));
+        }
     }
 
     disconnectedCallback() {

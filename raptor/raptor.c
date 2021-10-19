@@ -5,55 +5,98 @@ static input_data_t input_data;
 static results_t *results = NULL;
 static request_t *request = NULL;
 
-stop_time_t *get_stoptimes_memory(uint32_t number_of_stoptimes)
+void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, uint32_t number_of_transfers,
+					  uint16_t number_of_stops, uint16_t number_of_calendars, uint32_t number_of_route_stops,
+					  uint32_t number_of_stop_routes, uint32_t number_of_trip_calendars)
 {
-	input_data.stop_times = malloc(sizeof(stop_time_t) * number_of_stoptimes);
-	return input_data.stop_times;
-}
+	size_t number_of_bytes = sizeof(stop_time_t) * number_of_stoptimes +
+							 sizeof(route_t) * number_of_routes +
+							 sizeof(transfer_t) * number_of_transfers +
+							 sizeof(stop_t) * number_of_stops +
+							 sizeof(calendar_t) * number_of_calendars +
+							 sizeof(route_stop_t) * number_of_route_stops +
+							 sizeof(stop_serving_route_t) * number_of_stop_routes +
+							 sizeof(trip_calendar_t) * number_of_trip_calendars;
 
-route_t *get_routes_memory(uint16_t number_of_routes)
-{
-	input_data.routes = malloc(sizeof(route_t) * number_of_routes);
+	unsigned char *memory = malloc(number_of_bytes);
+	unsigned char *start = memory;
+
+	input_data.stop_times = (void *)memory;
+	memory += sizeof(stop_time_t) * number_of_stoptimes;
+
+	input_data.routes = (void *)(memory);
 	input_data.route_count = number_of_routes;
-	return input_data.routes;
-}
+	memory += sizeof(route_t) * number_of_routes;
 
-route_stop_t *get_route_stops_memory(uint32_t number_of_route_stops)
-{
-	input_data.route_stops = malloc(sizeof(route_stop_t) * number_of_route_stops);
-	return input_data.route_stops;
-}
+	input_data.transfers = (void *)(memory);
+	memory += sizeof(transfer_t) * number_of_transfers;
 
-stop_serving_route_t *get_serving_routes_memory(uint32_t number_of_stop_routes)
-{
-	input_data.stop_serving_routes = malloc(sizeof(stop_serving_route_t) * number_of_stop_routes);
-	return input_data.stop_serving_routes;
-}
-
-transfer_t *get_transfers_memory(uint32_t number_of_transfers)
-{
-	input_data.transfers = malloc(sizeof(transfer_t) * number_of_transfers);
-	return input_data.transfers;
-}
-
-stop_t *get_stops_memory(uint16_t number_of_stops)
-{
+	input_data.stops = (void *)(memory);
 	input_data.stop_count_total = number_of_stops;
-	input_data.stops = malloc(sizeof(stop_t) * number_of_stops);
-	return input_data.stops;
+	memory += sizeof(stop_t) * number_of_stops;
+
+	input_data.calendars = (void *)(memory);
+	memory += sizeof(calendar_t) * number_of_calendars;
+
+	input_data.route_stops = (void *)(memory);
+	memory += sizeof(route_stop_t) * number_of_route_stops;
+
+	input_data.stop_serving_routes = (void *)(memory);
+	memory += sizeof(stop_serving_route_t) * number_of_stop_routes;
+
+	input_data.trip_calendars = (void *)(memory);
+	return start;
 }
 
-calendar_t *get_calendars_memory(uint16_t number_of_calendars)
-{
-	input_data.calendars = malloc(sizeof(calendar_t) * number_of_calendars);
-	return input_data.calendars;
-}
+ stop_time_t *get_stoptimes_memory(uint32_t number_of_stoptimes)
+ {
+ 	input_data.stop_times = malloc(sizeof(stop_time_t) * number_of_stoptimes);
+ 	return input_data.stop_times;
+ }
 
-trip_calendar_t *get_trip_calendars_memory(uint32_t number_of_trip_calendars)
-{
-	input_data.trip_calendars = malloc(sizeof(trip_calendar_t) * number_of_trip_calendars);
-	return input_data.trip_calendars;
-}
+ route_t *get_routes_memory(uint16_t number_of_routes)
+ {
+ 	input_data.routes = malloc(sizeof(route_t) * number_of_routes);
+ 	input_data.route_count = number_of_routes;
+ 	return input_data.routes;
+ }
+
+ route_stop_t *get_route_stops_memory(uint32_t number_of_route_stops)
+ {
+ 	input_data.route_stops = malloc(sizeof(route_stop_t) * number_of_route_stops);
+ 	return input_data.route_stops;
+ }
+
+ stop_serving_route_t *get_serving_routes_memory(uint32_t number_of_stop_routes)
+ {
+ 	input_data.stop_serving_routes = malloc(sizeof(stop_serving_route_t) * number_of_stop_routes);
+ 	return input_data.stop_serving_routes;
+ }
+
+ transfer_t *get_transfers_memory(uint32_t number_of_transfers)
+ {
+ 	input_data.transfers = malloc(sizeof(transfer_t) * number_of_transfers);
+ 	return input_data.transfers;
+ }
+
+ stop_t *get_stops_memory(uint16_t number_of_stops)
+ {
+ 	input_data.stop_count_total = number_of_stops;
+ 	input_data.stops = malloc(sizeof(stop_t) * number_of_stops);
+ 	return input_data.stops;
+ }
+
+ calendar_t *get_calendars_memory(uint16_t number_of_calendars)
+ {
+ 	input_data.calendars = malloc(sizeof(calendar_t) * number_of_calendars);
+ 	return input_data.calendars;
+ }
+
+ trip_calendar_t *get_trip_calendars_memory(uint32_t number_of_trip_calendars)
+ {
+ 	input_data.trip_calendars = malloc(sizeof(trip_calendar_t) * number_of_trip_calendars);
+ 	return input_data.trip_calendars;
+ }
 
 static boolean_t is_before(stop_id_t stop_a, stop_id_t stop_b, route_id_t route_id)
 {
@@ -77,7 +120,7 @@ static timeofday_t min_time(timeofday_t a, timeofday_t b)
 	return a < b ? a : b;
 }
 
-int32_t earliest_trip(route_id_t route_id, uint32_t stop_index, timeofday_t after, datetime_t date, uint8_t weekday)
+static int32_t earliest_trip(route_id_t route_id, uint32_t stop_index, timeofday_t after, datetime_t date, uint8_t weekday)
 {
 	int earliest_trip = 0;
 	route_t *route = &input_data.routes[route_id];
@@ -303,7 +346,7 @@ results_t *raptor()
 				continue;
 			}
 			stop_t *stop = &input_data.stops[stop_id];
-			for (uint16_t transferIndex = stop->transfers_idx; transferIndex < stop->transfers_idx + stop->transfers_count; transferIndex++)
+			for (uint32_t transferIndex = stop->transfers_idx; transferIndex < stop->transfers_idx + stop->transfers_count; transferIndex++)
 			{
 				transfer_t *transfer = &input_data.transfers[transferIndex];
 				timeofday_t arrivalWithTransfer = earliest_known_arrival_times_with_trips[round][stop_id] + transfer->walking_time;

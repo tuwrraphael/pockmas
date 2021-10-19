@@ -1,8 +1,10 @@
+@use "../../variables.scss";
 route-search {
-    border-radius: var(--border-radius);
+    border-radius: variables.$card-border-radius;
     width: 100%;
-    max-width: 40em;
+    max-width: variables.$max-width;
     overflow: visible;
+    display: block;
 }
 
 .route-search {

@@ -49,11 +49,16 @@ export class StopSearch extends HTMLElement {
 
     private onSearchResultClick(i: number) {
         this.selectedResultLabel.innerText = this.searchResults[i].getAttribute("label");
+        this.dispatchEvent(new CustomEvent("stop-selected", { detail: i }));
         this.popup.hide();
     }
 
     attributeChangedCallback() {
         this.updateAttributes();
+    }
+
+    static get observedAttributes() {
+        return [LabelAttribute];
     }
 
     private updateAttributes() {

@@ -10,7 +10,9 @@ $focus : color.adjust($primary, $lightness: 50%);
     --border : #e0e0e0;
     --hover : #f0f0f0;
     --focus: #{$focus};
-    --border-radius : 0.4em;
+
+    --timeline--time:#f0f0f0;
+    --timeline--walking:#999999;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,5 +22,7 @@ $focus : color.adjust($primary, $lightness: 50%);
         --border : #999999;
         --hover : #666666;
         --focus: #667667;
+
+        --timeline--time:#666666;
     }
 }

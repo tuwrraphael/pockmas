@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const csv = require("csv-parser");
+const stripBom = require("strip-bom-stream");
 
 function parseTime(time) {
     let [hour, minute, second] = time.split(":");
@@ -11,7 +12,9 @@ async function readStopTimes(gtfsPath) {
     const stopsStream = fs.createReadStream(path.join(gtfsPath, "stop_times.txt"));
     return new Promise(resolve => {
         const stoptimes = [];
-        stopsStream.pipe(csv())
+        stopsStream
+            .pipe(stripBom())
+            .pipe(csv())
             .on("data", (data) => stoptimes.push({
                 arrivalTime: parseTime(data.arrival_time),
                 departureTime: parseTime(data.departure_time),

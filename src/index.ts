@@ -1,5 +1,8 @@
 import "./styles.scss";
 import "./components/RouteSearch/RouteSearch";
+import "./components/RouteResults/RouteResults";
+import { Store } from "./state/Store";
+import { InitializeRouting } from "./state/actions/InitializeRouting";
 
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
@@ -9,3 +12,6 @@ if ("serviceWorker" in navigator) {
         });
     });
 }
+
+let store = Store.getInstance();
+// store.postAction(new InitializeRouting());

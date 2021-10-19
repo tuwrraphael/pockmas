@@ -247,20 +247,4 @@ async function createSearchIndex(gtfsPath, outputPath) {
     await fs.promises.writeFile(path.join(outputPath, "stopgroup-index.json"), JSON.stringify(stopGroupIndex));
 }
 
-// async function concatResults() {
-
-//     let files = ["stop_search_trie.bin", "stop_search_trie_children.bin", "stop_search_trie_children_index.bin", "stop_search_trie_results.bin"];
-//     let sizes = [];
-//     for (let file of files) {
-//         let stat = await fs.promises.stat(file);
-//         sizes.push(stat.size);
-//     }
-//     destination.write(new Uint8Array(new Uint32Array(sizes).buffer));
-//     for (let file of files) {
-//         let binary = await fs.promises.readFile(file);
-//         destination.write(new Uint8Array(binary));
-//     }
-//     destination.close();
-// }
-
 exports.createSearchIndex = createSearchIndex;

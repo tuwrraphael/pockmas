@@ -17,5 +17,18 @@
                 "${workspaceFolder}/**/*.js"
             ]
         }
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "Preprocess GTFS",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}\\gtfs-preprocessing\\index.js",
+            "args": ["gtfs"],
+            "outFiles": [
+                "${workspaceFolder}/**/*.js"
+            ]
+        }
     ]
 }

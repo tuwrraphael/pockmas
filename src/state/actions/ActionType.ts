@@ -1,5 +1,7 @@
 export const enum ActionType {
     InitializeStopSearch,
     DepartureStopTermChanged,
-    ArrivalStopTermChanged
+    ArrivalStopTermChanged,
+    InitializeRouting,
+    StopsSelected
 }

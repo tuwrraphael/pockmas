@@ -45,24 +45,27 @@ typedef struct
 
 typedef struct
 {
-	uint16_t serving_routes_idx;
+	uint32_t serving_routes_idx;
+	uint32_t transfers_idx;
 	uint16_t serving_routes_count;
-	uint16_t transfers_idx;
 	uint16_t transfers_count;
 } stop_t;
 
-typedef struct {
+typedef struct
+{
 	stop_id_t to;
 	uint16_t walking_time;
 } transfer_t;
 
-typedef struct {
+typedef struct
+{
 	datetime_t start;
 	datetime_t end;
 	weekdays_t weekdays;
 } calendar_t;
 
-typedef struct {
+typedef struct
+{
 	uint16_t calendar_id;
 } trip_calendar_t;
 
@@ -86,13 +89,15 @@ typedef struct
 	stop_id_t stop_id;
 } queue_t;
 
-typedef enum {
+typedef enum
+{
 	BACKTRACKING_NONE = 0,
 	BACKTRACKING_TRANSFER = 1,
 	BACKTRACKING_ROUTE = 2
 } backtracking_type_t;
 
-typedef struct {
+typedef struct
+{
 	route_id_t route;
 	uint32_t trip;
 	uint32_t route_stopindex;
@@ -105,7 +110,8 @@ typedef uint32_t leg_type_t;
 #define LEG_TYPE_WALKING (0)
 #define LEG_TYPE_TRANSIT (1)
 
-typedef struct {
+typedef struct
+{
 	leg_type_t type;
 	stop_id_t origin_stop;
 	stop_id_t destination_stop;
@@ -115,12 +121,14 @@ typedef struct {
 	uint32_t trip;
 } leg_t;
 
-typedef struct {
+typedef struct
+{
 	uint32_t num_legs;
 	leg_t legs[MAX_LEGS];
 } itinerary_t;
 
-typedef struct {
+typedef struct
+{
 	uint32_t num_itineraries;
 	itinerary_t itineraries[MAX_ITINERARYS];
 } results_t;
@@ -129,14 +137,15 @@ typedef uint8_t time_type_t;
 #define TIME_TYPE_DEPARTURE (0)
 #define TIME_TYPE_ARRIVAL (1)
 
-typedef struct {
+typedef struct
+{
 	time_type_t type;
 	uint8_t num_departure_stations;
 	uint8_t num_arrival_stations;
 	uint8_t weekday;
 	stop_id_t departure_stations[MAX_REQUEST_STATIONS];
 	stop_id_t arrival_stations[MAX_REQUEST_STATIONS];
-	timeofday_t times[MAX_REQUEST_STATIONS];	
+	timeofday_t times[MAX_REQUEST_STATIONS];
 	datetime_t date;
 } request_t;
 
@@ -145,29 +154,34 @@ typedef uint8_t marking_t;
 #define MARKED (1)
 #define UNMARKED (0)
 
-
 #define TIME_INFINITY (INT32_MAX)
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
-	stop_time_t* get_stoptimes_memory(uint32_t number_of_stoptimes);
 
-	route_t* get_routes_memory(uint16_t number_of_routes);
+	void* raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, uint32_t number_of_transfers,
+		uint16_t number_of_stops, uint16_t number_of_calendars, uint32_t number_of_route_stops,
+		uint32_t number_of_stop_routes, uint32_t number_of_trip_calendars);
 
-	route_stop_t* get_route_stops_memory(uint32_t number_of_route_stops);
+	 stop_time_t* get_stoptimes_memory(uint32_t number_of_stoptimes);
 
-	stop_serving_route_t* get_serving_routes_memory(uint32_t number_of_stop_routes);
+	 route_t* get_routes_memory(uint16_t number_of_routes);
 
-	stop_t* get_stops_memory(uint16_t number_of_stops);
+	 route_stop_t* get_route_stops_memory(uint32_t number_of_route_stops);
 
-	transfer_t* get_transfers_memory(uint32_t number_of_transfers);
+	 stop_serving_route_t* get_serving_routes_memory(uint32_t number_of_stop_routes);
 
-	calendar_t* get_calendars_memory(uint16_t number_of_calendars);
+	 stop_t* get_stops_memory(uint16_t number_of_stops);
 
-	trip_calendar_t* get_trip_calendars_memory(uint32_t number_of_trip_calendars);
+	 transfer_t* get_transfers_memory(uint32_t number_of_transfers);
 
-	request_t *get_request_memory();
+	 calendar_t* get_calendars_memory(uint16_t number_of_calendars);
+
+	 trip_calendar_t* get_trip_calendars_memory(uint32_t number_of_trip_calendars);
+
+	request_t* get_request_memory();
 
 	results_t* raptor();
 

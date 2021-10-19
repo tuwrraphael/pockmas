@@ -39,6 +39,7 @@ stopsearch_result_t *stopsearch_step(uint8_t letter)
 				current_node = &stopsearch_index.nodes[stopsearch_index.children_index[children_index].index];
 				result->num_results = current_node->num_results;
 				result->results = &stopsearch_index.results[current_node->results_index];
+				break;
 			}
 			else if (stopsearch_index.children_lookup[children_index].letter > letter)
 			{

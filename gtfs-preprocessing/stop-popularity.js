@@ -2,13 +2,16 @@ const { readStops } = require("./read-stops.js");
 const fs = require("fs");
 const csv = require("csv-parser");
 const path = require("path");
+const stripBom = require("strip-bom-stream");
 
 async function createStopPopularity(gtfsPath, outputPath) {
     const stops = await readStops(gtfsPath);
     const stopPopularity = {};
     const stopsStream = fs.createReadStream(path.join(gtfsPath, "stop_times.txt"));
     return new Promise(resolve => {
-        stopsStream.pipe(csv())
+        stopsStream
+        .pipe(stripBom())
+        .pipe(csv())
             .on("data", (data) => {
                 stopPopularity[data.stop_id] = (stopPopularity[data.stop_id] || 0) + 1;
             })
