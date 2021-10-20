@@ -11,6 +11,34 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install osmium-tool
+      run: apt-get install -y osmium-tool
+    - name: Download austria-latest.osm.pbf
+      run: wget -O ors/austria-latest.osm.pbf https://download.geofabrik.de/europe/austria-latest.osm.pbf
+    - name: Extract vienna.osm.pbf
+      run: osmium extract --strategy complete_ways --bbox 16.038803,47.992856,16.564345,48.346969 ors/austria-latest.osm.pbf -o ors/vienna.osm.pbf
+    - name: Start ORS
+      run: |
+        mkdir -p ors/elevation_cache ors/graphs
+        docker run -dt -u "${UID}:${GID}" -p 8080:8080 \
+        --name ors-app \
+        -v $PWD/ors/graphs:/ors-core/data/graphs \
+        -v $PWD/ors/elevation_cache:/ors-core/data/elevation_cache \
+        -v $PWD/ors/conf:/ors-conf \
+        -v $PWD/ors/vienna.osm.pbf:/ors-core/data/osm_file.pbf \
+        -e "JAVA_OPTS=-Djava.awt.headless=true -server -XX:TargetSurvivorRatio=75 -XX:SurvivorRatio=64 -XX:MaxTenuringThreshold=3 -XX:+UseG1GC -XX:+ScavengeBeforeFullGC -XX:ParallelGCThreads=4 -Xms1g -Xmx2g" \
+        -e "CATALINA_OPTS=-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9001 -Dcom.sun.management.jmxremote.rmi.port=9001 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=localhost" \
+        openrouteservice/openrouteservice:latest
+    - name: Download GTFS
+      working-directory: ./gtfs-preprocessing
+      run: chmod +x ./download.sh && ./download.sh
+    - name: Use Node.js 14.x
+      uses: actions/setup-node@v1
+      with:
+        node-version: 14.x
+    - run: npm ci
+    - name: Generate transfers.txt
+      run: npm run preprocess transfers
     - name: Build raptor wasm module
       working-directory: ./raptor
       run: make
@@ -25,14 +53,6 @@ jobs:
         LD: wasm-ld-10
         CC: clang-10
         MODE: PRODUCTION
-    - name: Use Node.js 14.x
-      uses: actions/setup-node@v1
-      with:
-        node-version: 14.x
-    - run: npm ci
-    - name: Download GTFS
-      working-directory: ./gtfs-preprocessing
-      run: chmod +x ./download.sh && ./download.sh
     - name: Preprocess GTFS
       run: npm run preprocess
     - name: Build webapp

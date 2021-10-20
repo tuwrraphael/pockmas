@@ -11,12 +11,12 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}\\gtfs-preprocessing\\index.js",
+            "program": "${workspaceFolder}/gtfs-preprocessing/index.js",
             "args": ["search-index"],
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
             ]
-        }
+        },
         {
             "type": "pwa-node",
             "request": "launch",
@@ -24,8 +24,21 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}\\gtfs-preprocessing\\index.js",
+            "program": "${workspaceFolder}/gtfs-preprocessing/index.js",
             "args": ["gtfs"],
+            "outFiles": [
+                "${workspaceFolder}/**/*.js"
+            ]
+        },
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "Transfers",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/gtfs-preprocessing/index.js",
+            "args": ["transfers"],
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
             ]
