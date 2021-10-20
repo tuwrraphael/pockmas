@@ -12,19 +12,26 @@ let maxSeconds = maxMinutes * 60;
 
 async function getTransfers(gtfsPath, outputPath, orsBaseUrl) {
     console.log("Wait until ORS healthy");
+    let healthy = false
     for (let i = 0; i < 10; i++) {
         try {
-            let healthRes = await fetch(orsBaseUrl + "v2/health");
+            let healthRes = await fetch(orsBaseUrl + "/v2/health");
             let healthJson = await healthRes.json();
             if (healthJson.status !== "ready") {
                 console.log(healthJson.status);
                 await new Promise(resolve => setTimeout(resolve, 5000));
+            } else {
+                healthy = true;
+                break;
             }
         }
         catch (e) {
             console.log(e);
             await new Promise(resolve => setTimeout(resolve, 5000));
         }
+    }
+    if (!healthy) {
+        throw new Error("ORS not healthy");
     }
     console.log("ORS healthy. Reading stops.");
     let stops = await readStops(gtfsPath);
