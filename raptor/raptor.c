@@ -260,7 +260,7 @@ results_t *raptor()
 			}
 			stop_t *stop = &input_data.stops[stop_id];
 			// for each route serving this stop
-			for (uint16_t j = stop->serving_routes_idx; j < stop->serving_routes_count + stop->serving_routes_idx; j++)
+			for (uint32_t j = stop->serving_routes_idx; j < stop->serving_routes_count + stop->serving_routes_idx; j++)
 			{
 				route_id_t route_id = input_data.stop_serving_routes[j].route_id;
 				if (queue[route_id].set == TRUE)
