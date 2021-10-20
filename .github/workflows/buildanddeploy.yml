@@ -17,12 +17,14 @@ jobs:
       env:
         LD: wasm-ld-10
         CC: clang-10
+        MODE: PRODUCTION
     - name: Build stopsearch wasm module
       working-directory: ./stopsearch
       run: make
       env:
         LD: wasm-ld-10
         CC: clang-10
+        MODE: PRODUCTION
     - name: Use Node.js 14.x
       uses: actions/setup-node@v1
       with:

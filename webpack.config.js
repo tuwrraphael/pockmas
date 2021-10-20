@@ -133,8 +133,11 @@ module.exports = (env, argv) => {
         },
         plugins: [
             new HtmlWebpackPlugin({
-                base: base, title: "pockmas",
-                template: 'src/index.html'
+                base: base,
+                title: "pockmas",
+                template: 'src/index.html',
+                scriptLoading: "blocking",
+                inject: false
             }),
             new LicenseCheckerWebpackPlugin({
                 outputFilename: "licenses.txt",

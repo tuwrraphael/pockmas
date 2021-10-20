@@ -8,9 +8,12 @@ export interface Leg {
     arrivalStop: LegStop;
     departureTime: Date;
     arrivalTime: Date;
+    duration: number;
     route: {
         name: string;
         id: number;
+        color: string;
+        headsign: string;
     };
     tripId: number | null;
 }

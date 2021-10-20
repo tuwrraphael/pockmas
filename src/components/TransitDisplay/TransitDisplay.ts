@@ -1,9 +1,8 @@
-import { throws } from "assert";
 import template from "./TransitDisplay.html";
 import "./TransitDisplay.scss";
 
-const RouteAttribute = "route";
-const RouteColorAttribute = "route-color";
+export const RouteAttribute = "route";
+export const RouteColorAttribute = "route-color";
 
 export class TransitDisplay extends HTMLElement {
     private rendered = false;
@@ -35,12 +34,12 @@ export class TransitDisplay extends HTMLElement {
         }
         let label = this.getAttribute(RouteAttribute);
         this.routeLabel.innerText = label;
-        this.style.backgroundColor = this.getAttribute(RouteColorAttribute);
+        this.style.backgroundColor = `#${this.getAttribute(RouteColorAttribute)}`;
     }
 
     disconnectedCallback() {
 
     }
 }
-
-customElements.define("transit-display", TransitDisplay);
+export const TransitDisplayTagName = "transit-display";
+customElements.define(TransitDisplayTagName, TransitDisplay);

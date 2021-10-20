@@ -186,6 +186,8 @@ function readLeg(buffer: ArrayBuffer, offset: number): Leg {
     let view = new DataView(buffer, offset, RAPTOR_LEG_SIZE);
     let departureStopId = view.getUint16(4, true);
     let arrivalStopId = view.getUint16(6, true);
+    let departureSeconds = view.getUint32(8, true);
+    let arrivalSeconds = view.getUint32(12, true);
     let leg: Leg = {
         type: view.getUint32(0, true),
         departureStop: {
@@ -196,8 +198,9 @@ function readLeg(buffer: ArrayBuffer, offset: number): Leg {
             stopId: arrivalStopId,
             stopName: stopNames[arrivalStopId]
         },
-        departureTime: new Date(getStartOfDayVienna(new Date()) + view.getUint32(8, true) * 1000),
-        arrivalTime: new Date(getStartOfDayVienna(new Date()) + view.getUint32(12, true) * 1000),
+        departureTime: new Date(getStartOfDayVienna(new Date()) + departureSeconds * 1000),
+        arrivalTime: new Date(getStartOfDayVienna(new Date()) + arrivalSeconds * 1000),
+        duration: (arrivalSeconds - departureSeconds) * 1000,
         route: null,
         tripId: null
     };
@@ -205,7 +208,9 @@ function readLeg(buffer: ArrayBuffer, offset: number): Leg {
         let routeId = view.getUint16(16, true);
         leg.route = {
             name: routeNames[routeId][0],
-            id: routeId
+            color: routeNames[routeId].length > 3 ? routeNames[routeId][3] : (routeNames[routeId][2] == 0 ? "c4121a" : ""),
+            id: routeId,
+            headsign: routeNames[routeId][1]
         };
         leg.tripId = view.getUint32(18, true);
     }

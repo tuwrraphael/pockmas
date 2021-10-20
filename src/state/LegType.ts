@@ -1,5 +1,5 @@
 
 export const enum LegType {
-    Transport = 0,
-    Walking = 1
+    Walking = 0,
+    Transit = 1,
 }

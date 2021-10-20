@@ -1,7 +1,7 @@
 import template from "./WalkingDisplay.html";
 import "./WalkingDisplay.scss";
 
-const MinutesAttribute = "minutes";
+export const MinutesAttribute = "minutes";
 
 export class WalkingDisplay extends HTMLElement {
 
@@ -33,12 +33,12 @@ export class WalkingDisplay extends HTMLElement {
             return;
         }
         let label = this.getAttribute(MinutesAttribute);
-        this.minutesLabel.innerText = `${label}m`;
+        this.minutesLabel.innerText = `${label}'`;
     }
 
     disconnectedCallback() {
 
     }
 }
-
-customElements.define("walking-display", WalkingDisplay);
+export const WalkingDisplayTagName = "walking-display";
+customElements.define(WalkingDisplayTagName, WalkingDisplay);

@@ -8,7 +8,7 @@ build/stdlib/memset.o
 
 INCLUDE = -I../stdlib
 
-OPT = -O0
+
 DEFINE = -DWASM_BUILD
 
 ifeq ($(LD),)
@@ -23,8 +23,15 @@ endif
 ifeq ($(CC),cc)
 	CC = clang
 endif
+ifeq ($(MODE),PRODUCTION)
+	COPT = -O3
+	LDOPT = -O3
+else
+	COPT = -O0 -g
+	LDOPT = -O0
+endif
 
-CFLAGS = $(INCLUDE) $(OPT) $(DEFINE) --target=wasm32 -g
+CFLAGS = $(INCLUDE) $(COPT) $(DEFINE) --target=wasm32 -g
 
 build:
 	mkdir $@
@@ -42,4 +49,4 @@ clean:
 	rm -rf build raptor.wasm
 
 raptor.wasm: $(FILES)
-	$(LD) --no-entry --export-all -O0 -o $@ $^
+	$(LD) --no-entry --export-all $(LDOPT) -o $@ $^

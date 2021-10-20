@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
@@ -15,6 +14,9 @@
     <link rel="shortcut icon" href="favicons/favicon.ico">
     <meta name="msapplication-TileColor" content="#da532c">
     <meta name="msapplication-config" content="favicons/browserconfig.xml">
+    <title>pockmas</title>
+    <meta name="description" content="schneller Öffi Router für Wien">
+    <%= htmlWebpackPlugin.tags.headTags %>
 </head>
 
 <body>
@@ -24,6 +26,7 @@
     <div class="content">
         <route-results></route-results>
     </div>
+    <%= htmlWebpackPlugin.tags.bodyTags %>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500&display=swap" rel="stylesheet">
 </body>

@@ -14,4 +14,4 @@ if ("serviceWorker" in navigator) {
 }
 
 let store = Store.getInstance();
-// store.postAction(new InitializeRouting());
+store.postAction(new InitializeRouting());
