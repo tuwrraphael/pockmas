@@ -12,15 +12,15 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install osmium-tool
-      run: apt-get install -y osmium-tool
+      run: sudo apt-get install -y osmium-tool
     - name: Download austria-latest.osm.pbf
-      run: wget -O ors/austria-latest.osm.pbf https://download.geofabrik.de/europe/austria-latest.osm.pbf
+      run: wget -q -O ors/austria-latest.osm.pbf https://download.geofabrik.de/europe/austria-latest.osm.pbf
     - name: Extract vienna.osm.pbf
       run: osmium extract --strategy complete_ways --bbox 16.038803,47.992856,16.564345,48.346969 ors/austria-latest.osm.pbf -o ors/vienna.osm.pbf
     - name: Start ORS
       run: |
         mkdir -p ors/elevation_cache ors/graphs
-        docker run -dt -u "${UID}:${GID}" -p 8080:8080 \
+        sudo docker run -dt -u "${UID}:${GID}" -p 8080:8080 \
         --name ors-app \
         -v $PWD/ors/graphs:/ors-core/data/graphs \
         -v $PWD/ors/elevation_cache:/ors-core/data/elevation_cache \
