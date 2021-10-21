@@ -36,7 +36,7 @@ export class RouteTimeline extends HTMLElement {
     }
 
     private reuseOrCreateElement<T extends HTMLElement>(recycleBin: HTMLLIElement[], tagName: string): T {
-        let element = recycleBin.find(e => e.children[0].tagName == tagName);
+        let element = recycleBin.find(e => e.children[0].tagName.localeCompare(tagName, undefined, { sensitivity: "accent" }) === 0);
         let child: T;
         if (element) {
             recycleBin.splice(recycleBin.indexOf(element), 1);

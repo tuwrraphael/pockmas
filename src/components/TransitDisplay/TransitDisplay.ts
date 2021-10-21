@@ -34,7 +34,8 @@ export class TransitDisplay extends HTMLElement {
         }
         let label = this.getAttribute(RouteAttribute);
         this.routeLabel.innerText = label;
-        this.style.backgroundColor = `#${this.getAttribute(RouteColorAttribute)}`;
+        let color = this.getAttribute(RouteColorAttribute);
+        this.style.backgroundColor = color ?`#${color}` : "";
     }
 
     disconnectedCallback() {
