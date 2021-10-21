@@ -1,13 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const { readStops } = require("./read-stops");
+const { enhanceWithTransfers } = require("./read-transfers");
 const { findTimeZone, getUnixTime } = require("timezone-support");
-const { coordinateDistance } = require("./coordinate-distance");
 const csv = require("csv-parser");
 const stripBom = require("strip-bom-stream");
-
-const maxDistance = 0.6;
-const walkingSpeed = 3.6;
 
 let timezone = findTimeZone("Europe/Vienna");
 
@@ -155,11 +152,14 @@ async function process(gtfsPath, outputPath) {
     console.log(`Found ${Object.keys(trips).length} trips`);
     console.log("Reading stops");
     let stops = (await readStops(gtfsPath));
+    console.log("Reading transfers");
+    // we read transfers from output because we generated them ourselves
+    await enhanceWithTransfers(stops, outputPath);
     let stopList = stops.map(s => s.stopId);
     console.log(`Found ${stops.length} stops`);
     console.log("Reading calendar");
     let calendar = await readCalendar(gtfsPath);
-    console.log(`Found ${calendar.length} serviceIds.`);
+    console.log(`Found ${calendar.length} serviceIds`);
     let routesWithNames = await readRoutes(gtfsPath);
     trips = await enhanceWithStopTimes(gtfsPath, trips, stopList);
     console.log("Ordering stoptimes in trips");
@@ -233,35 +233,28 @@ async function process(gtfsPath, outputPath) {
     await routeOutput.close();
     await tripCalendarsOutput.close();
     console.log("Processing Stops");
-
     let stopServingRoutesOutput = await fs.promises.open(path.join(outputPath, "stop_serving_routes.bin.bmp"), "w");
     let transfersOutput = await fs.promises.open(path.join(outputPath, "transfers.bin.bmp"), "w");
     let stopsOutput = await fs.promises.open(path.join(outputPath, "stops.bin.bmp"), "w");
     let stopServingRoutesIdx = 0;
     let transfersIdx = 0;
     for (let stopId = 0; stopId < stops.length; stopId++) {
+        let stop = stops[stopId];
+        let numTransfers = stop.transfers ? stop.transfers.length : 0;
         let routeIds = routeStops.filter(([, routeStops]) => routeStops.indexOf(stopId) > -1)
             .map(([routeId,]) => routeIndex.indexOf(routeId));
         let routeIdsArray = new Uint16Array(routeIds);
         await stopServingRoutesOutput.write(new Uint8Array(routeIdsArray.buffer));
-        let transfers = [];
-        for (let j = 0; j < stops.length; j++) {
-            if (stopId !== j) {
-                let distance = coordinateDistance(stops[stopId].lat, stops[stopId].lon, stops[j].lat, stops[j].lon);
-                if (distance < maxDistance) {
-                    transfers.push(j);
-                    transfers.push(walkingTimeSeconds(distance, walkingSpeed));
-                }
-            }
+        if (numTransfers > 0) {
+            let transfersArray = new Uint16Array(stop.transfers.flatMap(t => [t.to, t.minTransferTime]));
+            await transfersOutput.write(new Uint8Array(transfersArray.buffer));
         }
-        let transfersArray = new Uint16Array(transfers);
-        await transfersOutput.write(new Uint8Array(transfersArray.buffer));
 
         let stopArray = new Uint32Array([stopServingRoutesIdx, transfersIdx]);
         await stopsOutput.write(new Uint8Array(stopArray.buffer));
-        await stopsOutput.write(new Uint8Array(new Uint16Array([routeIds.length, transfers.length / 2]).buffer));
+        await stopsOutput.write(new Uint8Array(new Uint16Array([routeIds.length, numTransfers]).buffer));
         stopServingRoutesIdx += routeIds.length;
-        transfersIdx += transfers.length / 2;
+        transfersIdx += numTransfers;
     }
     await stopServingRoutesOutput.close();
     await stopsOutput.close();

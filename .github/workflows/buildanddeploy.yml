@@ -11,6 +11,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Build raptor wasm module
+      working-directory: ./raptor
+      run: make
+      env:
+        LD: wasm-ld-10
+        CC: clang-10
+        MODE: PRODUCTION
+    - name: Build stopsearch wasm module
+      working-directory: ./stopsearch
+      run: make
+      env:
+        LD: wasm-ld-10
+        CC: clang-10
+        MODE: PRODUCTION
     - name: Install osmium-tool
       run: sudo apt-get install -y osmium-tool
     - name: Download austria-latest.osm.pbf
@@ -37,24 +51,10 @@ jobs:
       with:
         node-version: 14.x
     - run: npm ci
-    - name: Generate transfers.txt
-      run: npm run preprocess transfers
-    - name: Build raptor wasm module
-      working-directory: ./raptor
-      run: make
-      env:
-        LD: wasm-ld-10
-        CC: clang-10
-        MODE: PRODUCTION
-    - name: Build stopsearch wasm module
-      working-directory: ./stopsearch
-      run: make
-      env:
-        LD: wasm-ld-10
-        CC: clang-10
-        MODE: PRODUCTION
     - name: Preprocess GTFS
       run: npm run preprocess
+    - name: Stop ORS
+      run: sudo docker stop ors-app
     - name: Build webapp
       run: npm run build -- --mode="production" --env environment="gh-pages"
     - name: Copy index.html to 404.html

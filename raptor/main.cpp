@@ -29,7 +29,7 @@ int main()
 	calendar_t* calendars = readfile("C:\\git\\pockmas\\preprocessing-dist\\calendar.bin.bmp", get_calendars_memory);
 	trip_calendar_t* trip_calendars = readfile("C:\\git\\pockmas\\preprocessing-dist\\trip_calendars.bin.bmp", get_trip_calendars_memory);*/
 
-	std::ifstream file("../preprocessing-dist/raptor_data1.bin.bmp", std::ios::binary);
+	std::ifstream file("../preprocessing-dist/raptor_data.bin.bmp", std::ios::binary);
 	uint32_t sizes[8];
 	file.read((char*)&sizes, sizeof(uint32_t) * 8);
 	void* mem = raptor_allocate(sizes[0], sizes[1], sizes[2], sizes[3], sizes[4], sizes[5], sizes[6], sizes[7]);
