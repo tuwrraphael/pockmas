@@ -3,6 +3,7 @@
         "limits.h": "c",
         "bump_allocator.h": "c",
         "cstdlib": "c",
-        "xlocinfo": "c"
+        "xlocinfo": "c",
+        "istream": "cpp"
     }
 }

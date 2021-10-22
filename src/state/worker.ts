@@ -159,8 +159,7 @@ function dayOfWeekToMask(date: Date) {
     return mask;
 }
 
-const RAPTOR_MAX_DEPARTURE_STOPS = 10;
-const RAPTOR_MAX_ARRIVAL_STOPS = 10;
+const RAPTOR_MAX_REQUEST_STATIONS = 20;
 
 const RAPTOR_LEG_SIZE = 24;
 const RAPTOR_MAX_LEGS = 10;
@@ -244,24 +243,24 @@ async function stopsSelected(departure: number, arrival: number) {
     }
     let now = new Date();
     let requestMemory = routingInstance.exports.get_request_memory();
-    let view = new DataView(routingInstance.exports.memory.buffer, requestMemory, 4 + 4 + (RAPTOR_MAX_DEPARTURE_STOPS + RAPTOR_MAX_ARRIVAL_STOPS) * 2 + RAPTOR_MAX_DEPARTURE_STOPS * 4);
+    let view = new DataView(routingInstance.exports.memory.buffer, requestMemory, 4 + 4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + RAPTOR_MAX_REQUEST_STATIONS * 4);
     view.setUint8(0, 0);
     let departureStops = stopGroupIndex[state.departureStopResults[departure].id].stopIds;
     let arrivalStop = stopGroupIndex[state.arrivalStopResults[arrival].id].stopIds[0];
-    view.setUint8(1, Math.min(RAPTOR_MAX_DEPARTURE_STOPS, departureStops.length));
+    view.setUint8(1, Math.min(RAPTOR_MAX_REQUEST_STATIONS, departureStops.length));
     view.setUint8(2, 1);
     view.setUint8(3, dayOfWeekToMask(now));
-    for (let i = 0; i < Math.min(RAPTOR_MAX_DEPARTURE_STOPS, departureStops.length); i++) {
+    for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, departureStops.length); i++) {
         view.setUint16(4 + i * 2, departureStops[i], true);
     }
-    view.setUint16(4 + RAPTOR_MAX_DEPARTURE_STOPS * 2, arrivalStop, true);
+    view.setUint16(4 + RAPTOR_MAX_REQUEST_STATIONS * 2, arrivalStop, true);
     let startOfDayVienna = getStartOfDayVienna(now);
     let departureDate = startOfDayVienna / 1000;
     let departureTime = (+now - startOfDayVienna) / 1000;
-    for (let i = 0; i < Math.min(RAPTOR_MAX_DEPARTURE_STOPS, departureStops.length); i++) {
-        view.setUint32(4 + (RAPTOR_MAX_DEPARTURE_STOPS + RAPTOR_MAX_ARRIVAL_STOPS) * 2 + i * 4, departureTime, true);
+    for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, departureStops.length); i++) {
+        view.setUint32(4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + i * 4, departureTime, true);
     }
-    view.setUint32(4 + (RAPTOR_MAX_DEPARTURE_STOPS + RAPTOR_MAX_ARRIVAL_STOPS) * 2 + RAPTOR_MAX_DEPARTURE_STOPS * 4, departureDate, true);
+    view.setUint32(4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + RAPTOR_MAX_REQUEST_STATIONS * 4, departureDate, true);
     let results = readResults(routingInstance.exports.memory, routingInstance.exports.raptor());
     updateState(() => ({ results: results }))
 }

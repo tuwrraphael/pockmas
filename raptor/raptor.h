@@ -5,7 +5,7 @@
 #define MAX_INTERCHANGES (16)
 #define MAX_LEGS (10)
 #define MAX_ITINERARYS (8)
-#define MAX_REQUEST_STATIONS (10)
+#define MAX_REQUEST_STATIONS (20)
 
 typedef uint8_t boolean_t;
 #define TRUE (1)
@@ -71,16 +71,16 @@ typedef struct
 
 typedef struct
 {
-	route_stop_t* route_stops;
-	stop_time_t* stop_times;
-	route_t* routes;
-	stop_t* stops;
+	route_stop_t *route_stops;
+	stop_time_t *stop_times;
+	route_t *routes;
+	stop_t *stops;
 	uint16_t route_count;
 	uint16_t stop_count_total;
-	stop_serving_route_t* stop_serving_routes;
-	transfer_t* transfers;
-	calendar_t* calendars;
-	trip_calendar_t* trip_calendars;
+	stop_serving_route_t *stop_serving_routes;
+	transfer_t *transfers;
+	calendar_t *calendars;
+	trip_calendar_t *trip_calendars;
 } input_data_t;
 
 typedef struct
@@ -161,29 +161,33 @@ extern "C"
 {
 #endif
 
-	void* raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, uint32_t number_of_transfers,
-		uint16_t number_of_stops, uint16_t number_of_calendars, uint32_t number_of_route_stops,
-		uint32_t number_of_stop_routes, uint32_t number_of_trip_calendars);
+	void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, uint32_t number_of_transfers,
+						  uint16_t number_of_stops, uint16_t number_of_calendars, uint32_t number_of_route_stops,
+						  uint32_t number_of_stop_routes, uint32_t number_of_trip_calendars);
 
-	 stop_time_t* get_stoptimes_memory(uint32_t number_of_stoptimes);
+#ifndef WASM_BUILD
 
-	 route_t* get_routes_memory(uint16_t number_of_routes);
+	stop_time_t *get_stoptimes_memory(uint32_t number_of_stoptimes);
 
-	 route_stop_t* get_route_stops_memory(uint32_t number_of_route_stops);
+	route_t *get_routes_memory(uint16_t number_of_routes);
 
-	 stop_serving_route_t* get_serving_routes_memory(uint32_t number_of_stop_routes);
+	route_stop_t *get_route_stops_memory(uint32_t number_of_route_stops);
 
-	 stop_t* get_stops_memory(uint16_t number_of_stops);
+	stop_serving_route_t *get_serving_routes_memory(uint32_t number_of_stop_routes);
 
-	 transfer_t* get_transfers_memory(uint32_t number_of_transfers);
+	stop_t *get_stops_memory(uint16_t number_of_stops);
 
-	 calendar_t* get_calendars_memory(uint16_t number_of_calendars);
+	transfer_t *get_transfers_memory(uint32_t number_of_transfers);
 
-	 trip_calendar_t* get_trip_calendars_memory(uint32_t number_of_trip_calendars);
+	calendar_t *get_calendars_memory(uint16_t number_of_calendars);
 
-	request_t* get_request_memory();
+	trip_calendar_t *get_trip_calendars_memory(uint32_t number_of_trip_calendars);
 
-	results_t* raptor();
+#endif
+
+	request_t *get_request_memory();
+
+	results_t *raptor();
 
 #ifdef __cplusplus
 }

@@ -48,55 +48,59 @@ void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, u
 	return start;
 }
 
- stop_time_t *get_stoptimes_memory(uint32_t number_of_stoptimes)
- {
- 	input_data.stop_times = malloc(sizeof(stop_time_t) * number_of_stoptimes);
- 	return input_data.stop_times;
- }
+#ifndef WASM_BUILD
 
- route_t *get_routes_memory(uint16_t number_of_routes)
- {
- 	input_data.routes = malloc(sizeof(route_t) * number_of_routes);
- 	input_data.route_count = number_of_routes;
- 	return input_data.routes;
- }
+stop_time_t *get_stoptimes_memory(uint32_t number_of_stoptimes)
+{
+	input_data.stop_times = malloc(sizeof(stop_time_t) * number_of_stoptimes);
+	return input_data.stop_times;
+}
 
- route_stop_t *get_route_stops_memory(uint32_t number_of_route_stops)
- {
- 	input_data.route_stops = malloc(sizeof(route_stop_t) * number_of_route_stops);
- 	return input_data.route_stops;
- }
+route_t *get_routes_memory(uint16_t number_of_routes)
+{
+	input_data.routes = malloc(sizeof(route_t) * number_of_routes);
+	input_data.route_count = number_of_routes;
+	return input_data.routes;
+}
 
- stop_serving_route_t *get_serving_routes_memory(uint32_t number_of_stop_routes)
- {
- 	input_data.stop_serving_routes = malloc(sizeof(stop_serving_route_t) * number_of_stop_routes);
- 	return input_data.stop_serving_routes;
- }
+route_stop_t *get_route_stops_memory(uint32_t number_of_route_stops)
+{
+	input_data.route_stops = malloc(sizeof(route_stop_t) * number_of_route_stops);
+	return input_data.route_stops;
+}
 
- transfer_t *get_transfers_memory(uint32_t number_of_transfers)
- {
- 	input_data.transfers = malloc(sizeof(transfer_t) * number_of_transfers);
- 	return input_data.transfers;
- }
+stop_serving_route_t *get_serving_routes_memory(uint32_t number_of_stop_routes)
+{
+	input_data.stop_serving_routes = malloc(sizeof(stop_serving_route_t) * number_of_stop_routes);
+	return input_data.stop_serving_routes;
+}
 
- stop_t *get_stops_memory(uint16_t number_of_stops)
- {
- 	input_data.stop_count_total = number_of_stops;
- 	input_data.stops = malloc(sizeof(stop_t) * number_of_stops);
- 	return input_data.stops;
- }
+transfer_t *get_transfers_memory(uint32_t number_of_transfers)
+{
+	input_data.transfers = malloc(sizeof(transfer_t) * number_of_transfers);
+	return input_data.transfers;
+}
 
- calendar_t *get_calendars_memory(uint16_t number_of_calendars)
- {
- 	input_data.calendars = malloc(sizeof(calendar_t) * number_of_calendars);
- 	return input_data.calendars;
- }
+stop_t *get_stops_memory(uint16_t number_of_stops)
+{
+	input_data.stop_count_total = number_of_stops;
+	input_data.stops = malloc(sizeof(stop_t) * number_of_stops);
+	return input_data.stops;
+}
 
- trip_calendar_t *get_trip_calendars_memory(uint32_t number_of_trip_calendars)
- {
- 	input_data.trip_calendars = malloc(sizeof(trip_calendar_t) * number_of_trip_calendars);
- 	return input_data.trip_calendars;
- }
+calendar_t *get_calendars_memory(uint16_t number_of_calendars)
+{
+	input_data.calendars = malloc(sizeof(calendar_t) * number_of_calendars);
+	return input_data.calendars;
+}
+
+trip_calendar_t *get_trip_calendars_memory(uint32_t number_of_trip_calendars)
+{
+	input_data.trip_calendars = malloc(sizeof(trip_calendar_t) * number_of_trip_calendars);
+	return input_data.trip_calendars;
+}
+
+#endif
 
 static boolean_t is_before(stop_id_t stop_a, stop_id_t stop_b, route_id_t route_id)
 {
@@ -130,7 +134,7 @@ static int32_t earliest_trip(route_id_t route_id, uint32_t stop_index, timeofday
 		if (date >= trip_calendar->start && date < trip_calendar->end && (weekday & trip_calendar->weekdays) > 0)
 		{
 			stop_time_t *stop_time = &input_data.stop_times[i];
-			if (stop_time->departure_time > after)
+			if (stop_time->departure_time > after) // should be >= i think
 			{
 				return earliest_trip;
 			}
@@ -288,9 +292,9 @@ results_t *raptor()
 			route_t *route = &input_data.routes[i];
 			stop_id_t stop_id = queue[i].stop_id;
 			uint32_t start_index;
-			for (start_index = route->stop_idx; start_index < route->stop_idx + route->stop_count; start_index++)
+			for (start_index = 0; start_index < route->stop_count; start_index++)
 			{
-				if (stop_id == input_data.route_stops[start_index].stop_id)
+				if (stop_id == input_data.route_stops[route->stop_idx + start_index].stop_id)
 				{
 					break;
 				}
@@ -298,7 +302,7 @@ results_t *raptor()
 			int32_t current_trip = -1;
 			stop_id_t boarded_at;
 			uint32_t boarded_at_idx;
-			for (uint32_t j = 0; j < route->stop_count; j++)
+			for (uint32_t j = start_index; j < route->stop_count; j++)
 			{
 				stop_id_t current_stop_id = input_data.route_stops[route->stop_idx + j].stop_id;
 				if (current_trip > -1)
@@ -317,11 +321,13 @@ results_t *raptor()
 						currentStopTracking->route_stopindex = boarded_at_idx;
 						marking[current_stop_id] = MARKED;
 					}
-					if (earliest_known_arrival_times_with_trips[round - 1][current_stop_id] < current_stoptime->departure_time)
+					if (earliest_known_arrival_times_with_trips[round - 1][current_stop_id] < current_stoptime->departure_time) // arrival here maybe?
 					{
-						current_trip = earliest_trip(i, j, earliest_known_arrival_times_with_trips[round - 1][current_stop_id], request->date, request->weekday);
-						if (current_trip > -1)
+						int32_t new_trip = earliest_trip(i, j, earliest_known_arrival_times_with_trips[round - 1][current_stop_id], request->date, request->weekday);
+						// if we are already hopped on this trip earlier, we can stay...
+						if (new_trip > -1 && new_trip != current_trip)
 						{
+							current_trip = new_trip;
 							boarded_at = current_stop_id;
 							boarded_at_idx = j;
 						}
