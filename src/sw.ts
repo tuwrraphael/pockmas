@@ -12,12 +12,14 @@ let cacheNames = {
     data: "data-v1"
 };
 
+let resources = self.__WB_MANIFEST;
+
 self.addEventListener("install", function (event) {
-    let dividedAssets = self.__WB_MANIFEST.reduce((acc, next) => {
+    let dividedAssets = resources.reduce((acc, next) => {
         if (next.url.indexOf("favicons/") > -1) {
             acc.asset.push(next.url);
         }
-        else if (!next.url.endsWith(".bmp")) {
+        else if (!next.url.includes("data/")) {
             acc.code.push(next.url);
         }
         return acc;
@@ -57,6 +59,14 @@ self.addEventListener("activate", event => {
             await caches.delete(c);
         })
         await Promise.all(tasks);
+        let dataCache = await caches.open(cacheNames.data);
+        let keys = await dataCache.keys();
+        let keep = resources.filter(m => m.url.includes("data/")).map(m => m.url);
+        for (let key of keys) {
+            if (keep.indexOf(key.url) < 0) {
+                await dataCache.delete(key);
+            }
+        }
     })());
 });
 
@@ -83,7 +93,7 @@ self.addEventListener("fetch", function (event) {
                     let cache = await caches.open(cacheNames.webfont);
                     await cache.put(event.request, res.clone());
                 }
-                else if (event.request.url.endsWith(".bmp")) {
+                else if (event.request.url.includes("data/")) {
                     let cache = await caches.open(cacheNames.data);
                     await cache.put(event.request, res.clone());
                 }
@@ -91,4 +101,10 @@ self.addEventListener("fetch", function (event) {
             }
         })
     );
+});
+
+self.addEventListener("message", (event) => {
+    if (event.data.action === "skipWaiting") {
+        self.skipWaiting();
+    }
 });

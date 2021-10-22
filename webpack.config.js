@@ -110,15 +110,14 @@ module.exports = (env, argv) => {
                 },
                 {
                     test: /\.wasm/,
-                    type: 'asset/resource'
+                    type: "asset/resource"
                 },
                 {
-                    test: /\.bin\.bmp/,
-                    type: 'asset/resource'
-                },
-                {
-                    test: /\.json/,
-                    type: 'asset/resource'
+                    test: /preprocessing-dist(\\|\/)(.+)\.(json|bin\.bmp|txt)/,
+                    type: "asset/resource",
+                    generator: {
+                        filename: 'data/[hash][ext][query]'
+                    }
                 }
             ],
         },
@@ -159,7 +158,7 @@ module.exports = (env, argv) => {
             }),
             new InjectManifest({
                 swSrc: "./src/sw.ts",
-                maximumFileSizeToCacheInBytes: (1024 * 1024) * 26
+                maximumFileSizeToCacheInBytes: (1024 * 1024) * 60
             }),
             ...(analyze ? [new BundleAnalyzerPlugin()] : [])
         ],
