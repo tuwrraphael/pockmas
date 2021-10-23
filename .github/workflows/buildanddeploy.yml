@@ -84,8 +84,8 @@ jobs:
     - uses: actions/checkout@v2
     - name: Download preprocessed routing data
       uses: actions/download-artifact@v2
-        with:
-          name: preprocessing-dist
+      with:
+        name: preprocessing-dist
     - name: Uncompress
       run: tar -xvzf preprocessing-dist.tar.gz
     - name: Build raptor wasm module
