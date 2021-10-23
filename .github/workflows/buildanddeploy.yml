@@ -20,7 +20,7 @@ jobs:
           node-version: {{ env.NODE_VERSION }}
       - run: npm ci
       - name: Get last modified header
-        id: get-last-modified
+        id: getlastmodified
         run: |
           echo "::set-output name=lastmodified::$(node gtfs-preprocessing/get-lastmodified.js)"
       - name: Cache preprocessed routing data
@@ -28,7 +28,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: preprocessing-dist.tar.gz
-          key: ${{ steps.get-last-modified.outputs.lastmodified }}-${{ env.DATA_FORMAT_VERSION }}
+          key: ${{ steps.getlastmodified.outputs.lastmodified }}${{ env.DATA_FORMAT_VERSION }}
        - name: Cache map data
         id: cache-map
         uses: actions/cache@v2
