@@ -7,8 +7,8 @@ declare global {
 }
 let cacheNames = {
     code: `code-${__CACHENAME}`,
-    asset: "asset-v1",
-    webfont: "webfont",
+    asset: "asset-v2",
+    webfont: "webfont-v2",
     data: "data-v1"
 };
 
@@ -37,7 +37,7 @@ self.addEventListener("install", function (event) {
         },
         {
             name: cacheNames.webfont,
-            assets: ["https://fonts.googleapis.com/icon?family=Material+Icons",
+            assets: [
                 "https://fonts.googleapis.com/css?family=Roboto:300,400,500&display=swap"
             ]
         }
