@@ -63,7 +63,7 @@ self.addEventListener("activate", event => {
         let keys = await dataCache.keys();
         let keep = resources.filter(m => m.url.includes("data/")).map(m => m.url);
         for (let key of keys) {
-            if (keep.indexOf(key.url) < 0) {
+            if (!keep.some(k => key.url.endsWith(k))) {
                 await dataCache.delete(key);
             }
         }

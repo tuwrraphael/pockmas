@@ -30,6 +30,7 @@ jobs:
           path: preprocessing-dist.tar.gz
           key: ${{ steps.getlastmodified.outputs.lastmodified }}-${{ env.DATA_FORMAT_VERSION }}
       - name: Cache map data
+        if: steps.cache-routing.outputs.cache-hit != 'true'
         id: cache-map
         uses: actions/cache@v2
         with:
