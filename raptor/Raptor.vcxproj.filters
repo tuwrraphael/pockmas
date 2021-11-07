@@ -24,12 +24,30 @@
     <ClCompile Include="..\stdlib\bump_allocator.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="calendar_utils.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="realtime.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="raptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\stdlib\bump_allocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\stdlib\boolean.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="calendar_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="input_data.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="realtime.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

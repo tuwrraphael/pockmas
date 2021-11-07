@@ -46,9 +46,9 @@ extern "C"
 {
 #endif
 
-	void* stopsearch_allocate(uint32_t num_nodes, uint32_t num_children, uint32_t num_results);
-	stopsearch_result_t* stopsearch_reset();
-	stopsearch_result_t* stopsearch_step(uint8_t letter);
+	__attribute__((export_name("stopsearch_allocate"))) void* stopsearch_allocate(uint32_t num_nodes, uint32_t num_children, uint32_t num_results);
+	__attribute__((export_name("stopsearch_reset"))) stopsearch_result_t* stopsearch_reset();
+	__attribute__((export_name("stopsearch_step"))) stopsearch_result_t* stopsearch_step(uint8_t letter);
 
 #ifdef __cplusplus
 }

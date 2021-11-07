@@ -1,4 +1,4 @@
-import { Itinerary } from "./Itinerary";
+import { Itinerary } from "../lib/Itinerary";
 
 export interface State {
     departureStopResults: { name: string, id: number }[];

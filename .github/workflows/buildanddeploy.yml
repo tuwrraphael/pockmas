@@ -1,7 +1,7 @@
 name: Build and Deploy
 
 env:
-  DATA_FORMAT_VERSION : '1'
+  DATA_FORMAT_VERSION : '2'
   NODE_VERSION: 14.x
 
 on:
@@ -110,6 +110,8 @@ jobs:
     - run: npm ci
     - name: Build webapp
       run: npm run build -- --mode="production" --env environment="gh-pages"
+    - name: Run tests
+      run: npm run test
     - name: Copy index.html to 404.html
       run: cp dist/index.html dist/404.html
     - name: Install SSH Client 🔑

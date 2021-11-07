@@ -1,10 +1,10 @@
-import { Itinerary } from "../../state/Itinerary";
+import { Itinerary } from "../../lib/Itinerary";
 import template from "./RouteSummary.html";
 import "./RouteSummary.scss";
 import "../RouteTimeline/RouteTimeline";
 import { RouteAttribute, RouteColorAttribute, TransitDisplay } from "../TransitDisplay/TransitDisplay";
-import { LegType } from "../../state/LegType";
 import { RouteTimeline } from "../RouteTimeline/RouteTimeline";
+import { LegType } from "../../lib/LegType";
 
 const timeFormat = Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit" });
 
@@ -38,7 +38,7 @@ export class RouteSummary extends HTMLElement {
         if (this.rendered && this.itinerary.legs.length > 0) {
             let firstTransitLeg = this.itinerary.legs.find(l => l.type == LegType.Transit);
             if (firstTransitLeg) {
-                this.departureTime.innerText = timeFormat.format(firstTransitLeg.departureTime);
+                this.departureTime.innerText = timeFormat.format(firstTransitLeg.plannedDeparture);
                 this.departureLine.setAttribute(RouteAttribute, firstTransitLeg.route.name);
                 this.departureLine.setAttribute(RouteColorAttribute, firstTransitLeg.route.color);
                 this.departureStop.innerText = firstTransitLeg.departureStop.stopName;

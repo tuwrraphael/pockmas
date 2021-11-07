@@ -17,7 +17,8 @@
     "sourceMap": true,
     "types": [
       "@types/node",
-      "@types/webpack-env"
+      "@types/webpack-env",
+      "@types/jasmine"
     ],
     "allowSyntheticDefaultImports": true
   },

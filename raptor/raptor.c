@@ -1,12 +1,15 @@
 #include "raptor.h"
 #include "bump_allocator.h"
+#include "realtime.h"
+#include "calendar_utils.h"
 
 static input_data_t input_data;
 static results_t *results = NULL;
 static request_t *request = NULL;
 
 void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, uint32_t number_of_transfers,
-					  uint16_t number_of_stops, uint16_t number_of_calendars, uint32_t number_of_route_stops,
+					  uint16_t number_of_stops, uint16_t number_of_calendars, uint32_t number_of_calendar_exceptions,
+					  uint32_t number_of_divas, uint32_t number_of_diva_routes, uint32_t number_of_route_stops,
 					  uint32_t number_of_stop_routes, uint32_t number_of_trip_calendars)
 {
 	size_t number_of_bytes = sizeof(stop_time_t) * number_of_stoptimes +
@@ -14,6 +17,9 @@ void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, u
 							 sizeof(transfer_t) * number_of_transfers +
 							 sizeof(stop_t) * number_of_stops +
 							 sizeof(calendar_t) * number_of_calendars +
+							 sizeof(calendar_exception_t) * number_of_calendar_exceptions +
+							 sizeof(diva_index_t) * number_of_divas +
+							 sizeof(diva_route_t) * number_of_diva_routes +
 							 sizeof(route_stop_t) * number_of_route_stops +
 							 sizeof(stop_serving_route_t) * number_of_stop_routes +
 							 sizeof(trip_calendar_t) * number_of_trip_calendars;
@@ -36,7 +42,18 @@ void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, u
 	memory += sizeof(stop_t) * number_of_stops;
 
 	input_data.calendars = (void *)(memory);
+	input_data.calendar_count = number_of_calendars;
 	memory += sizeof(calendar_t) * number_of_calendars;
+
+	input_data.calendar_exceptions = (void *)(memory);
+	memory += sizeof(calendar_exception_t) * number_of_calendar_exceptions;
+
+	input_data.diva_index = (void *)(memory);
+	input_data.diva_count = number_of_divas;
+	memory += sizeof(diva_index_t) * number_of_divas;
+
+	input_data.diva_routes = (void *)(memory);
+	memory += sizeof(diva_route_t) * number_of_diva_routes;
 
 	input_data.route_stops = (void *)(memory);
 	memory += sizeof(route_stop_t) * number_of_route_stops;
@@ -54,6 +71,19 @@ stop_time_t *get_stoptimes_memory(uint32_t number_of_stoptimes)
 {
 	input_data.stop_times = malloc(sizeof(stop_time_t) * number_of_stoptimes);
 	return input_data.stop_times;
+}
+
+diva_index_t *get_diva_index_memory(uint32_t number_of_divas)
+{
+	input_data.diva_index = malloc(sizeof(diva_index_t) * number_of_divas);
+	input_data.diva_count = number_of_divas;
+	return input_data.diva_index;
+}
+
+diva_route_t *get_diva_routes_memory(uint32_t number_of_diva_routes)
+{
+	input_data.diva_routes = malloc(sizeof(diva_route_t) * number_of_diva_routes);
+	return input_data.diva_routes;
 }
 
 route_t *get_routes_memory(uint16_t number_of_routes)
@@ -91,7 +121,14 @@ stop_t *get_stops_memory(uint16_t number_of_stops)
 calendar_t *get_calendars_memory(uint16_t number_of_calendars)
 {
 	input_data.calendars = malloc(sizeof(calendar_t) * number_of_calendars);
+	input_data.calendar_count = number_of_calendars;
 	return input_data.calendars;
+}
+
+calendar_exception_t *get_calendar_exceptions_memory(uint32_t number_of_calendar_exceptions)
+{
+	input_data.calendar_exceptions = malloc(sizeof(calendar_exception_t) * number_of_calendar_exceptions);
+	return input_data.calendar_exceptions;
 }
 
 trip_calendar_t *get_trip_calendars_memory(uint32_t number_of_trip_calendars)
@@ -126,15 +163,15 @@ static timeofday_t min_time(timeofday_t a, timeofday_t b)
 
 static int32_t earliest_trip(route_id_t route_id, uint32_t stop_index, timeofday_t after, datetime_t date, uint8_t weekday)
 {
-	int earliest_trip = 0;
+	uint16_t earliest_trip = 0;
 	route_t *route = &input_data.routes[route_id];
 	for (uint32_t i = route->stop_time_idx + stop_index; i < route->stop_time_idx + stop_index + route->trip_count * route->stop_count; i += route->stop_count)
 	{
-		calendar_t *trip_calendar = &input_data.calendars[input_data.trip_calendars[route->calendar_idx + earliest_trip].calendar_id];
-		if (date >= trip_calendar->start && date < trip_calendar->end && (weekday & trip_calendar->weekdays) > 0)
+		if (trip_serviced_at_date(&input_data, route, earliest_trip, date, weekday))
 		{
 			stop_time_t *stop_time = &input_data.stop_times[i];
-			if (stop_time->departure_time > after) // should be >= i think
+			int16_t trip_delay = input_data.realtime_offsets[input_data.realtime_index[route_id].realtime_index + earliest_trip];
+			if ((stop_time->departure_time + trip_delay) > after) // should be >= i think
 			{
 				return earliest_trip;
 			}
@@ -153,7 +190,7 @@ static boolean_t reconstruct_itinerary(stop_id_t target_stop, uint8_t round, bac
 		leg->origin_stop = backtracking_target->origin_stop;
 		leg->destination_stop = target_stop;
 		leg->arrival = arrival_times[round][target_stop];
-		leg->departure = arrival_times[round][backtracking_target->origin_stop];
+		leg->planned_departure = backtracking_target->date + arrival_times[round][backtracking_target->origin_stop];
 		leg->type = LEG_TYPE_WALKING;
 		itinerary->num_legs++;
 		return reconstruct_itinerary(backtracking_target->origin_stop, round, backtracking, arrival_times, itinerary);
@@ -165,7 +202,8 @@ static boolean_t reconstruct_itinerary(stop_id_t target_stop, uint8_t round, bac
 		leg->origin_stop = backtracking_target->origin_stop;
 		leg->destination_stop = target_stop;
 		leg->arrival = arrival_times[round][target_stop];
-		leg->departure = input_data.stop_times[route->stop_time_idx + route->stop_count * backtracking_target->trip + backtracking_target->route_stopindex].departure_time;
+		leg->planned_departure = backtracking_target->date + input_data.stop_times[route->stop_time_idx + route->stop_count * backtracking_target->trip + backtracking_target->route_stopindex].departure_time;
+		leg->delay = input_data.realtime_offsets[input_data.realtime_index[backtracking_target->route].realtime_index + backtracking_target->trip];
 		leg->route = backtracking_target->route;
 		leg->trip = backtracking_target->trip;
 		leg->type = LEG_TYPE_TRANSIT;
@@ -206,19 +244,26 @@ static void collect_results(uint8_t rounds, backtracking_t *backtracking[], time
 
 request_t *get_request_memory()
 {
-	if (request == NULL)
-	{
-		request = malloc(sizeof(request_t));
-	}
 	return request;
+}
+
+boolean_t initialized = FALSE;
+
+void initialize()
+{
+	if (initialized == TRUE)
+	{
+		return;
+	}
+	initialized = TRUE;
+	request = malloc(sizeof(request_t));
+	results = malloc(sizeof(results_t));
+	initialize_realtime_memory(&input_data);
+	initialize_calendar_cache(input_data.calendar_count);
 }
 
 results_t *raptor()
 {
-	if (results == NULL)
-	{
-		results = malloc(sizeof(results_t));
-	}
 	create_savepoint();
 	timeofday_t *earliest_known_arrival_times = malloc(sizeof(timeofday_t) * input_data.stop_count_total);
 	marking_t *marking = malloc(sizeof(timeofday_t) * input_data.stop_count_total);
@@ -308,7 +353,8 @@ results_t *raptor()
 				if (current_trip > -1)
 				{
 					stop_time_t *current_stoptime = &input_data.stop_times[route->stop_time_idx + j + current_trip * route->stop_count];
-					timeofday_t arrival_at_j = current_stoptime->arrival_time;
+					int16_t current_trip_delay = input_data.realtime_offsets[input_data.realtime_index[i].realtime_index + current_trip];
+					timeofday_t arrival_at_j = (current_stoptime->arrival_time + current_trip_delay);
 					if (arrival_at_j < min_time(earliest_known_arrival_times[current_stop_id], earliest_known_arrival_times[request->arrival_stations[0]]))
 					{
 						earliest_known_arrival_times_with_trips[round][current_stop_id] = arrival_at_j;
@@ -319,9 +365,10 @@ results_t *raptor()
 						currentStopTracking->trip = current_trip;
 						currentStopTracking->origin_stop = boarded_at;
 						currentStopTracking->route_stopindex = boarded_at_idx;
+						currentStopTracking->date = request->date;
 						marking[current_stop_id] = MARKED;
 					}
-					if (earliest_known_arrival_times_with_trips[round - 1][current_stop_id] < current_stoptime->departure_time) // arrival here maybe?
+					if (earliest_known_arrival_times_with_trips[round - 1][current_stop_id] < (current_stoptime->departure_time + current_trip_delay)) // arrival here maybe?
 					{
 						int32_t new_trip = earliest_trip(i, j, earliest_known_arrival_times_with_trips[round - 1][current_stop_id], request->date, request->weekday);
 						// if we are already hopped on this trip earlier, we can stay...
@@ -363,6 +410,7 @@ results_t *raptor()
 					backtracking_t *transferTracking = &backtracking[round][transfer->to];
 					transferTracking->type = BACKTRACKING_TRANSFER;
 					transferTracking->origin_stop = stop_id;
+					transferTracking->date = request->date;
 					marking[transfer->to] = MARKED;
 				}
 			}
@@ -385,4 +433,9 @@ results_t *raptor()
 	collect_results(round, backtracking, earliest_known_arrival_times_with_trips, request->arrival_stations[0], results);
 	reset_to_savepoint();
 	return results;
+}
+
+void process_realtime()
+{
+	process_stoptime_update(&input_data);
 }

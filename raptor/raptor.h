@@ -1,87 +1,13 @@
 #ifndef RAPTOR_H
 #define RAPTOR_H
 #include <stdint.h>
+#include "input_data.h"
+#include "boolean.h"
 
 #define MAX_INTERCHANGES (16)
 #define MAX_LEGS (10)
 #define MAX_ITINERARYS (8)
 #define MAX_REQUEST_STATIONS (20)
-
-typedef uint8_t boolean_t;
-#define TRUE (1)
-#define FALSE (0)
-
-typedef uint32_t timeofday_t;
-typedef uint32_t datetime_t;
-
-typedef uint16_t stop_id_t;
-typedef uint16_t route_id_t;
-typedef uint32_t weekdays_t;
-
-typedef struct
-{
-	uint32_t stop_time_idx;
-	uint32_t stop_idx;
-	uint32_t stop_count;
-	uint32_t trip_count;
-	uint32_t calendar_idx;
-} route_t;
-
-typedef struct
-{
-	timeofday_t departure_time;
-	timeofday_t arrival_time;
-} stop_time_t;
-
-typedef struct
-{
-	stop_id_t stop_id;
-} route_stop_t;
-
-typedef struct
-{
-	route_id_t route_id;
-} stop_serving_route_t;
-
-typedef struct
-{
-	uint32_t serving_routes_idx;
-	uint32_t transfers_idx;
-	uint16_t serving_routes_count;
-	uint16_t transfers_count;
-} stop_t;
-
-typedef struct
-{
-	stop_id_t to;
-	uint16_t walking_time;
-} transfer_t;
-
-typedef struct
-{
-	datetime_t start;
-	datetime_t end;
-	weekdays_t weekdays;
-} calendar_t;
-
-typedef struct
-{
-	uint16_t calendar_id;
-} trip_calendar_t;
-
-typedef struct
-{
-	route_stop_t *route_stops;
-	stop_time_t *stop_times;
-	route_t *routes;
-	stop_t *stops;
-	uint16_t route_count;
-	uint16_t stop_count_total;
-	stop_serving_route_t *stop_serving_routes;
-	transfer_t *transfers;
-	calendar_t *calendars;
-	trip_calendar_t *trip_calendars;
-} input_data_t;
 
 typedef struct
 {
@@ -103,6 +29,7 @@ typedef struct
 	uint32_t route_stopindex;
 	stop_id_t origin_stop;
 	backtracking_type_t type;
+	datetime_t date;
 } backtracking_t;
 
 typedef uint32_t leg_type_t;
@@ -115,9 +42,10 @@ typedef struct
 	leg_type_t type;
 	stop_id_t origin_stop;
 	stop_id_t destination_stop;
-	timeofday_t departure;
+	datetime_t planned_departure;
 	timeofday_t arrival;
 	route_id_t route;
+	int16_t delay;
 	uint32_t trip;
 } leg_t;
 
@@ -154,18 +82,16 @@ typedef uint8_t marking_t;
 #define MARKED (1)
 #define UNMARKED (0)
 
-#define TIME_INFINITY (INT32_MAX)
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-	void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, uint32_t number_of_transfers,
-						  uint16_t number_of_stops, uint16_t number_of_calendars, uint32_t number_of_route_stops,
-						  uint32_t number_of_stop_routes, uint32_t number_of_trip_calendars);
-
 #ifndef WASM_BUILD
+
+	diva_index_t *get_diva_index_memory(uint32_t number_of_divas);
+
+	diva_route_t *get_diva_routes_memory(uint32_t number_of_diva_routes);
 
 	stop_time_t *get_stoptimes_memory(uint32_t number_of_stoptimes);
 
@@ -181,13 +107,26 @@ extern "C"
 
 	calendar_t *get_calendars_memory(uint16_t number_of_calendars);
 
+	calendar_exception_t *get_calendar_exceptions_memory(uint32_t number_of_calendar_exceptions);
+
 	trip_calendar_t *get_trip_calendars_memory(uint32_t number_of_trip_calendars);
+
+#define __attribute__(a)
 
 #endif
 
-	request_t *get_request_memory();
+	__attribute__((export_name("raptor_allocate"))) void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, uint32_t number_of_transfers,
+																		  uint16_t number_of_stops, uint16_t number_of_calendars, uint32_t number_of_calendar_exceptions,
+																		  uint32_t number_of_divas, uint32_t number_of_diva_routes, uint32_t number_of_route_stops,
+																		  uint32_t number_of_stop_routes, uint32_t number_of_trip_calendars);
 
-	results_t *raptor();
+	__attribute__((export_name("get_request_memory"))) request_t *get_request_memory();
+
+	__attribute__((export_name("raptor"))) results_t *raptor();
+
+	__attribute__((export_name("initialize"))) void initialize();
+
+	__attribute__((export_name("process_realtime"))) void process_realtime();
 
 #ifdef __cplusplus
 }

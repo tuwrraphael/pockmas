@@ -1,12 +1,12 @@
-import { Itinerary } from "../../state/Itinerary";
-import { Leg } from "../../state/Leg";
-import { LegType } from "../../state/LegType";
+import { Itinerary } from "../../lib/Itinerary";
 import { RouteAttribute, RouteColorAttribute, TransitDisplay, TransitDisplayTagName } from "../TransitDisplay/TransitDisplay";
 import { MinutesAttribute, WalkingDisplay, WalkingDisplayTagName } from "../WalkingDisplay/WalkingDisplay";
 import template from "./RouteTimeline.html";
 import "./RouteTimeline.scss";
 import "../TransitDisplay/TransitDisplay";
 import "../WalkingDisplay/WalkingDisplay";
+import { Leg } from "../../lib/Leg";
+import { LegType } from "../../lib/LegType";
 
 const timeFormat = Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit" });
 
@@ -77,7 +77,7 @@ export class RouteTimeline extends HTMLElement {
         if (!this.rendered || !this.itinerary || this.itinerary.legs.length === 0) {
             return;
         }
-        let departureTime = timeFormat.format(this.itinerary.legs[0].departureTime);
+        let departureTime = timeFormat.format(this.itinerary.legs[0].plannedDeparture);
         this.departureTimeLabel.title = `Losgehen um ${departureTime}`;
         this.departureTimeLabel.innerText = departureTime;
         let arrivalTime = timeFormat.format(this.itinerary.legs[this.itinerary.legs.length - 1].arrivalTime);

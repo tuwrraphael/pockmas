@@ -31,7 +31,7 @@ else
 endif
 
 
-CFLAGS = $(INCLUDE) $(COPT) $(DEFINE) --target=wasm32 -g
+CFLAGS = $(INCLUDE) $(COPT) $(DEFINE) --target=wasm32
 
 build:
 	mkdir $@
@@ -49,4 +49,4 @@ clean:
 	rm -rf build stopsearch.wasm
 
 stopsearch.wasm: $(FILES)
-	$(LD) --no-entry --export-all $(LDOPT) -o $@ $^
+	$(LD) --no-entry $(LDOPT) -o $@ $^

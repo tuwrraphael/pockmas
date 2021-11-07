@@ -6,7 +6,8 @@ export interface Leg {
     type: LegType;
     departureStop: LegStop;
     arrivalStop: LegStop;
-    departureTime: Date;
+    plannedDeparture: Date;
+    delay: number;
     arrivalTime: Date;
     duration: number;
     route: {

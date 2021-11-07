@@ -1,4 +1,4 @@
-import { Itinerary } from "../../state/Itinerary";
+import { Itinerary } from "../../lib/Itinerary";
 import { State, StateChanges } from "../../state/State";
 import { Store } from "../../state/Store";
 import { ArrayToElementRenderer } from "../../utils/ArrayToElementRenderer";

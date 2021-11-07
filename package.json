@@ -9,6 +9,7 @@
   "devDependencies": {
     "@babel/core": "^7.12.10",
     "@babel/preset-env": "^7.12.11",
+    "@types/jasmine": "^3.10.1",
     "@types/node": "^16.10.5",
     "@types/webpack-env": "^1.16.0",
     "autoprefixer": "^10.1.0",
@@ -20,7 +21,14 @@
     "file-loader": "^6.2.0",
     "html-loader": "^2.1.2",
     "html-webpack-plugin": "^5.3.1",
+    "jasmine-core": "^3.10.1",
     "js-levenshtein": "^1.1.6",
+    "karma": "^6.3.6",
+    "karma-chrome-launcher": "^3.1.0",
+    "karma-jasmine": "^4.0.1",
+    "karma-sourcemap-loader": "^0.3.8",
+    "karma-spec-reporter": "0.0.32",
+    "karma-webpack": "^5.0.0",
     "license-checker-webpack-plugin": "^0.2.1",
     "mini-css-extract-plugin": "^2.4.2",
     "node-fetch": "^2.6.5",
@@ -40,7 +48,7 @@
     "workbox-webpack-plugin": "^6.0.2"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "karma start --single-run --browsers ChromeHeadless",
     "build": "webpack",
     "start": "webpack serve --mode development --env development",
     "preprocess": "node gtfs-preprocessing/index.js"

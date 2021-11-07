@@ -2,23 +2,11 @@ const fs = require("fs");
 const path = require("path");
 const { readStops } = require("./read-stops");
 const { enhanceWithTransfers } = require("./read-transfers");
-const { findTimeZone, getUnixTime } = require("timezone-support");
 const csv = require("csv-parser");
 const stripBom = require("strip-bom-stream");
-
-let timezone = findTimeZone("Europe/Vienna");
-
-function walkingTimeSeconds(distanceKm, speedKmH) {
-    return Math.round(distanceKm / speedKmH * 3600);
-}
-
-
-function groupBy(xs, key) {
-    return xs.reduce(function (rv, x) {
-        (rv[x[key]] = rv[x[key]] || []).push(x);
-        return rv;
-    }, {});
-};
+const { groupBy } = require("./groupBy");
+const { readRoutes } = require("./read-routes");
+const { readCalendar } = require("./read-calendar");
 
 async function readTrips(gtfsPath) {
     const tripsStream = fs.createReadStream(path.join(gtfsPath, "trips.txt"));
@@ -32,77 +20,12 @@ async function readTrips(gtfsPath) {
                     tripId: data.trip_id,
                     routeId: data.route_id,
                     serviceId: data.service_id,
-                    direction_id: parseInt(data.direction_id),
+                    directionId: parseInt(data.direction_id),
                     tripHeadsign: data.trip_headsign,
                 };
             })
             .on('end', () => {
                 resolve(trips);
-            });
-    });
-}
-
-function parseDate(date) {
-    let year = date.substring(0, 4);
-    let month = date.substring(4, 6);
-    let day = date.substring(6, 8);
-    return getUnixTime({
-        year: year,
-        month: month,
-        day: day,
-        hours: 0,
-        minutes: 0,
-        seconds: 0
-    }, timezone) / 1000;
-}
-
-async function readCalendar(gtfsPath) {
-    const calendarStream = fs.createReadStream(path.join(gtfsPath, "calendar.txt"));
-    return new Promise(resolve => {
-        let calendar = [];
-        calendarStream
-            .pipe(stripBom())
-            .pipe(csv())
-            .on("data", (data) => {
-                let weekdays = 0;
-                weekdays += data.monday === '1' ? 1 : 0;
-                weekdays += data.tuesday === '1' ? 2 : 0;
-                weekdays += data.wednesday === '1' ? 4 : 0;
-                weekdays += data.thursday === '1' ? 8 : 0;
-                weekdays += data.friday === '1' ? 16 : 0;
-                weekdays += data.saturday === '1' ? 32 : 0;
-                weekdays += data.sunday === '1' ? 64 : 0;
-                calendar.push({
-                    serviceId: data.service_id,
-                    weekdays: weekdays,
-                    startDate: parseDate(data.start_date),
-                    endDate: parseDate(data.end_date) + 24 * 3600
-                });
-            })
-            .on('end', () => {
-                resolve(calendar.sort((a, b) => a.serviceId.localeCompare(b.serviceId)));
-            });
-    });
-}
-
-async function readRoutes(gtfsPath) {
-    const routesStream = fs.createReadStream(path.join(gtfsPath, "routes.txt"));
-    return new Promise(resolve => {
-        let routes = {};
-        routesStream
-            .pipe(stripBom())
-            .pipe(csv())
-            .on("data", (data) => {
-                routes[data.route_id] = {
-                    routeId: data.route_id,
-                    routeShortName: data.route_short_name,
-                    routeLongName: data.route_long_name,
-                    routeType: parseInt(data.route_type),
-                    routeColor: data.route_color
-                };
-            })
-            .on('end', () => {
-                resolve(routes);
             });
     });
 }
@@ -198,6 +121,11 @@ async function process(gtfsPath, outputPath) {
     console.log("Ordering routes");
     let tripsByRouteOrdered = routes.sort(([routeId,], [routeId2,]) => routeId.localeCompare(routeId2));
     let routeStops = tripsByRouteOrdered.map(([routeId, trips]) => [routeId, trips[0].stopTimes.map(s => s.stopId)]);
+    await fs.promises.writeFile(path.join(outputPath, "routeIdMap.json"), JSON.stringify(tripsByRouteOrdered.map(([routeId, trips], idx) => ({
+        id: idx,
+        originalId: originalIdMap[routeId],
+        direction: trips[0].directionId
+    }))));
     console.log("Writing routes");
     let stoptimesOutput = await fs.promises.open(path.join(outputPath, "stoptimes.bin.bmp"), "w");
     let routeStopsOutput = await fs.promises.open(path.join(outputPath, "route_stops.bin.bmp"), "w");
@@ -259,11 +187,6 @@ async function process(gtfsPath, outputPath) {
     await stopServingRoutesOutput.close();
     await stopsOutput.close();
     await transfersOutput.close();
-    console.log("Writing calendar");
-    let calendarArray = new Uint32Array(calendar.flatMap(c => [c.startDate, c.endDate, c.weekdays]));
-    let calendarOutput = await fs.promises.open(path.join(outputPath, "calendar.bin.bmp"), "w");
-    await calendarOutput.write(new Uint8Array(calendarArray.buffer));
-    await calendarOutput.close();
     await fs.promises.writeFile(path.join(outputPath, "routes.json"), JSON.stringify(tripsByRouteOrdered.map(([routeId, trips]) => {
         let route = routesWithNames[originalIdMap[routeId]];
         let arr = [route.routeShortName, trips[0].tripHeadsign, route.routeType];
@@ -272,32 +195,6 @@ async function process(gtfsPath, outputPath) {
         }
         return arr;
     })));
-    await fs.promises.writeFile(path.join(outputPath, "stopnames.txt"), stops.map(s => s.name).join("\n"));
-    await concatResults(outputPath, stopTimeIndex, tripsByRouteOrdered.length, stopIndex, stopServingRoutesIdx,
-        transfersIdx, stops.length, calendar.length, tripCalendarsIdx);
-}
-
-async function concatResults(outputPath, numberOfStoptimes, numberOfRoutes, numberOfRouteStops,
-    numberOfStopRoutes, numberOfTransfers, numberOfStops,
-    numberOfCalendars, numberOfTripCalendars) {
-    let destination = await fs.promises.open(path.join(outputPath, "raptor_data.bin.bmp"), "w");
-    let files = ["stoptimes.bin.bmp",
-        "routes.bin.bmp",
-        "transfers.bin.bmp",
-        "stops.bin.bmp",
-        "calendar.bin.bmp",
-        "route_stops.bin.bmp",
-        "stop_serving_routes.bin.bmp",
-        "trip_calendars.bin.bmp"];
-    let sizes = [numberOfStoptimes, numberOfRoutes, numberOfTransfers,
-        numberOfStops, numberOfCalendars, numberOfRouteStops,
-        numberOfStopRoutes, numberOfTripCalendars];
-    destination.write(new Uint8Array(new Uint32Array(sizes).buffer));
-    for (let file of files) {
-        let binary = await fs.promises.readFile(path.join(outputPath, file));
-        destination.write(new Uint8Array(binary));
-    }
-    destination.close();
 }
 
 exports.preprocessGtfs = process;

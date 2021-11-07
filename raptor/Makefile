@@ -3,6 +3,8 @@
 default: raptor.wasm
 
 FILES = build/raptor.o \
+build/realtime.o \
+build/calendar_utils.o \
 build/stdlib/bump_allocator.o \
 build/stdlib/memset.o
 
@@ -31,7 +33,7 @@ else
 	LDOPT = -O0
 endif
 
-CFLAGS = $(INCLUDE) $(COPT) $(DEFINE) --target=wasm32 -g
+CFLAGS = $(INCLUDE) $(COPT) $(DEFINE) --target=wasm32
 
 build:
 	mkdir $@
@@ -49,4 +51,4 @@ clean:
 	rm -rf build raptor.wasm
 
 raptor.wasm: $(FILES)
-	$(LD) --no-entry --export-all $(LDOPT) -o $@ $^
+	$(LD) --no-entry $(LDOPT) -o $@ $^
