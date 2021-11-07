@@ -45,6 +45,7 @@ boolean_t trip_serviced_at_date(input_data_t *input_data, route_t *route, uint16
     boolean_t result;
     if (date >= trip_calendar->start && date < trip_calendar->end && (weekday & trip_calendar->weekdays) > 0)
     {
+        result = TRUE;
         for (uint16_t i = 0; i < trip_calendar->exceptions_count; i++)
         {
             calendar_exception_t *exception = &input_data->calendar_exceptions[trip_calendar->exceptions_idx + i];
@@ -57,10 +58,10 @@ boolean_t trip_serviced_at_date(input_data_t *input_data, route_t *route, uint16
                 }
             }
         }
-        result = TRUE;
     }
     else
     {
+        result = FALSE;
         for (uint16_t i = 0; i < trip_calendar->exceptions_count; i++)
         {
             calendar_exception_t *exception = &input_data->calendar_exceptions[trip_calendar->exceptions_idx + i];
@@ -73,7 +74,6 @@ boolean_t trip_serviced_at_date(input_data_t *input_data, route_t *route, uint16
                 }
             }
         }
-        result = FALSE;
     }
     calendar_cache.cache[calendarId].set = TRUE;
     calendar_cache.cache[calendarId].value = result;

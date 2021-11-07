@@ -37,7 +37,7 @@ describe("realtime", () => {
 
     it("get realtime route from Aspernstraße to Groß-Enzersdorf", () => {
         let request = {
-            departureStops: [2623],
+            departureStops: [2624],
             arrivalStop: 13,
             departureTimes: [new Date(getUnixTime({
                 year: 2021,
