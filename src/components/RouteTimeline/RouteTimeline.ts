@@ -77,7 +77,7 @@ export class RouteTimeline extends HTMLElement {
         if (!this.rendered || !this.itinerary || this.itinerary.legs.length === 0) {
             return;
         }
-        let departureTime = timeFormat.format(this.itinerary.legs[0].plannedDeparture);
+        let departureTime = timeFormat.format(new Date(this.itinerary.legs[0].plannedDeparture.getTime() + this.itinerary.legs[0].delay * 1000));
         this.departureTimeLabel.title = `Losgehen um ${departureTime}`;
         this.departureTimeLabel.innerText = departureTime;
         let arrivalTime = timeFormat.format(this.itinerary.legs[this.itinerary.legs.length - 1].arrivalTime);

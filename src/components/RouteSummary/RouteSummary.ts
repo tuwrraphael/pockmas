@@ -15,7 +15,8 @@ export class RouteSummary extends HTMLElement {
     private itinerary: Itinerary;
     private departureStop: HTMLSpanElement;
     private departureHeadsign: HTMLSpanElement;
-    private timeLine : RouteTimeline;
+    private timeLine: RouteTimeline;
+    private plannedTime: HTMLSpanElement;
     constructor() {
         super();
 
@@ -26,6 +27,7 @@ export class RouteSummary extends HTMLElement {
             this.innerHTML = template;
             this.rendered = true;
             this.departureTime = this.querySelector(".route-summary__departure-time");
+            this.plannedTime = this.querySelector(".route-summary__planned-time");
             this.departureLine = this.querySelector(".route-summary__departure-line");
             this.departureStop = this.querySelector(".route-summary__departure-stop");
             this.departureHeadsign = this.querySelector(".route-summary__departure-headsign");
@@ -38,7 +40,9 @@ export class RouteSummary extends HTMLElement {
         if (this.rendered && this.itinerary.legs.length > 0) {
             let firstTransitLeg = this.itinerary.legs.find(l => l.type == LegType.Transit);
             if (firstTransitLeg) {
-                this.departureTime.innerText = timeFormat.format(firstTransitLeg.plannedDeparture);
+                this.departureTime.innerText = `${timeFormat.format(new Date(firstTransitLeg.plannedDeparture.getTime() + firstTransitLeg.delay * 1000))}`;
+                this.plannedTime.innerText = `${timeFormat.format(firstTransitLeg.plannedDeparture)}`;
+                this.plannedTime.style.display = this.departureTime.innerText != this.plannedTime.innerText ? "" : "none";
                 this.departureLine.setAttribute(RouteAttribute, firstTransitLeg.route.name);
                 this.departureLine.setAttribute(RouteColorAttribute, firstTransitLeg.route.color);
                 this.departureStop.innerText = firstTransitLeg.departureStop.stopName;

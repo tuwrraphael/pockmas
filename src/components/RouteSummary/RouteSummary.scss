@@ -22,4 +22,10 @@ route-summary {
     &__departure-time {
         font-size: 1.2em;
     }
+    &__planned-time {
+        grid-column: 1 / 1;
+        grid-row: 2 / 2;
+        text-decoration: line-through;
+        font-size: 0.8em;
+    }
 }

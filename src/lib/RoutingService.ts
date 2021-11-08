@@ -1,5 +1,6 @@
 import { findTimeZone, getUnixTime, getZonedTime } from "timezone-support/dist/lookup-convert";
 import { RaptorExports } from "../../raptor/wasm-exports";
+import { MonitorResponse } from "../ogd_realtime/MonitorResponse";
 import { Itinerary } from "./Itinerary";
 import { Leg } from "./Leg";
 
@@ -89,6 +90,36 @@ export class RoutingService {
         return this.readResults(this.routingInstance.exports.memory, resOffset, startOfDayVienna);
     }
 
+    async updateRealtimeForStops(divas: number[]) {
+        let params = new URLSearchParams();
+        for (let diva of divas) {
+            params.append("diva", diva.toString());
+        }
+        let res = await fetch(`https://realtime-api.grapp.workers.dev/ogd_realtime/monitor?${params}`);
+        let monitorResponse: MonitorResponse = await res.json();
+        for (let monitor of monitorResponse.data.monitors) {
+            for (let line of monitor.lines) {
+                let direction: number;
+                if (line.richtungsId == "1") {
+                    direction = 0;
+                } else if (line.richtungsId == "2") {
+                    direction = 1;
+                } else {
+                    throw new Error(`unknown richtungsId in monitor ${line.richtungsId}`);
+                }
+                this.upsertRealtimeData({
+                    diva: parseInt(monitor.locationStop.properties.name),
+                    linie: line.lineId,
+                    apply: true,
+                    direction: direction,
+                    timeReal: line.departures.departure
+                        .filter(d => null != d.departureTime.timeReal)
+                        .map(d => new Date(d.departureTime.timeReal))
+                });
+            }
+        }
+
+    }
 
     private readLeg(buffer: ArrayBuffer, offset: number, departureDate: number): Leg {
         let view = new DataView(buffer, offset, RAPTOR_LEG_SIZE);
@@ -107,7 +138,7 @@ export class RoutingService {
                 stopName: this.stops[arrivalStopId][0]
             },
             plannedDeparture: new Date(departureSeconds * 1000),
-            delay: view.getUint16(18, true),
+            delay: view.getInt16(18, true),
             arrivalTime: new Date(departureDate + arrivalSeconds * 1000),
             duration: (departureDate / 1000 + arrivalSeconds - departureSeconds) * 1000,
             route: null,
@@ -124,6 +155,10 @@ export class RoutingService {
             leg.tripId = view.getUint32(20, true);
         }
         return leg;
+    }
+
+    getDiva(stopId:number) {
+        return this.stops[stopId][1];
     }
 
     private readItinerary(buffer: ArrayBuffer, offset: number, departureDate: number): Itinerary {

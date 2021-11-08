@@ -113,12 +113,25 @@ async function stopsSelected(departure: number, arrival: number) {
     let now = new Date();
     let departureStops = stopGroupIndex[state.departureStopResults[departure].id].stopIds;
     let arrivalStop = stopGroupIndex[state.arrivalStopResults[arrival].id].stopIds[0];
-    let results = routingInstance.route({
-        arrivalStop: arrivalStop,
-        departureStops: departureStops,
-        departureTimes: departureStops.map(() => now)
-    });
-    updateState(() => ({ results: results }))
+
+    let lookedUpDivas = new Set<number>();
+    for (let i = 0; i < 10; i++) {
+        let results = routingInstance.route({
+            arrivalStop: arrivalStop,
+            departureStops: departureStops,
+            departureTimes: departureStops.map(() => now)
+        });
+        updateState(() => ({ results: results }));
+        let divas = results.reduce((divas, itinerary) => [...divas, ...itinerary.legs.map(l => routingInstance.getDiva(l.departureStop.stopId))], [])
+            .filter(d => !lookedUpDivas.has(d));
+        if (divas.length == 0) {
+            break;
+        }
+        await routingInstance.updateRealtimeForStops(Array.from(new Set(divas).values()));
+        for (let diva of divas) {
+            lookedUpDivas.add(diva);
+        }
+    }
 }
 
 async function handleMessage(msg: Actions) {
