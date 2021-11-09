@@ -2,6 +2,15 @@
 #include "bump_allocator.h"
 #include "calendar_utils.h"
 
+typedef struct
+{
+	route_id_t route_id;
+	uint16_t trip;
+	int32_t realtime_offset;
+	boolean_t set;
+	boolean_t was_last_trip;
+} best_result_t;
+
 stoptime_update_t *stoptime_update;
 
 void initialize_realtime_memory(input_data_t *input_data)
@@ -38,6 +47,15 @@ static int32_t get_next_trip_in_service(input_data_t *input_data, route_t *route
 	return -1;
 }
 
+static int32_t abs(int32_t value)
+{
+	if (value < 0)
+	{
+		return -value;
+	}
+	return value;
+}
+
 void process_stoptime_update(input_data_t *input_data)
 {
 	for (uint8_t i = 0; i < stoptime_update->num_updates; i++)
@@ -53,6 +71,12 @@ void process_stoptime_update(input_data_t *input_data)
 		}
 	}
 	diva_index_t *diva_index_obj = &input_data->diva_index[diva_index];
+	best_result_t best_results[MAX_STOPTIME_UPDATES];
+	for (uint8_t i = 0; i < MAX_STOPTIME_UPDATES; i++)
+	{
+		best_results[i].set = FALSE;
+		best_results[i].was_last_trip = FALSE;
+	}
 	for (uint32_t diva_route_idx = diva_index_obj->diva_routes_index; diva_route_idx < diva_index_obj->diva_routes_index + diva_index_obj->diva_routes_count; diva_route_idx++)
 	{
 		diva_route_t *diva_route = &input_data->diva_routes[diva_route_idx];
@@ -76,14 +100,12 @@ void process_stoptime_update(input_data_t *input_data)
 
 				boolean_t is_last_trip = next_trip == -1;
 				stop_time_t *stoptime_at_trip = &input_data->stop_times[route->stop_time_idx + (trip * route->stop_count) + diva_route->stop_offset];
-				boolean_t found = FALSE;
+				int32_t found_trip = -1;
+				int32_t realtime_offset = INT32_MAX;
 				if (is_last_trip)
 				{
-					stoptime_update->num_matches[update_idx]++;
-					stoptime_update->results[update_idx].route_id = diva_route->route_id;
-					stoptime_update->results[update_idx].trip = trip;
-					stoptime_update->results[update_idx].realtime_offset = stoptime_at_trip->departure_time - stoptime_update->time_real[update_idx];
-					found = TRUE;
+					realtime_offset = stoptime_at_trip->departure_time - stoptime_update->time_real[update_idx];
+					found_trip = trip;
 				}
 				else
 				{
@@ -97,31 +119,50 @@ void process_stoptime_update(input_data_t *input_data)
 					if (offset_to_current_trip <= offset_to_next_trip)
 					{
 						// current trip is late
-						stoptime_update->num_matches[update_idx]++;
-						stoptime_update->results[update_idx].route_id = diva_route->route_id;
-						stoptime_update->results[update_idx].trip = trip;
-						stoptime_update->results[update_idx].realtime_offset = offset_to_current_trip;
-						found = TRUE;
+						realtime_offset = offset_to_current_trip;
+						found_trip = trip;
 					}
 					else
 					{
-
 						// next trip is early
-						stoptime_update->num_matches[update_idx]++;
-						stoptime_update->results[update_idx].route_id = diva_route->route_id;
-						stoptime_update->results[update_idx].trip = next_trip;
-						stoptime_update->results[update_idx].realtime_offset = 0 - offset_to_next_trip;
-						found = TRUE;
+						realtime_offset = 0 - offset_to_next_trip;
+						found_trip = next_trip;
 					}
 				}
-				if (found == TRUE)
+				if (found_trip > -1)
 				{
-					if (stoptime_update->apply == TRUE)
+					if (best_results[update_idx].set == FALSE ||
+						(abs(realtime_offset) < abs(best_results[update_idx].realtime_offset)))
 					{
-						input_data->realtime_offsets[input_data->realtime_index[diva_route->route_id].realtime_index + stoptime_update->results[update_idx].trip] = stoptime_update->results[update_idx].realtime_offset;
+						best_results[update_idx].set = TRUE;
+						best_results[update_idx].route_id = diva_route->route_id;
+						best_results[update_idx].trip = (uint16_t)found_trip;
+						best_results[update_idx].realtime_offset = realtime_offset;
+						best_results[update_idx].was_last_trip = is_last_trip;
+						if (is_last_trip == FALSE)
+						{
+							stoptime_update->num_matches[update_idx]++;
+						}
 					}
 					update_idx++;
 				}
+			}
+		}
+	}
+	for (uint8_t i = 0; i < stoptime_update->num_updates; i++)
+	{
+		if (best_results[i].set == TRUE)
+		{
+			stoptime_update->results[i].trip = best_results[i].trip;
+			stoptime_update->results[i].route_id = best_results[i].route_id;
+			stoptime_update->results[i].realtime_offset = (int16_t)best_results[i].realtime_offset;
+			if (best_results[i].was_last_trip == TRUE)
+			{
+				stoptime_update->num_matches[i]++;
+			}
+			if (stoptime_update->apply)
+			{
+				input_data->realtime_offsets[input_data->realtime_index[best_results[i].route_id].realtime_index + best_results[i].trip] = best_results[i].realtime_offset;
 			}
 		}
 	}

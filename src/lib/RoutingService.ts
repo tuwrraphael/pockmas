@@ -44,6 +44,7 @@ function dayOfWeekToMask(date: Date) {
 }
 
 export class RoutingService {
+    private mappedRealtimeData: { [routeId: number]: Set<number> } = {};
     constructor(private routingInstance: WebAssemblyInstance<RaptorExports>,
         private routeNames: [string, string, number, string | null][],
         private stops: [string, number][]) {
@@ -107,15 +108,18 @@ export class RoutingService {
                 } else {
                     throw new Error(`unknown richtungsId in monitor ${line.richtungsId}`);
                 }
-                this.upsertRealtimeData({
-                    diva: parseInt(monitor.locationStop.properties.name),
-                    linie: line.lineId,
-                    apply: true,
-                    direction: direction,
-                    timeReal: line.departures.departure
-                        .filter(d => null != d.departureTime.timeReal)
-                        .map(d => new Date(d.departureTime.timeReal))
-                });
+                let timeReal = line.departures.departure
+                    .filter(d => null != d.departureTime.timeReal)
+                    .map(d => new Date(d.departureTime.timeReal));
+                if (timeReal.length > 0) {
+                    this.upsertRealtimeData({
+                        diva: parseInt(monitor.locationStop.properties.name),
+                        linie: line.lineId,
+                        apply: true,
+                        direction: direction,
+                        timeReal: timeReal
+                    });
+                }
             }
         }
 
@@ -142,7 +146,8 @@ export class RoutingService {
             arrivalTime: new Date(departureDate + arrivalSeconds * 1000),
             duration: (departureDate / 1000 + arrivalSeconds - departureSeconds) * 1000,
             route: null,
-            tripId: null
+            tripId: null,
+            isRealtime : false
         };
         if (leg.type == 1) {
             let routeId = view.getUint16(16, true);
@@ -153,11 +158,12 @@ export class RoutingService {
                 headsign: this.routeNames[routeId][1]
             };
             leg.tripId = view.getUint32(20, true);
+            leg.isRealtime = this.mappedRealtimeData[leg.route.id]?.has(leg.tripId) || false;
         }
         return leg;
     }
 
-    getDiva(stopId:number) {
+    getDiva(stopId: number) {
         return this.stops[stopId][1];
     }
 
@@ -231,5 +237,12 @@ export class RoutingService {
             dataView.setUint32(16 + i * 4, (+updates.timeReal[i] - date) / 1000, true);
         }
         this.routingInstance.exports.process_realtime();
+        let res = this.getRealtimeUpdateResult();
+        for (let update of res) {
+            if (update.numMatches > 0) {
+                this.mappedRealtimeData[update.routeId] = this.mappedRealtimeData[update.routeId] || new Set();
+                this.mappedRealtimeData[update.routeId].add(update.trip);
+            }
+        }
     }
 }

@@ -41,8 +41,10 @@ export class RouteSummary extends HTMLElement {
             let firstTransitLeg = this.itinerary.legs.find(l => l.type == LegType.Transit);
             if (firstTransitLeg) {
                 this.departureTime.innerText = `${timeFormat.format(new Date(firstTransitLeg.plannedDeparture.getTime() + firstTransitLeg.delay * 1000))}`;
-                this.plannedTime.innerText = `${timeFormat.format(firstTransitLeg.plannedDeparture)}`;
-                this.plannedTime.style.display = this.departureTime.innerText != this.plannedTime.innerText ? "" : "none";
+                let palannedDepatureFormatted = timeFormat.format(firstTransitLeg.plannedDeparture);
+                let delayed = palannedDepatureFormatted != this.departureTime.innerText;
+                this.plannedTime.innerText = `${firstTransitLeg.isRealtime ? delayed ? palannedDepatureFormatted : "pünktlich" : ""}`;
+                this.plannedTime.style.textDecoration = delayed ? "line-through" : "none";
                 this.departureLine.setAttribute(RouteAttribute, firstTransitLeg.route.name);
                 this.departureLine.setAttribute(RouteColorAttribute, firstTransitLeg.route.color);
                 this.departureStop.innerText = firstTransitLeg.departureStop.stopName;

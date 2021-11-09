@@ -72,4 +72,30 @@ describe("realtime", () => {
         expect(result[0].legs[0].plannedDeparture).toEqual(new Date("2021-10-29T18:37:00.000+0200"));
         expect(result[0].legs[0].delay).toEqual(29);
     });
+
+    it("realtime route in the morning from Polgarstraße to Kagran", () => {
+        let request = {
+            departureStops: [161],
+            arrivalStop: 3586,
+            departureTimes: [new Date(getUnixTime({
+                year: 2021,
+                month: 11,
+                day: 9,
+                hours: 9,
+                minutes: 36,
+                seconds: 0,
+            }, vienna))]
+        };
+        routingInstance.upsertRealtimeData({
+            direction: 1,
+            diva: 60201031,
+            linie: 426,
+            timeReal: [
+                new Date("2021-11-09T09:41:33.000+0100")
+            ],
+            apply: true
+        });
+        let result = routingInstance.route(request);
+        expect(result[0].legs[0].delay).toEqual(2*60+33);
+    });
 });

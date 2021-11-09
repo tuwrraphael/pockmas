@@ -16,5 +16,6 @@ export interface Leg {
         color: string;
         headsign: string;
     };
+    isRealtime: boolean;
     tripId: number | null;
 }
