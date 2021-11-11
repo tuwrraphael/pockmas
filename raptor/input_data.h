@@ -3,6 +3,15 @@
 #include <stdint.h>
 
 #define TIME_INFINITY (INT32_MAX)
+#define ONE_DAY (86400)
+
+#define MONDAY (1 << 0)
+#define TUESDAY (1 << 1)
+#define WEDNESDAY (1 << 2)
+#define THURSDAY (1 << 3)
+#define FRIDAY (1 << 4)
+#define SATURDAY (1 << 5)
+#define SUNDAY (1 << 6)
 
 #define CALENDAR_EXCEPTION_ADDED (1)
 #define CALENDAR_EXCEPTION_REMOVED (2)

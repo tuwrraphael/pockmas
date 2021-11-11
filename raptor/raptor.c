@@ -161,24 +161,53 @@ static timeofday_t min_time(timeofday_t a, timeofday_t b)
 	return a < b ? a : b;
 }
 
+static uint8_t weekday_before(uint8_t weekday) {
+	if (weekday == MONDAY) {
+		return SUNDAY;
+	}
+	return weekday >> 1;
+}
+
 static int32_t earliest_trip(route_id_t route_id, uint32_t stop_index, timeofday_t after, datetime_t date, uint8_t weekday)
 {
-	uint16_t earliest_trip = 0;
+	int32_t earliest_trip = -1;
 	route_t *route = &input_data.routes[route_id];
-	for (uint32_t i = route->stop_time_idx + stop_index; i < route->stop_time_idx + stop_index + route->trip_count * route->stop_count; i += route->stop_count)
+	datetime_t earliest_trip_time;
+	for (uint16_t trip = 0; trip < route->trip_count; trip++)
 	{
-		if (trip_serviced_at_date(&input_data, route, earliest_trip, date, weekday))
+		if (trip_serviced_at_date(&input_data, route, trip, date, weekday))
 		{
-			stop_time_t *stop_time = &input_data.stop_times[i];
-			int16_t trip_delay = input_data.realtime_offsets[input_data.realtime_index[route_id].realtime_index + earliest_trip];
-			if ((stop_time->departure_time + trip_delay) > after) // should be >= i think
+			stop_time_t *stop_time = &input_data.stop_times[route->stop_time_idx + stop_index + route->stop_count * trip];
+			int16_t trip_delay = input_data.realtime_offsets[input_data.realtime_index[route_id].realtime_index + trip];
+			if ((stop_time->departure_time + trip_delay) >= after)
 			{
-				return earliest_trip;
+				earliest_trip = trip;
+				earliest_trip_time = date + stop_time->departure_time + trip_delay;
+				break;
 			}
 		}
-		earliest_trip++;
 	}
-	return -1;
+	// timeofday_t time_yesterday = after + ONE_DAY;
+	// datetime_t date_yesterday = date - ONE_DAY;
+	// uint8_t weekday_yesterday = weekday_before(weekday);
+	// for(int32_t trip = route->trip_count-1; trip >= 0; trip--) {
+	// 	stop_time_t *stop_time = &input_data.stop_times[route->stop_time_idx + stop_index + route->stop_count * trip];
+	// 	if (stop_time->departure_time < ONE_DAY) {
+	// 		break;
+	// 	}
+	// 	if (trip_serviced_at_date(&input_data, route, trip, date_yesterday, weekday_yesterday)) {
+	// 		int16_t trip_delay = input_data.realtime_offsets[input_data.realtime_index[route_id].realtime_index + trip];
+	// 		if ((stop_time->departure_time + trip_delay) >= time_yesterday) {
+	// 			if (earliest_trip == -1 || earliest_trip_time > (date_yesterday + stop_time->departure_time + trip_delay)) {
+	// 				earliest_trip = trip;
+	// 				earliest_trip_time = date_yesterday + stop_time->departure_time + trip_delay;
+	// 			}
+	// 		} else {
+	// 			break;
+	// 		}
+	// 	}
+	// }
+	return earliest_trip;
 }
 
 static boolean_t reconstruct_itinerary(stop_id_t target_stop, uint8_t round, backtracking_t *backtracking[], timeofday_t *arrival_times[], itinerary_t *itinerary)

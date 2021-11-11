@@ -10,16 +10,21 @@ import { StopsSelected } from "./actions/StopsSelected";
 import { populateTimeZones } from "timezone-support/dist/lookup-convert";
 import { copyToWasmMemory } from "../utils/copyToWasmMemory";
 import { RoutingService } from "../lib/RoutingService";
+import { SetDepartureTime } from "./actions/SetDepartureTime";
 
 type Actions = InitializeStopSearch
     | DepartureStopTermChanged
     | ArrivalStopTermChanged
     | InitializeRouting
-    | StopsSelected;
+    | StopsSelected
+    | SetDepartureTime;
 
 let stopSearchInstance: WebAssemblyInstance<StopSearchExports>;
 let routingInstance: RoutingService;
 let stopGroupIndex: { name: string; stopIds: number[] }[];
+let _departureTime: Date = null;
+let _departure: number = null;
+let _arrival: number = null;
 
 async function initRouting() {
     if (routingInstance) {
@@ -106,20 +111,36 @@ function searchTermChanged(term: string, departure: boolean) {
     }));
 }
 
-async function stopsSelected(departure: number, arrival: number) {
+async function stopsSelected(d: number, a: number) {
+    _departure = d;
+    _arrival = a;
+    _departureTime = new Date();
+    route();
+}
+
+async function departureTimeInc(inc: number) {
+    if (null == _departureTime) {
+        return;
+    }
+    _departureTime = new Date(_departureTime.getTime() + inc);
+    if (null != _departure && null != _arrival) {
+        route();
+    }
+}
+
+async function route() {
     if (null == routingInstance) {
         return;
     }
-    let now = new Date();
-    let departureStops = stopGroupIndex[state.departureStopResults[departure].id].stopIds;
-    let arrivalStop = stopGroupIndex[state.arrivalStopResults[arrival].id].stopIds[0];
+    let departureStops = stopGroupIndex[state.departureStopResults[_departure].id].stopIds;
+    let arrivalStop = stopGroupIndex[state.arrivalStopResults[_arrival].id].stopIds[0];
 
     let lookedUpDivas = new Set<number>();
     for (let i = 0; i < 10; i++) {
         let results = routingInstance.route({
             arrivalStop: arrivalStop,
             departureStops: departureStops,
-            departureTimes: departureStops.map(() => now)
+            departureTimes: departureStops.map(() => _departureTime)
         });
         updateState(() => ({ results: results }));
         let divas = results.reduce((divas, itinerary) => [...divas, ...itinerary.legs.map(l => routingInstance.getDiva(l.departureStop.stopId))], [])
@@ -133,6 +154,7 @@ async function stopsSelected(departure: number, arrival: number) {
         }
     }
 }
+
 
 async function handleMessage(msg: Actions) {
     switch (msg.type) {
@@ -153,6 +175,10 @@ async function handleMessage(msg: Actions) {
         }
         case ActionType.StopsSelected: {
             stopsSelected(msg.departure, msg.arrival);
+            break;
+        }
+        case ActionType.SetDepartureTime: {
+            departureTimeInc(msg.increment);
             break;
         }
     }

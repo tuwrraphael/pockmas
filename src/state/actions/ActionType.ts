@@ -3,5 +3,6 @@ export const enum ActionType {
     DepartureStopTermChanged,
     ArrivalStopTermChanged,
     InitializeRouting,
-    StopsSelected
+    StopsSelected,
+    SetDepartureTime
 }
