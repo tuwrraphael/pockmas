@@ -37,7 +37,19 @@ stoptime_update_t *get_stoptime_update_memory()
 
 static int32_t get_next_trip_in_service(input_data_t *input_data, route_t *route, uint16_t trip, uint32_t date, uint8_t weekday)
 {
-	for (uint16_t t = trip + 1; t < route->trip_count; t++)
+	for (uint16_t t = trip; t < route->trip_count; t++)
+	{
+		if (trip_serviced_at_date(input_data, route, t, date, weekday) == TRUE)
+		{
+			return t;
+		}
+	}
+	return -1;
+}
+
+static int32_t get_last_trip_in_service(input_data_t *input_data, route_t *route, uint16_t trip, uint32_t date, uint8_t weekday)
+{
+	for (int32_t t = trip; t >= 0; t--)
 	{
 		if (trip_serviced_at_date(input_data, route, t, date, weekday) == TRUE)
 		{
@@ -54,6 +66,43 @@ static int32_t abs(int32_t value)
 		return -value;
 	}
 	return value;
+}
+
+static void set_best_result(best_result_t *best_result, route_id_t route_id, uint16_t trip, int32_t realtime_offset)
+{
+	if (best_result->set == FALSE || abs(realtime_offset) < abs(best_result->realtime_offset))
+	{
+		best_result->route_id = route_id;
+		best_result->trip = trip;
+		best_result->realtime_offset = realtime_offset;
+		best_result->set = TRUE;
+	}
+}
+
+typedef struct
+{
+	uint16_t trip;
+	int32_t realtime_offset;
+} trip_offset_t;
+
+// a < real < b
+static trip_offset_t get_closer_trip(uint16_t trip_a, uint16_t trip_b, timeofday_t stop_time_a, timeofday_t stop_time_b, timeofday_t time_real)
+{
+	trip_offset_t result;
+	int32_t offset_a = time_real - stop_time_a;
+	int32_t offset_b = stop_time_b - time_real;
+	// a is late
+	if (offset_a < offset_b)
+	{
+		result.trip = trip_a;
+		result.realtime_offset = offset_a;
+	}
+	else
+	{ // b is early
+		result.trip = trip_b;
+		result.realtime_offset = -offset_b;
+	}
+	return result;
 }
 
 void process_stoptime_update(input_data_t *input_data)
@@ -83,68 +132,89 @@ void process_stoptime_update(input_data_t *input_data)
 		if (diva_route->linie_id == stoptime_update->linie && diva_route->direction == stoptime_update->direction)
 		{
 			route_t *route = &input_data->routes[diva_route->route_id];
-			uint8_t update_idx = 0;
-			for (uint16_t trip = 0; trip < route->trip_count; trip++)
+
+			// check day before after midnight
+			datetime_t date_yesterday = stoptime_update->date - ONE_DAY;
+			uint8_t weekday_yesterday = weekday_before(stoptime_update->weekday);
+			int32_t trip = get_last_trip_in_service(input_data, route, route->trip_count - 1, date_yesterday, weekday_yesterday);
+			int16_t update_idx = stoptime_update->num_updates - 1;
+			while (update_idx >= 0)
 			{
-				if (update_idx >= stoptime_update->num_updates)
+				if (trip < 0)
 				{
 					break;
 				}
-				if (trip_serviced_at_date(input_data, route, trip, stoptime_update->date, stoptime_update->weekday) == FALSE)
+				timeofday_t stop_time = input_data->stop_times[route->stop_time_idx + (trip * route->stop_count) + diva_route->stop_offset].departure_time;
+				if (stop_time < ONE_DAY)
 				{
-					continue;
+					break;
 				}
-
-				// TODO optimize loop by using while and advancing to next_trip on end
-				int32_t next_trip = get_next_trip_in_service(input_data, route, trip, stoptime_update->date, stoptime_update->weekday);
-
-				boolean_t is_last_trip = next_trip == -1;
-				stop_time_t *stoptime_at_trip = &input_data->stop_times[route->stop_time_idx + (trip * route->stop_count) + diva_route->stop_offset];
-				int32_t found_trip = -1;
-				int32_t realtime_offset = INT32_MAX;
-				if (is_last_trip)
+				int32_t trip_before = trip > 0 ? get_last_trip_in_service(input_data, route, trip - 1, date_yesterday, weekday_yesterday) : -1;
+				timeofday_t stop_time_before = trip_before >= 0 ? input_data->stop_times[route->stop_time_idx + (trip_before * route->stop_count) + diva_route->stop_offset].departure_time : 0;
+				timeofday_t time_real_yesterday = stoptime_update->time_real[update_idx] + ONE_DAY;
+				if (trip_before != -1)
 				{
-					realtime_offset = stoptime_at_trip->departure_time - stoptime_update->time_real[update_idx];
-					found_trip = trip;
-				}
-				else
-				{
-					stop_time_t *stoptime_at_next_trip = &input_data->stop_times[route->stop_time_idx + ((next_trip)*route->stop_count) + diva_route->stop_offset];
-					if (stoptime_at_next_trip->departure_time < stoptime_update->time_real[update_idx])
+					if (stop_time_before < time_real_yesterday)
 					{
-						continue;
-					}
-					int32_t offset_to_current_trip = stoptime_update->time_real[update_idx] - stoptime_at_trip->departure_time;
-					int32_t offset_to_next_trip = stoptime_at_next_trip->departure_time - stoptime_update->time_real[update_idx];
-					if (offset_to_current_trip <= offset_to_next_trip)
-					{
-						// current trip is late
-						realtime_offset = offset_to_current_trip;
-						found_trip = trip;
+						if (stop_time < time_real_yesterday)
+						{
+							set_best_result(&best_results[update_idx], diva_route->route_id, trip, time_real_yesterday - stop_time);
+						}
+						else
+						{
+							trip_offset_t closer_trip = get_closer_trip(trip_before, trip, stop_time_before, stop_time, time_real_yesterday);
+							set_best_result(&best_results[update_idx], diva_route->route_id, closer_trip.trip, closer_trip.realtime_offset);
+						}
+						update_idx--;
 					}
 					else
 					{
-						// next trip is early
-						realtime_offset = 0 - offset_to_next_trip;
-						found_trip = next_trip;
+						trip = trip_before;
 					}
 				}
-				if (found_trip > -1)
+				else
 				{
-					if (best_results[update_idx].set == FALSE ||
-						(abs(realtime_offset) < abs(best_results[update_idx].realtime_offset)))
+					set_best_result(&best_results[update_idx], diva_route->route_id, trip, time_real_yesterday - stop_time);
+					break;
+				}
+			}
+			// check today
+			trip = get_next_trip_in_service(input_data, route, 0, stoptime_update->date, stoptime_update->weekday);
+			update_idx = 0;
+			while (update_idx < stoptime_update->num_updates)
+			{
+				if (trip < 0)
+				{
+					break;
+				}
+				timeofday_t stop_time = input_data->stop_times[route->stop_time_idx + (trip * route->stop_count) + diva_route->stop_offset].departure_time;
+				int32_t next_trip = trip < route->trip_count - 1 ? get_next_trip_in_service(input_data, route, trip + 1, stoptime_update->date, stoptime_update->weekday) : -1;
+				timeofday_t next_stop_time = next_trip >= 0 ? input_data->stop_times[route->stop_time_idx + (next_trip * route->stop_count) + diva_route->stop_offset].departure_time : 0;
+				timeofday_t time_real_today = stoptime_update->time_real[update_idx];
+				if (next_trip != -1)
+				{
+					if (next_stop_time > time_real_today)
 					{
-						best_results[update_idx].set = TRUE;
-						best_results[update_idx].route_id = diva_route->route_id;
-						best_results[update_idx].trip = (uint16_t)found_trip;
-						best_results[update_idx].realtime_offset = realtime_offset;
-						best_results[update_idx].was_last_trip = is_last_trip;
-						if (is_last_trip == FALSE)
+						if (stop_time > time_real_today)
 						{
-							stoptime_update->num_matches[update_idx]++;
+							set_best_result(&best_results[update_idx], diva_route->route_id, trip, stop_time - time_real_today);
 						}
+						else
+						{
+							trip_offset_t closer_trip = get_closer_trip(trip, next_trip, stop_time, next_stop_time, time_real_today);
+							set_best_result(&best_results[update_idx], diva_route->route_id, closer_trip.trip, closer_trip.realtime_offset);
+						}
+						update_idx++;
 					}
-					update_idx++;
+					else
+					{
+						trip = next_trip;
+					}
+				}
+				else
+				{
+					set_best_result(&best_results[update_idx], diva_route->route_id, trip, stop_time - time_real_today);
+					break;
 				}
 			}
 		}

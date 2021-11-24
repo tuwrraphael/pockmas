@@ -161,13 +161,6 @@ static timeofday_t min_time(timeofday_t a, timeofday_t b)
 	return a < b ? a : b;
 }
 
-static uint8_t weekday_before(uint8_t weekday) {
-	if (weekday == MONDAY) {
-		return SUNDAY;
-	}
-	return weekday >> 1;
-}
-
 static int32_t earliest_trip(route_id_t route_id, uint32_t stop_index, timeofday_t after, datetime_t date, uint8_t weekday)
 {
 	int32_t earliest_trip = -1;

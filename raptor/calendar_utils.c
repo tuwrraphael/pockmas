@@ -79,3 +79,10 @@ boolean_t trip_serviced_at_date(input_data_t *input_data, route_t *route, uint16
     calendar_cache.cache[calendarId].value = result;
     return result;
 }
+
+uint8_t weekday_before(uint8_t weekday) {
+	if (weekday == MONDAY) {
+		return SUNDAY;
+	}
+	return weekday >> 1;
+}

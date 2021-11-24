@@ -4,7 +4,9 @@
 #include <fstream>
 #include <iterator>
 #include <chrono>
+#include <algorithm> 
 #include "realtime.h"
+#include "calendar_utils.h"
 
 template <typename T, typename T2>
 T *readfile(std::string filename, T *(*alloc)(T2))
@@ -23,7 +25,7 @@ T *readfile(std::string filename, T *(*alloc)(T2))
 int main()
 {
 	route_t *routes = readfile("C:\\git\\pockmas\\preprocessing-dist\\routes.bin.bmp", get_routes_memory);
-	stop_time_t *stoptimes = readfile("C:\\git\\pockmas\\preprocessing-dist\\stoptimes.bin.bmp", get_stoptimes_memory);
+	stop_time_t *stop_times = readfile("C:\\git\\pockmas\\preprocessing-dist\\stoptimes.bin.bmp", get_stoptimes_memory);
 	route_stop_t *routestops = readfile("C:\\git\\pockmas\\preprocessing-dist\\route_stops.bin.bmp", get_route_stops_memory);
 	stop_serving_route_t *stop_serving_route = readfile("C:\\git\\pockmas\\preprocessing-dist\\stop_serving_routes.bin.bmp", get_serving_routes_memory);
 	stop_t *stops = readfile("C:\\git\\pockmas\\preprocessing-dist\\stops.bin.bmp", get_stops_memory);
@@ -44,32 +46,73 @@ int main()
 	//file.read((char*)mem, size - 10 * sizeof(uint32_t));
 	//file.close();
 
+	input_data_t input_data;
+	input_data.trip_calendars = trip_calendars;
+	input_data.calendars = calendars;
+	input_data.calendar_exceptions = calendar_exceptions;
+
 	initialize();
+	uint16_t diva_indexi;
+	for (diva_indexi = 0; diva_indexi < 1710; diva_indexi++)
+	{
+		if (diva_index[diva_indexi].diva == 60201039)
+		{
+			break;
+		}
+	}
+	diva_index_t* diva_index_obj = &diva_index[diva_indexi];
+	std::vector<timeofday_t> v;
+	for (uint32_t diva_route_idx = diva_index_obj->diva_routes_index; diva_route_idx < diva_index_obj->diva_routes_index + diva_index_obj->diva_routes_count; diva_route_idx++)
+	{
+		diva_route_t* diva_route = &diva_routes[diva_route_idx];
+		if (diva_route->linie_id == 477 && diva_route->direction == 1)
+		{
+			route_t* route = &routes[diva_route->route_id];
+			for (uint16_t trip = 0; trip < route->trip_count; trip++) {
+				if (FALSE == trip_serviced_at_date(&input_data, route, trip, 1636671600-ONE_DAY, THURSDAY)) {
+					continue;
+				}
+				stop_time_t* time = &stop_times[route->stop_time_idx + (trip * route->stop_count) + diva_route->stop_offset];
+				v.push_back(time->departure_time);
+				
+			}
+		}
+	}
+
+	std::sort(v.begin(), v.end());
+
+	for (std::vector<timeofday_t>::iterator it = v.begin(); it != v.end(); ++it)
+		std::cout << *it / (60 * 60) << ":" << (*it % (60 * 60)) / 60 << "\n";
+	std::cout << '\n';
 
 	stoptime_update_t *stoptime_update = get_stoptime_update_memory();
-	stoptime_update->diva = 60200299;
+	stoptime_update->diva = 60200627;
 	stoptime_update->direction = 0;
-	stoptime_update->linie = 426;
+	stoptime_update->linie = 422;
 	stoptime_update->apply = false;
 	stoptime_update->date = 1635458400;
-	stoptime_update->weekday = 16;
-	stoptime_update->num_updates = 2;
-	stoptime_update->time_real[0] = 66633;
-	stoptime_update->time_real[1] = 67049;
+	stoptime_update->weekday = FRIDAY;
+	stoptime_update->num_updates = 1;
+	stoptime_update->time_real[0] = 66542;
+	/*stoptime_update->time_real[1] = 66780;
+	stoptime_update->time_real[2] = 67380;
+	stoptime_update->time_real[3] = 67980;*/
+
+	
 
 	process_realtime();
 
 	request_t *request = get_request_memory();
-	request->arrival_stations[0] = 13;
-	request->departure_stations[0] = 3692;
+	request->arrival_stations[0] = 156;
+	request->departure_stations[0] = 2416;
 	request->departure_stations[1] = 119;
 	request->num_departure_stations = 1;
 	request->num_arrival_stations = 1;
 	request->type = TIME_TYPE_DEPARTURE;
-	request->date = 1634853600;
-	request->weekday = 16;
-	request->times[0] = 86160;
-	request->times[1] = 84000;
+	request->date = 1636498800;
+	request->weekday = (1<<2);
+	request->times[0] = 60;
+	request->times[1] = 0;
 
 	results_t *results = raptor();
 }
