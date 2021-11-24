@@ -86,8 +86,10 @@ export class RoutingService {
         view.setUint32(4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + RAPTOR_MAX_REQUEST_STATIONS * 4, departureDate, true);
         let resOffset = this.routingInstance.exports.raptor();
         performance.mark("routing-done");
-        let measure = performance.measure("routing", "routing-start", "routing-done");
-        console.log(`routing took ${measure.duration}ms`);
+        performance.measure("routing", "routing-start", "routing-done");
+        console.log(`routing took ${(performance.getEntriesByName("routing")[0]).duration}ms`);
+        performance.clearMarks();
+        performance.clearMeasures();
         return this.readResults(this.routingInstance.exports.memory, resOffset, startOfDayVienna);
     }
 
