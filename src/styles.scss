@@ -39,3 +39,46 @@ ol {
     text-align: center;
     padding: 1em;
 }
+
+.button-pane {
+    padding: 0.2em;
+    display: flex;
+    justify-content: center;
+}
+
+.button {
+    // display: inline-block;
+    padding: 0.5em 1em;
+    font-weight: 500;
+    border: 1px solid;
+    border-radius: 4px;
+    background-color: var(--button-background);
+    border-color: var(--button-border);
+    transition: .2s cubic-bezier(.3, 0, .5, 1);
+    transition-property: background-color, color;
+    cursor: pointer;
+    outline: none;
+
+    &:hover {
+        background-color: var(--button-background--hover);
+        transition-duration: .1s;
+    }
+
+    &:focus-visible {
+        transition: none;
+        background-color: var(--button-background--focus);
+    }
+
+    
+
+    &:active {
+        background-color: var(--button-background--active);
+        transition: none;
+    }
+
+    // &:disabled {
+    //     color: #484f58;
+    //     background-color: #21262d;
+    //     border-color: #30363d;
+    // }
+}

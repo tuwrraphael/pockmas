@@ -13,6 +13,12 @@ $focus : color.adjust($primary, $lightness: 50%);
 
     --timeline--time:#f0f0f0;
     --timeline--walking:#999999;
+
+    --button-background: #fff;
+    --button-border: #999999;
+    --button-background--hover: #f0f0f0;
+    --button-background--active: #e0e0e0;
+    --button-background--focus: #{$focus};    
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,5 +30,11 @@ $focus : color.adjust($primary, $lightness: 50%);
         --focus: #667667;
 
         --timeline--time:#666666;
+
+        --button-background: #383838;
+        --button-border: #999999;
+        --button-background--hover: #666666;
+        --button-background--active: #555555;
+        --button-background--focus: #667667;    
     }
 }
