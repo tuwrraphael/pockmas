@@ -68,7 +68,7 @@ static int32_t abs(int32_t value)
 	return value;
 }
 
-static void set_best_result(best_result_t *best_result, route_id_t route_id, uint16_t trip, int32_t realtime_offset)
+static void set_best_result(best_result_t *best_result, route_id_t route_id, uint16_t trip, int32_t realtime_offset, boolean_t last_trip)
 {
 	if (best_result->set == FALSE || abs(realtime_offset) < abs(best_result->realtime_offset))
 	{
@@ -76,6 +76,7 @@ static void set_best_result(best_result_t *best_result, route_id_t route_id, uin
 		best_result->trip = trip;
 		best_result->realtime_offset = realtime_offset;
 		best_result->set = TRUE;
+		best_result->was_last_trip = last_trip;
 	}
 }
 
@@ -158,13 +159,14 @@ void process_stoptime_update(input_data_t *input_data)
 					{
 						if (stop_time < time_real_yesterday)
 						{
-							set_best_result(&best_results[update_idx], diva_route->route_id, trip, time_real_yesterday - stop_time);
+							set_best_result(&best_results[update_idx], diva_route->route_id, trip, time_real_yesterday - stop_time, FALSE);
 						}
 						else
 						{
 							trip_offset_t closer_trip = get_closer_trip(trip_before, trip, stop_time_before, stop_time, time_real_yesterday);
-							set_best_result(&best_results[update_idx], diva_route->route_id, closer_trip.trip, closer_trip.realtime_offset);
+							set_best_result(&best_results[update_idx], diva_route->route_id, closer_trip.trip, closer_trip.realtime_offset, FALSE);
 						}
+						stoptime_update->num_matches[update_idx]++;
 						update_idx--;
 					}
 					else
@@ -174,7 +176,7 @@ void process_stoptime_update(input_data_t *input_data)
 				}
 				else
 				{
-					set_best_result(&best_results[update_idx], diva_route->route_id, trip, time_real_yesterday - stop_time);
+					set_best_result(&best_results[update_idx], diva_route->route_id, trip, time_real_yesterday - stop_time, TRUE);
 					break;
 				}
 			}
@@ -197,13 +199,14 @@ void process_stoptime_update(input_data_t *input_data)
 					{
 						if (stop_time > time_real_today)
 						{
-							set_best_result(&best_results[update_idx], diva_route->route_id, trip, stop_time - time_real_today);
+							set_best_result(&best_results[update_idx], diva_route->route_id, trip, stop_time - time_real_today, FALSE);
 						}
 						else
 						{
 							trip_offset_t closer_trip = get_closer_trip(trip, next_trip, stop_time, next_stop_time, time_real_today);
-							set_best_result(&best_results[update_idx], diva_route->route_id, closer_trip.trip, closer_trip.realtime_offset);
+							set_best_result(&best_results[update_idx], diva_route->route_id, closer_trip.trip, closer_trip.realtime_offset, FALSE);
 						}
+						stoptime_update->num_matches[update_idx]++;
 						update_idx++;
 					}
 					else
@@ -213,7 +216,7 @@ void process_stoptime_update(input_data_t *input_data)
 				}
 				else
 				{
-					set_best_result(&best_results[update_idx], diva_route->route_id, trip, stop_time - time_real_today);
+					set_best_result(&best_results[update_idx], diva_route->route_id, trip, stop_time - time_real_today, TRUE);
 					break;
 				}
 			}
