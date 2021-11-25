@@ -2,15 +2,17 @@ import { Itinerary } from "../../lib/Itinerary";
 import template from "./RouteSummary.html";
 import "./RouteSummary.scss";
 import "../RouteTimeline/RouteTimeline";
+import "../FlipTimeDisplay/FlipTimeDisplay";
 import { RouteAttribute, RouteColorAttribute, TransitDisplay } from "../TransitDisplay/TransitDisplay";
 import { RouteTimeline } from "../RouteTimeline/RouteTimeline";
 import { LegType } from "../../lib/LegType";
+import { FlipTimeDisplay } from "../FlipTimeDisplay/FlipTimeDisplay";
 
 const timeFormat = Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit" });
 
 export class RouteSummary extends HTMLElement {
     private rendered = false;
-    private departureTime: HTMLSpanElement;
+    private departureTime: FlipTimeDisplay;
     private departureLine: TransitDisplay;
     private itinerary: Itinerary;
     private departureStop: HTMLSpanElement;
@@ -40,9 +42,12 @@ export class RouteSummary extends HTMLElement {
         if (this.rendered && this.itinerary.legs.length > 0) {
             let firstTransitLeg = this.itinerary.legs.find(l => l.type == LegType.Transit);
             if (firstTransitLeg) {
-                this.departureTime.innerText = `${timeFormat.format(new Date(firstTransitLeg.plannedDeparture.getTime() + firstTransitLeg.delay * 1000))}`;
+                let departureTime = new Date(firstTransitLeg.plannedDeparture.getTime() + firstTransitLeg.delay * 1000);
+                let depratureTimeFormatted = timeFormat.format(departureTime);
+                this.departureTime.setAttribute("time", "" + (departureTime.getTime()));
+                this.departureTime.setAttribute("title", `Anbfahrt um ${depratureTimeFormatted}`);
                 let palannedDepatureFormatted = timeFormat.format(firstTransitLeg.plannedDeparture);
-                let delayed = palannedDepatureFormatted != this.departureTime.innerText;
+                let delayed = palannedDepatureFormatted != depratureTimeFormatted;
                 this.plannedTime.innerText = `${firstTransitLeg.isRealtime ? delayed ? palannedDepatureFormatted : "pünktlich" : ""}`;
                 this.plannedTime.style.textDecoration = delayed ? "line-through" : "none";
                 this.departureLine.setAttribute(RouteAttribute, firstTransitLeg.route.name);
