@@ -45,7 +45,7 @@ export class RouteSummary extends HTMLElement {
                 let departureTime = new Date(firstTransitLeg.plannedDeparture.getTime() + firstTransitLeg.delay * 1000);
                 let depratureTimeFormatted = timeFormat.format(departureTime);
                 this.departureTime.setAttribute("time", "" + (departureTime.getTime()));
-                this.departureTime.setAttribute("title", `Anbfahrt um ${depratureTimeFormatted}`);
+                this.departureTime.setAttribute("title", `Abfahrt um ${depratureTimeFormatted}`);
                 let palannedDepatureFormatted = timeFormat.format(firstTransitLeg.plannedDeparture);
                 let delayed = palannedDepatureFormatted != depratureTimeFormatted;
                 this.plannedTime.innerText = `${firstTransitLeg.isRealtime ? delayed ? palannedDepatureFormatted : "pünktlich" : ""}`;
