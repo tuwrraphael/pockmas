@@ -51,8 +51,28 @@ describe("realtime", () => {
         expect(result[1].realtimeOffset).toBe(163);
         expect(result[2].realtimeOffset).toBe(-2);
         expect(result[3].realtimeOffset).toBe(0);
+        for(let r of result) {
+            expect(r.route).toBe("25");
+        }
     });
 
+    it("updates next U1", () => {
+        routingInstance.upsertRealtimeData({
+            direction: 1,
+            diva: 60200627,
+            linie: 301,
+            timeReal: [
+                new Date("2021-11-28T14:06:55.000+0100"),
+                new Date("2021-11-28T14:12:55.000+0100")
+            ],
+            apply: false
+        });
+        let result = routingInstance.getRealtimeUpdateResult();
+        expect(result[0].route).toBe("U1");
+        expect(result[0].realtimeOffset).toBe(-5);
+        expect(result[1].route).toBe("U1");
+        expect(result[1].realtimeOffset).toBe(55);
+    });
 
     // 26A Sonntag, Siebeckstraße, 00:07, 00:27, 00:47
     [
@@ -76,6 +96,7 @@ describe("realtime", () => {
             });
             let result = routingInstance.getRealtimeUpdateResult();
             expect(result.length).toBe(1);
+            expect(result[0].route).toBe("26A");
             expect(result[0].realtimeOffset).toBe(v.o);
         });
     });
@@ -97,6 +118,9 @@ describe("realtime", () => {
         });
         let result = routingInstance.getRealtimeUpdateResult();
         expect(result.length).toBe(5);
+        for(let r of result) {
+            expect(r.route).toBe("77A");
+        }
         expect(result[0].realtimeOffset).toBe(46);
         expect(result[1].realtimeOffset).toBe(60);
         expect(result[2].realtimeOffset).toBe(15);

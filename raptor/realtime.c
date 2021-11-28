@@ -160,7 +160,7 @@ static stoptime_before_t get_stoptime_before(input_data_t *input_data, route_sca
 	else if (result.trip_before == -1 || (result.stoptime_before < route_scan_state[second_latest].current_trip_time))
 	{
 		result.trip = route_scan_state[second_latest].current_trip;
-		result.route_id = route_scan_state[second_latest].current_trip;
+		result.route_id = route_scan_state[second_latest].diva_route->route_id;
 		result.stop_time = route_scan_state[second_latest].current_trip_time;
 	}
 	else
