@@ -156,63 +156,100 @@ static boolean_t is_before(stop_id_t stop_a, stop_id_t stop_b, route_id_t route_
 	return FALSE;
 }
 
-static timeofday_t min_time(timeofday_t a, timeofday_t b)
+static datetime_t min_time(datetime_t a, datetime_t b)
 {
 	return a < b ? a : b;
 }
 
-static int32_t earliest_trip(route_id_t route_id, uint32_t stop_index, timeofday_t after, datetime_t date, uint8_t weekday)
+typedef struct
 {
-	int32_t earliest_trip = -1;
+	int32_t trip;
+	datetime_t boarded_date;
+} earliest_trip_t;
+
+static earliest_trip_t earliest_trip(route_id_t route_id, uint32_t stop_index, datetime_t after, datetime_t request_day, uint8_t request_weekday)
+{
+	earliest_trip_t earliest_trip;
+	earliest_trip.trip = -1;
 	route_t *route = &input_data.routes[route_id];
 	datetime_t earliest_trip_time;
+	date_t after_date = find_date(after, request_day, request_weekday);
 	for (uint16_t trip = 0; trip < route->trip_count; trip++)
 	{
-		if (trip_serviced_at_date(&input_data, route, trip, date, weekday))
+		if (trip_serviced_at_date(&input_data, route, trip, after_date.datetime, after_date.weekday))
 		{
 			stop_time_t *stop_time = &input_data.stop_times[route->stop_time_idx + stop_index + route->stop_count * trip];
 			int16_t trip_delay = input_data.realtime_offsets[input_data.realtime_index[route_id].realtime_index + trip];
-			if ((stop_time->departure_time + trip_delay) >= after)
+			datetime_t adjusted_time = after_date.datetime + stop_time->departure_time + trip_delay;
+			if (adjusted_time >= after)
 			{
-				earliest_trip = trip;
-				earliest_trip_time = date + stop_time->departure_time + trip_delay;
+				earliest_trip.trip = trip;
+				earliest_trip.boarded_date = after_date.datetime;
+				earliest_trip_time = adjusted_time;
 				break;
 			}
 		}
 	}
-	// timeofday_t time_yesterday = after + ONE_DAY;
-	// datetime_t date_yesterday = date - ONE_DAY;
-	// uint8_t weekday_yesterday = weekday_before(weekday);
-	// for(int32_t trip = route->trip_count-1; trip >= 0; trip--) {
-	// 	stop_time_t *stop_time = &input_data.stop_times[route->stop_time_idx + stop_index + route->stop_count * trip];
-	// 	if (stop_time->departure_time < ONE_DAY) {
-	// 		break;
-	// 	}
-	// 	if (trip_serviced_at_date(&input_data, route, trip, date_yesterday, weekday_yesterday)) {
-	// 		int16_t trip_delay = input_data.realtime_offsets[input_data.realtime_index[route_id].realtime_index + trip];
-	// 		if ((stop_time->departure_time + trip_delay) >= time_yesterday) {
-	// 			if (earliest_trip == -1 || earliest_trip_time > (date_yesterday + stop_time->departure_time + trip_delay)) {
-	// 				earliest_trip = trip;
-	// 				earliest_trip_time = date_yesterday + stop_time->departure_time + trip_delay;
-	// 			}
-	// 		} else {
-	// 			break;
-	// 		}
-	// 	}
-	// }
+	 datetime_t date_yesterday = after_date.datetime - ONE_DAY;
+	 uint8_t weekday_yesterday = weekday_before(after_date.weekday);
+	 for (int32_t trip = route->trip_count - 1; trip >= 0; trip--)
+	 {
+	 	stop_time_t *stop_time = &input_data.stop_times[route->stop_time_idx + stop_index + route->stop_count * trip];
+	 	if (stop_time->departure_time < ONE_DAY)
+	 	{
+	 		break;
+	 	}
+	 	if (trip_serviced_at_date(&input_data, route, trip, date_yesterday, weekday_yesterday))
+	 	{
+	 		int16_t trip_delay = input_data.realtime_offsets[input_data.realtime_index[route_id].realtime_index + trip];
+	 		datetime_t adjusted_time = date_yesterday + stop_time->departure_time + trip_delay;
+	 		if (adjusted_time >= after)
+	 		{
+	 			if (earliest_trip.trip == -1 || earliest_trip_time > adjusted_time)
+	 			{
+	 				earliest_trip.trip = trip;
+	 				earliest_trip.boarded_date = date_yesterday;
+	 				earliest_trip_time = date_yesterday + stop_time->departure_time + trip_delay;
+	 			}
+	 		}
+	 		else
+	 		{
+	 			break;
+	 		}
+	 	}
+	 }
 	return earliest_trip;
 }
 
-static boolean_t reconstruct_itinerary(stop_id_t target_stop, uint8_t round, backtracking_t *backtracking[], timeofday_t *arrival_times[], itinerary_t *itinerary)
+static datetime_t get_arrival_at_stop(route_id_t route_id, route_t *route, uint16_t trip, uint32_t stop_index, datetime_t boarding_date)
+{
+	stop_time_t *current_stoptime = &input_data.stop_times[route->stop_time_idx + stop_index + trip * route->stop_count];
+	int16_t current_trip_delay = input_data.realtime_offsets[input_data.realtime_index[route_id].realtime_index + trip];
+	timeofday_t arrival_at_j = (current_stoptime->arrival_time + current_trip_delay);
+	return boarding_date + arrival_at_j;
+}
+
+static datetime_t get_planned_departure_at_stop(route_t *route, uint16_t trip, uint32_t stop_index, datetime_t boarding_date)
+{
+	stop_time_t *current_stoptime = &input_data.stop_times[route->stop_time_idx + stop_index + trip * route->stop_count];
+	// int16_t current_trip_delay = input_data.realtime_offsets[input_data.realtime_index[route_id].realtime_index + trip];
+	timeofday_t arrival_at_j = current_stoptime->departure_time;
+	return boarding_date + arrival_at_j;
+}
+
+static boolean_t reconstruct_itinerary(stop_id_t target_stop, uint8_t round, backtracking_t *backtracking[], datetime_t *arrival_times[], itinerary_t *itinerary)
 {
 	backtracking_t *backtracking_target = &backtracking[round][target_stop];
+	if (itinerary->num_legs > MAX_LEGS-1) {
+		return FALSE;
+	}
 	if (backtracking_target->type == BACKTRACKING_TRANSFER)
 	{
 		leg_t *leg = &itinerary->legs[itinerary->num_legs];
 		leg->origin_stop = backtracking_target->origin_stop;
 		leg->destination_stop = target_stop;
 		leg->arrival = arrival_times[round][target_stop];
-		leg->planned_departure = backtracking_target->date + arrival_times[round][backtracking_target->origin_stop];
+		leg->planned_departure = arrival_times[round][backtracking_target->origin_stop];
 		leg->type = LEG_TYPE_WALKING;
 		itinerary->num_legs++;
 		return reconstruct_itinerary(backtracking_target->origin_stop, round, backtracking, arrival_times, itinerary);
@@ -224,7 +261,7 @@ static boolean_t reconstruct_itinerary(stop_id_t target_stop, uint8_t round, bac
 		leg->origin_stop = backtracking_target->origin_stop;
 		leg->destination_stop = target_stop;
 		leg->arrival = arrival_times[round][target_stop];
-		leg->planned_departure = backtracking_target->date + input_data.stop_times[route->stop_time_idx + route->stop_count * backtracking_target->trip + backtracking_target->route_stopindex].departure_time;
+		leg->planned_departure = get_planned_departure_at_stop(route, backtracking_target->trip, backtracking_target->route_stopindex, backtracking_target->boarded_date);
 		leg->delay = input_data.realtime_offsets[input_data.realtime_index[backtracking_target->route].realtime_index + backtracking_target->trip];
 		leg->route = backtracking_target->route;
 		leg->trip = backtracking_target->trip;
@@ -246,7 +283,7 @@ static boolean_t reconstruct_itinerary(stop_id_t target_stop, uint8_t round, bac
 	}
 }
 
-static void collect_results(uint8_t rounds, backtracking_t *backtracking[], timeofday_t *arrival_times[], stop_id_t target, results_t *results)
+static void collect_results(uint8_t rounds, backtracking_t *backtracking[], datetime_t *arrival_times[], stop_id_t target, results_t *results)
 {
 	results->num_itineraries = 0;
 	for (uint8_t i = 0; i < MAX_ITINERARYS; i++)
@@ -287,24 +324,24 @@ void initialize()
 results_t *raptor()
 {
 	create_savepoint();
-	timeofday_t *earliest_known_arrival_times = malloc(sizeof(timeofday_t) * input_data.stop_count_total);
+	datetime_t *earliest_known_arrival_times = malloc(sizeof(datetime_t) * input_data.stop_count_total);
 	marking_t *marking = malloc(sizeof(timeofday_t) * input_data.stop_count_total);
 	queue_t *queue = malloc(sizeof(queue_t) * input_data.route_count);
-	timeofday_t *earliest_known_arrival_times_with_trips[MAX_INTERCHANGES + 1];
+	datetime_t *earliest_known_arrival_times_with_trips[MAX_INTERCHANGES + 1];
 	backtracking_t *backtracking[MAX_INTERCHANGES + 1];
-	earliest_known_arrival_times_with_trips[0] = malloc(sizeof(timeofday_t) * input_data.stop_count_total);
+	earliest_known_arrival_times_with_trips[0] = malloc(sizeof(datetime_t) * input_data.stop_count_total);
 	backtracking[0] = malloc(sizeof(backtracking_t) * input_data.stop_count_total);
 	for (uint16_t i = 0; i < input_data.stop_count_total; i++)
 	{
 		backtracking[0][i].type = BACKTRACKING_NONE;
-		earliest_known_arrival_times[i] = TIME_INFINITY;
-		earliest_known_arrival_times_with_trips[0][i] = TIME_INFINITY;
+		earliest_known_arrival_times[i] = DATETIME_INFINITY;
+		earliest_known_arrival_times_with_trips[0][i] = DATETIME_INFINITY;
 		marking[i] = UNMARKED;
 	}
 	for (uint8_t i = 0; i < request->num_departure_stations; i++)
 	{
 		marking[request->departure_stations[i]] = MARKED;
-		earliest_known_arrival_times_with_trips[0][request->departure_stations[i]] = request->times[i];
+		earliest_known_arrival_times_with_trips[0][request->departure_stations[i]] = request->date + request->times[i];
 	}
 
 	uint8_t round = 0;
@@ -312,7 +349,7 @@ results_t *raptor()
 	{
 		round++;
 		backtracking[round] = malloc(sizeof(backtracking_t) * input_data.stop_count_total);
-		earliest_known_arrival_times_with_trips[round] = malloc(sizeof(timeofday_t) * input_data.stop_count_total);
+		earliest_known_arrival_times_with_trips[round] = malloc(sizeof(datetime_t) * input_data.stop_count_total);
 		for (uint16_t i = 0; i < input_data.stop_count_total; i++)
 		{
 			backtracking[round][i].type = BACKTRACKING_NONE;
@@ -366,17 +403,16 @@ results_t *raptor()
 					break;
 				}
 			}
-			int32_t current_trip = -1;
+			earliest_trip_t current_trip;
+			current_trip.trip = -1;
 			stop_id_t boarded_at;
 			uint32_t boarded_at_idx;
 			for (uint32_t j = start_index; j < route->stop_count; j++)
 			{
 				stop_id_t current_stop_id = input_data.route_stops[route->stop_idx + j].stop_id;
-				if (current_trip > -1)
+				if (current_trip.trip > -1)
 				{
-					stop_time_t *current_stoptime = &input_data.stop_times[route->stop_time_idx + j + current_trip * route->stop_count];
-					int16_t current_trip_delay = input_data.realtime_offsets[input_data.realtime_index[i].realtime_index + current_trip];
-					timeofday_t arrival_at_j = (current_stoptime->arrival_time + current_trip_delay);
+					datetime_t arrival_at_j = get_arrival_at_stop(i, route, current_trip.trip, j, current_trip.boarded_date);
 					if (arrival_at_j < min_time(earliest_known_arrival_times[current_stop_id], earliest_known_arrival_times[request->arrival_stations[0]]))
 					{
 						earliest_known_arrival_times_with_trips[round][current_stop_id] = arrival_at_j;
@@ -384,17 +420,17 @@ results_t *raptor()
 						backtracking_t *currentStopTracking = &backtracking[round][current_stop_id];
 						currentStopTracking->type = BACKTRACKING_ROUTE;
 						currentStopTracking->route = i;
-						currentStopTracking->trip = current_trip;
+						currentStopTracking->trip = current_trip.trip;
 						currentStopTracking->origin_stop = boarded_at;
 						currentStopTracking->route_stopindex = boarded_at_idx;
-						currentStopTracking->date = request->date;
+						currentStopTracking->boarded_date = current_trip.boarded_date;
 						marking[current_stop_id] = MARKED;
 					}
-					if (earliest_known_arrival_times_with_trips[round - 1][current_stop_id] < (current_stoptime->departure_time + current_trip_delay)) // arrival here maybe?
+					if (earliest_known_arrival_times_with_trips[round - 1][current_stop_id] < (arrival_at_j))
 					{
-						int32_t new_trip = earliest_trip(i, j, earliest_known_arrival_times_with_trips[round - 1][current_stop_id], request->date, request->weekday);
+						earliest_trip_t new_trip = earliest_trip(i, j, earliest_known_arrival_times_with_trips[round - 1][current_stop_id], request->date, request->weekday);
 						// if we are already hopped on this trip earlier, we can stay...
-						if (new_trip > -1 && new_trip != current_trip)
+						if (current_trip.trip > -1 && new_trip.trip != current_trip.trip && new_trip.boarded_date != current_trip.boarded_date)
 						{
 							current_trip = new_trip;
 							boarded_at = current_stop_id;
@@ -405,7 +441,7 @@ results_t *raptor()
 				else if (earliest_known_arrival_times_with_trips[round - 1][current_stop_id] != TIME_INFINITY)
 				{
 					current_trip = earliest_trip(i, j, earliest_known_arrival_times_with_trips[round - 1][current_stop_id], request->date, request->weekday);
-					if (current_trip > -1)
+					if (current_trip.trip > -1)
 					{
 						boarded_at = current_stop_id;
 						boarded_at_idx = j;
@@ -424,7 +460,7 @@ results_t *raptor()
 			for (uint32_t transferIndex = stop->transfers_idx; transferIndex < stop->transfers_idx + stop->transfers_count; transferIndex++)
 			{
 				transfer_t *transfer = &input_data.transfers[transferIndex];
-				timeofday_t arrivalWithTransfer = earliest_known_arrival_times_with_trips[round][stop_id] + transfer->walking_time;
+				datetime_t arrivalWithTransfer = earliest_known_arrival_times_with_trips[round][stop_id] + transfer->walking_time;
 				if (arrivalWithTransfer < earliest_known_arrival_times[transfer->to])
 				{
 					earliest_known_arrival_times[transfer->to] = arrivalWithTransfer;
@@ -432,7 +468,6 @@ results_t *raptor()
 					backtracking_t *transferTracking = &backtracking[round][transfer->to];
 					transferTracking->type = BACKTRACKING_TRANSFER;
 					transferTracking->origin_stop = stop_id;
-					transferTracking->date = request->date;
 					marking[transfer->to] = MARKED;
 				}
 			}

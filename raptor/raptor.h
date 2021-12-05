@@ -4,8 +4,8 @@
 #include "input_data.h"
 #include "boolean.h"
 
-#define MAX_INTERCHANGES (16)
-#define MAX_LEGS (10)
+#define MAX_INTERCHANGES (11)
+#define MAX_LEGS (MAX_INTERCHANGES-1)
 #define MAX_ITINERARYS (8)
 #define MAX_REQUEST_STATIONS (20)
 
@@ -29,7 +29,7 @@ typedef struct
 	uint32_t route_stopindex;
 	stop_id_t origin_stop;
 	backtracking_type_t type;
-	datetime_t date;
+	datetime_t boarded_date;
 } backtracking_t;
 
 typedef uint32_t leg_type_t;
@@ -43,7 +43,7 @@ typedef struct
 	stop_id_t origin_stop;
 	stop_id_t destination_stop;
 	datetime_t planned_departure;
-	timeofday_t arrival;
+	datetime_t arrival;
 	route_id_t route;
 	int16_t delay;
 	uint32_t trip;

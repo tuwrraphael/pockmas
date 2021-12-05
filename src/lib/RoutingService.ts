@@ -145,8 +145,8 @@ export class RoutingService {
             },
             plannedDeparture: new Date(departureSeconds * 1000),
             delay: view.getInt16(18, true),
-            arrivalTime: new Date(departureDate + arrivalSeconds * 1000),
-            duration: (departureDate / 1000 + arrivalSeconds - departureSeconds) * 1000,
+            arrivalTime: new Date(arrivalSeconds * 1000),
+            duration: (arrivalSeconds - departureSeconds) * 1000,
             route: null,
             tripId: null,
             isRealtime : false
