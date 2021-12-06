@@ -1,6 +1,6 @@
-import { findTimeZone, getUnixTime, getZonedTime } from "timezone-support/dist/lookup-convert";
 import { RaptorExports } from "../../raptor/wasm-exports";
 import { MonitorResponse } from "../ogd_realtime/MonitorResponse";
+import { getStartOfDayVienna } from "./getStartOfDayVienna";
 import { Itinerary } from "./Itinerary";
 import { Leg } from "./Leg";
 
@@ -33,36 +33,12 @@ const RAPTOR_STOPTIME_UPDATE_SIZE = 4 + // diva
     RAPTOR_MAX_STOPTIME_UPDATES * RAPTOR_UPDATE_RESULT_SIZE + // results
     RAPTOR_MAX_STOPTIME_UPDATES * 1; // matches
 
-function dayOfWeekToMask(date: Date) {
-    let mask = 0;
-    if (date.getDay() == 0) {
-        mask = 64;
-    } else {
-        mask = 1 << (date.getDay() - 1);
-    }
-    return mask;
-}
-
 export class RoutingService {
     private mappedRealtimeData: { [routeId: number]: Set<number> } = {};
     constructor(private routingInstance: WebAssemblyInstance<RaptorExports>,
         private routeNames: [string, string, number, string | null][],
         private stops: [string, number][]) {
 
-    }
-
-    private getStartOfDayVienna(date: Date): number {
-        const vienna = findTimeZone("Europe/Vienna");
-        const viennaTime = getZonedTime(date, vienna);
-        const startOfDayVienna = getUnixTime({
-            year: viennaTime.year,
-            month: viennaTime.month,
-            day: viennaTime.day,
-            hours: 0,
-            minutes: 0,
-            seconds: 0,
-        }, vienna);
-        return startOfDayVienna;
     }
 
     route(request: RouteRequest) {
@@ -72,15 +48,15 @@ export class RoutingService {
         view.setUint8(0, 0);
         view.setUint8(1, Math.min(RAPTOR_MAX_REQUEST_STATIONS, request.departureStops.length));
         view.setUint8(2, 1);
-        view.setUint8(3, dayOfWeekToMask(request.departureTimes[0]));
+        let startOfDayVienna = getStartOfDayVienna(request.departureTimes[0]);
+        view.setUint8(3, startOfDayVienna.dayOfWeek);
         for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, request.departureStops.length); i++) {
             view.setUint16(4 + i * 2, request.departureStops[i], true);
         }
         view.setUint16(4 + RAPTOR_MAX_REQUEST_STATIONS * 2, request.arrivalStop, true);
-        let startOfDayVienna = this.getStartOfDayVienna(request.departureTimes[0]);
-        let departureDate = startOfDayVienna / 1000;
+        let departureDate = startOfDayVienna.unixTime / 1000;
         for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, request.departureStops.length); i++) {
-            let departureTime = (+request.departureTimes[i] - startOfDayVienna) / 1000;
+            let departureTime = (+request.departureTimes[i] - startOfDayVienna.unixTime) / 1000;
             view.setUint32(4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + i * 4, departureTime, true);
         }
         view.setUint32(4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + RAPTOR_MAX_REQUEST_STATIONS * 4, departureDate, true);
@@ -90,7 +66,7 @@ export class RoutingService {
         console.log(`routing took ${(performance.getEntriesByName("routing")[0]).duration}ms`);
         performance.clearMarks();
         performance.clearMeasures();
-        return this.readResults(this.routingInstance.exports.memory, resOffset, startOfDayVienna);
+        return this.readResults(this.routingInstance.exports.memory, resOffset, startOfDayVienna.unixTime);
     }
 
     async updateRealtimeForStops(divas: number[]) {
@@ -228,15 +204,14 @@ export class RoutingService {
         dataView.setUint32(0, updates.diva, true);
         dataView.setUint16(4, updates.linie, true);
         dataView.setUint8(6, updates.direction);
-        let date = this.getStartOfDayVienna(updates.timeReal[0]);
-        let weekday = dayOfWeekToMask(updates.timeReal[0]);
-        dataView.setUint8(7, weekday);
-        dataView.setUint32(8, date / 1000, true);
+        let date = getStartOfDayVienna(updates.timeReal[0]);
+        dataView.setUint8(7, date.dayOfWeek);
+        dataView.setUint32(8, date.unixTime / 1000, true);
         dataView.setUint8(12, updates.apply ? 1 : 0);
         let numUpdates = Math.min(updates.timeReal.length, RAPTOR_MAX_STOPTIME_UPDATES);
         dataView.setUint8(13, numUpdates);
         for (let i = 0; i < numUpdates; i++) {
-            dataView.setUint32(16 + i * 4, (+updates.timeReal[i] - date) / 1000, true);
+            dataView.setUint32(16 + i * 4, (+updates.timeReal[i] - date.unixTime) / 1000, true);
         }
         this.routingInstance.exports.process_realtime();
         let res = this.getRealtimeUpdateResult();
