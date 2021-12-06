@@ -4,13 +4,13 @@
   "description": "",
   "main": "index.html",
   "dependencies": {
-    "core-js": "^3.19.1"
+    "core-js": "^3.19.3"
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",
     "@babel/preset-env": "^7.16.4",
     "@types/jasmine": "^3.10.2",
-    "@types/node": "^16.11.10",
+    "@types/node": "^16.11.11",
     "@types/webpack-env": "^1.16.3",
     "autoprefixer": "^10.4.0",
     "babel-loader": "^8.2.3",
@@ -32,20 +32,20 @@
     "license-checker-webpack-plugin": "^0.2.1",
     "mini-css-extract-plugin": "^2.4.5",
     "node-fetch": "^2.6.6",
-    "postcss": "^8.3.11",
-    "postcss-loader": "^6.2.0",
-    "sass": "^1.43.4",
+    "postcss": "^8.4.4",
+    "postcss-loader": "^6.2.1",
+    "sass": "^1.44.0",
     "sass-loader": "^12.3.0",
     "strip-bom-stream": "^4.0.0",
     "style-loader": "^3.3.1",
     "timezone-support": "^2.0.2",
     "ts-loader": "^9.1.1",
     "typescript": "^4.5.2",
-    "webpack": "^5.64.3",
+    "webpack": "^5.65.0",
     "webpack-bundle-analyzer": "^4.3.0",
     "webpack-cli": "^4.9.1",
-    "webpack-dev-server": "^4.5.0",
-    "workbox-webpack-plugin": "^6.4.1"
+    "webpack-dev-server": "^4.6.0",
+    "workbox-webpack-plugin": "^6.4.2"
   },
   "scripts": {
     "test": "karma start --single-run --browsers ChromeHeadless",
