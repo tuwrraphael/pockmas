@@ -152,12 +152,12 @@ static stoptime_before_t get_stoptime_before(input_data_t *input_data, route_sca
 	diva_route_t *diva_route = route_scan_state[current].diva_route;
 	uint16_t trip = route_scan_state[current].current_trip;
 	result.trip_before = trip > 0 ? get_last_trip_in_service(input_data, route, trip - 1, date, weekday) : -1;
-	result.stoptime_before = result.trip_before > 0 ? input_data->stop_times[route->stop_time_idx + (result.trip_before * route->stop_count) + diva_route->stop_offset].departure_time : 0;
+	result.stoptime_before = result.trip_before >= 0 ? input_data->stop_times[route->stop_time_idx + (result.trip_before * route->stop_count) + diva_route->stop_offset].departure_time : 0;
 	if (result.trip_before == -1 && second_latest == -1)
 	{
 		result.trip = -1;
 	}
-	else if (result.trip_before == -1 || (result.stoptime_before < route_scan_state[second_latest].current_trip_time))
+	else if (result.trip_before == -1 || (second_latest != -1 && result.stoptime_before < route_scan_state[second_latest].current_trip_time))
 	{
 		result.trip = route_scan_state[second_latest].current_trip;
 		result.route_id = route_scan_state[second_latest].diva_route->route_id;

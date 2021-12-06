@@ -51,7 +51,7 @@ describe("realtime", () => {
         expect(result[1].realtimeOffset).toBe(163);
         expect(result[2].realtimeOffset).toBe(-2);
         expect(result[3].realtimeOffset).toBe(0);
-        for(let r of result) {
+        for (let r of result) {
             expect(r.route).toBe("25");
         }
     });
@@ -118,7 +118,7 @@ describe("realtime", () => {
         });
         let result = routingInstance.getRealtimeUpdateResult();
         expect(result.length).toBe(5);
-        for(let r of result) {
+        for (let r of result) {
             expect(r.route).toBe("77A");
         }
         expect(result[0].realtimeOffset).toBe(46);
@@ -126,6 +126,27 @@ describe("realtime", () => {
         expect(result[2].realtimeOffset).toBe(15);
         expect(result[3].realtimeOffset).toBe(60);
         expect(result[4].realtimeOffset).toBe(0);
+    });
+
+    [
+        { d: new Date("2021-12-06T01:04:00.000+0100"), o: 60 },
+        { d: new Date("2021-12-06T00:59:00.000+0100"), o: -4 * 60 },
+    ].map((v, i) => {
+        it(`updates first nightline (${i})`, () => {
+            routingInstance.upsertRealtimeData({
+                direction: 0,
+                diva: 60200627,
+                linie: 526,
+                timeReal: [
+                    v.d
+                ],
+                apply: false
+            });
+            let result = routingInstance.getRealtimeUpdateResult();
+            expect(result.length).toBe(1);
+            expect(result[0].route).toBe("N26");
+            expect(result[0].realtimeOffset).toBe(v.o);
+        });
     });
 
     it("get realtime route from Aspernstraße to Groß-Enzersdorf", () => {
@@ -189,6 +210,6 @@ describe("realtime", () => {
             apply: true
         });
         let result = routingInstance.route(request);
-        expect(result[0].legs[0].delay).toEqual(2*60+33);
+        expect(result[0].legs[0].delay).toEqual(2 * 60 + 33);
     });
 });
