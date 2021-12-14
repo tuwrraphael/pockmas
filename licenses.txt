@@ -192,7 +192,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 --------------------------------------------------------------------------------
-sass-loader v12.3.0 - J. Tangelder
+sass-loader v12.4.0 - J. Tangelder
 webpack-contrib/sass-loader
 --------------------------------------------------------------------------------
 
