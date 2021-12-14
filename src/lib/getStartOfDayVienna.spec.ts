@@ -9,10 +9,10 @@ describe("getStartOfDayVienna", () => {
 
 
     it("get start of day correctly", () => {
-        let date = new Date("2021-12-06T00:59:00.000+0100");
+        let date = new Date("2022-10-29T00:59:00.000+0200");
         let startOfDayVienna = getStartOfDayVienna(date);
-        expect(startOfDayVienna.unixTime).toBe(new Date("2021-12-06T00:00:00.000+0100").getTime());
-        expect(startOfDayVienna.dayOfWeek).toBe(1);
+        expect(startOfDayVienna.unixTime).toBe(1666994400000);
+        expect(startOfDayVienna.dayOfWeek).toBe(1<<5);
     });
 
 });

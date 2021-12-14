@@ -99,10 +99,10 @@ function searchTermChanged(term: string, departure: boolean) {
     let resultArrayView = new DataView(stopSearchInstance.exports.memory.buffer, result, 2 * 4);
     let resultsCount = resultArrayView.getUint32(0, true);
     let resultsOffset = resultArrayView.getUint32(4, true);
-    let resultsArray = new Uint16Array(stopSearchInstance.exports.memory.buffer, resultsOffset, resultsCount);
+    let resultsView = new DataView(stopSearchInstance.exports.memory.buffer, resultsOffset, resultsCount * 2);
     let results: { id: number, name: string }[] = [];
     for (let i = 0; i < resultsCount; i++) {
-        let stopGroupId = resultsArray[i];
+        let stopGroupId = resultsView.getUint16(i * 2, true);
         let stopGroup = stopGroupIndex[stopGroupId];
         results.push({ id: stopGroupId, name: stopGroup.name });
     }

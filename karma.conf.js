@@ -48,10 +48,9 @@ module.exports = function (config) {
         // test results reporter to use
         // possible values: 'dots', 'progress'
         // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-        reporters: ["spec"],
-        specReporter: {
-            suppressPassed: true,  // do not print information about passed tests
-            showSpecTiming: false // print the time elapsed for each spec
+        reporters: ["progress", "kjhtml"],
+        client: {
+            clearContext: false // leave Jasmine Spec Runner output visible in browser
         },
 
         // web server port

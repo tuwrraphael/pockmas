@@ -13,19 +13,15 @@ void *stopsearch_allocate(uint32_t num_nodes, uint32_t num_children, uint32_t nu
 	return memory;
 }
 
-static stopsearch_result_t *result = NULL;
+static stopsearch_result_t result;
 static trie_node_t *current_node = NULL;
 
 stopsearch_result_t *stopsearch_reset()
 {
-	if (result == NULL)
-	{
-		result = malloc(sizeof(stopsearch_result_t));
-	}
 	current_node = &stopsearch_index.nodes[0];
-	result->num_results = current_node->num_results;
-	result->results = &stopsearch_index.results[current_node->results_index];
-	return result;
+	result.num_results = current_node->num_results;
+	result.results = &stopsearch_index.results[current_node->results_index];
+	return &result;
 }
 
 stopsearch_result_t *stopsearch_step(uint8_t letter)
@@ -40,9 +36,9 @@ stopsearch_result_t *stopsearch_step(uint8_t letter)
 			if (stopsearch_index.children_lookup[mid].letter == letter)
 			{
 				current_node = &stopsearch_index.nodes[stopsearch_index.children_index[mid].index];
-				result->num_results = current_node->num_results;
-				result->results = &stopsearch_index.results[current_node->results_index];
-				return result;
+				result.num_results = current_node->num_results;
+				result.results = &stopsearch_index.results[current_node->results_index];
+				return &result;
 			}
 			else if (letter > stopsearch_index.children_lookup[mid].letter)
 			{
@@ -54,5 +50,5 @@ stopsearch_result_t *stopsearch_step(uint8_t letter)
 			}
 		}
 	}
-	return result;
+	return &result;
 }
