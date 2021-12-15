@@ -430,7 +430,7 @@ results_t *raptor()
 					{
 						earliest_trip_t new_trip = earliest_trip(i, j, earliest_known_arrival_times_with_trips[round - 1][current_stop_id], request->date, request->weekday);
 						// if we are already hopped on this trip earlier, we can stay...
-						if (current_trip.trip > -1 && new_trip.trip != current_trip.trip && new_trip.boarded_date != current_trip.boarded_date)
+						if (current_trip.trip > -1 && (new_trip.trip != current_trip.trip || new_trip.boarded_date != current_trip.boarded_date))
 						{
 							current_trip = new_trip;
 							boarded_at = current_stop_id;
