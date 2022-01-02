@@ -6,42 +6,51 @@ import { LegType } from "../src/lib/LegType";
 
 describe("routing", () => {
     let routingInstance: RoutingService;
+    let stopgroupIndex: { name: string, stopIds: number[] }[];
     let vienna: any;
 
     beforeAll(async () => {
         populateTimeZones(tzd);
         vienna = findTimeZone("Europe/Vienna");
         routingInstance = await createRoutingService();
+        stopgroupIndex = await (await fetch(new URL("../preprocessing-dist/stopgroup-index.json", import.meta.url).toString())).json();
     })
 
     it("can get home on halloween", () => {
+
+        let departureTime = new Date(getUnixTime({
+            year: 2022,
+            month: 11,
+            day: 1,
+            hours: 0,
+            minutes: 1,
+            seconds: 0,
+        }, vienna));
+
+        let departureStops = stopgroupIndex.find(n => n.name == "Rochusgasse").stopIds;
+
         let result = routingInstance.route({
-            departureStops: [384, 385, 386, 387, 388, 389],
-            arrivalStop: 156,
-            departureTimes: [new Date(getUnixTime({
-                year: 2022,
-                month: 11,
-                day: 1,
-                hours: 0,
-                minutes: 1,
-                seconds: 0,
-            }, vienna))]
+            departureStops: departureStops,
+            arrivalStop: stopgroupIndex.find(n => n.name == "Donaustadtstraße").stopIds[0],
+            departureTimes: new Array(departureStops.length).fill(departureTime)
         });
         expect(result.length).toBeGreaterThan(0);
     });
 
     it("uses the U4 -> U2 transfer at Schottenring", () => {
+        let departureStops = stopgroupIndex.find(n => n.name == "Friedensbrücke").stopIds;
+        let departureTime = new Date(getUnixTime({
+            year: 2022,
+            month: 11,
+            day: 1,
+            hours: 0,
+            minutes: 1,
+            seconds: 0,
+        }, vienna));
         let result = routingInstance.route({
-            departureStops: [2683],
-            arrivalStop: 2136,
-            departureTimes: [new Date(getUnixTime({
-                year: 2022,
-                month: 11,
-                day: 1,
-                hours: 0,
-                minutes: 1,
-                seconds: 0,
-            }, vienna))]
+            departureStops: departureStops,
+            arrivalStop: stopgroupIndex.find(n => n.name == "Taborstraße").stopIds[0],
+            departureTimes: new Array(departureStops.length).fill(departureTime)
         });
         expect(result.length).toBeGreaterThan(0);
         let routeWithU2AndU4 = result.find(r => r.legs.some(r => r.route?.name == "U4") && r.legs.some(r => r.route?.name == "U2"));
@@ -55,17 +64,19 @@ describe("routing", () => {
     });
 
     it("can hop on after midnight journey of before serviceday", () => {
+        let departureStops = stopgroupIndex.find(n => n.name == "Siebeckstraße").stopIds;
+        let departureTime = new Date(getUnixTime({
+            year: 2022,
+            month: 11,
+            day: 10,
+            hours: 0,
+            minutes: 1,
+            seconds: 0,
+        }, vienna));
         let result = routingInstance.route({
-            departureStops: [2333], // Siebeckstraße
-            arrivalStop: 153, // Polgarstraße
-            departureTimes: [new Date(getUnixTime({
-                year: 2022,
-                month: 11,
-                day: 10,
-                hours: 0,
-                minutes: 1,
-                seconds: 0,
-            }, vienna))]
+            departureStops: departureStops,
+            arrivalStop: stopgroupIndex.find(n => n.name == "Polgarstraße").stopIds[0],
+            departureTimes: new Array(departureStops.length).fill(departureTime)
         });
         expect(result[0].legs[0].type).toBe(1);
         expect(result[0].legs[0].route.name).toBe("26A");

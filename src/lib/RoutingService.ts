@@ -42,6 +42,9 @@ export class RoutingService {
     }
 
     route(request: RouteRequest) {
+        if (request.departureStops.length != request.departureTimes.length) {
+            throw new Error("departureStops and departureTimes must have the same length");
+        }
         performance.mark("routing-start");
         let requestMemory = this.routingInstance.exports.get_request_memory();
         let view = new DataView(this.routingInstance.exports.memory.buffer, requestMemory, 4 + 4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + RAPTOR_MAX_REQUEST_STATIONS * 4);

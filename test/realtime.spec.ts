@@ -5,6 +5,7 @@ import { createRoutingService } from "./createRoutingService";
 
 describe("realtime", () => {
     let routingInstance: RoutingService;
+    let stopgroupIndex: { name: string, stopIds: number[] }[];
     let vienna: any;
 
     beforeAll(() => {
@@ -14,6 +15,7 @@ describe("realtime", () => {
     beforeEach(async () => {
         routingInstance = await createRoutingService();
         vienna = findTimeZone("Europe/Vienna");
+        stopgroupIndex = await (await fetch(new URL("../preprocessing-dist/stopgroup-index.json", import.meta.url).toString())).json();
     });
 
     it("updates realtime for 22A Kagran", () => {
@@ -150,17 +152,21 @@ describe("realtime", () => {
     });
 
     it("get realtime route from Aspernstraße to Groß-Enzersdorf", () => {
+
+        let departureStops = stopgroupIndex.find(n => n.name == "Aspernstraße").stopIds;
+        let departureTime = new Date(getUnixTime({
+            year: 2022,
+            month: 10,
+            day: 28,
+            hours: 18,
+            minutes: 36,
+            seconds: 0,
+        }, vienna));
+
         let request = {
-            departureStops: [2537],
-            arrivalStop: 13,
-            departureTimes: [new Date(getUnixTime({
-                year: 2022,
-                month: 10,
-                day: 28,
-                hours: 18,
-                minutes: 36,
-                seconds: 0,
-            }, vienna))]
+            departureStops: departureStops,
+            arrivalStop: stopgroupIndex.find(n => n.name == "Groß-Enzersdorf Busbahnhof").stopIds[0],
+            departureTimes: new Array(departureStops.length).fill(departureTime),
         };
 
         let resultBeforeRealtime = routingInstance.route(request);
@@ -188,17 +194,21 @@ describe("realtime", () => {
     });
 
     it("realtime route in the morning from Polgarstraße to Kagran", () => {
+
+        let departureStops = stopgroupIndex.find(n => n.name == "Polgarstraße").stopIds;
+        let departureTime = new Date(getUnixTime({
+            year: 2022,
+            month: 11,
+            day: 9,
+            hours: 9,
+            minutes: 36,
+            seconds: 0,
+        }, vienna));
+
         let request = {
-            departureStops: [158],
-            arrivalStop: 3480,
-            departureTimes: [new Date(getUnixTime({
-                year: 2022,
-                month: 11,
-                day: 9,
-                hours: 9,
-                minutes: 36,
-                seconds: 0,
-            }, vienna))]
+            departureStops: departureStops,
+            arrivalStop: stopgroupIndex.find(n => n.name == "Kagran").stopIds[0],
+            departureTimes: new Array(departureStops.length).fill(departureTime)
         };
         routingInstance.upsertRealtimeData({
             direction: 1,
