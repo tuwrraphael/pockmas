@@ -49,16 +49,18 @@ jobs:
       - name: Start ORS
         if: steps.cache-routing.outputs.cache-hit != 'true'
         run: |
-          mkdir -p ors/elevation_cache ors/graphs
-          sudo docker run -dt -u "${UID}:${GID}" -p 8080:8080 \
+          mkdir -p ors/elevation_cache ors/graphs logs/ors
+          sudo docker run -dt -p 8080:8080 \
           --name ors-app \
           -v $PWD/ors/graphs:/ors-core/data/graphs \
           -v $PWD/ors/elevation_cache:/ors-core/data/elevation_cache \
           -v $PWD/ors/conf:/ors-conf \
+          -v $PWD/logs/ors:/var/log/ors/ \
           -v $PWD/ors/vienna.osm.pbf:/ors-core/data/osm_file.pbf \
           -e "JAVA_OPTS=-Djava.awt.headless=true -server -XX:TargetSurvivorRatio=75 -XX:SurvivorRatio=64 -XX:MaxTenuringThreshold=3 -XX:+UseG1GC -XX:+ScavengeBeforeFullGC -XX:ParallelGCThreads=4 -Xms1g -Xmx2g" \
           -e "CATALINA_OPTS=-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9001 -Dcom.sun.management.jmxremote.rmi.port=9001 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=localhost" \
           openrouteservice/openrouteservice:latest
+          sudo docker ps
       - name: Download GTFS
         if: steps.cache-routing.outputs.cache-hit != 'true'
         working-directory: ./gtfs-preprocessing
@@ -66,8 +68,22 @@ jobs:
       - name: Preprocess
         if: steps.cache-routing.outputs.cache-hit != 'true'
         run: npm run preprocess
+      - name: Inspect ORS Container
+        run: |
+          sudo docker ps
+          sudo docker logs ors-app
+        if: always() && steps.cache-routing.outputs.cache-hit != 'true'
+      - name: Allow access to ors logs
+        run: sudo chmod 777 logs/ors/*
+        if: always() && steps.cache-routing.outputs.cache-hit != 'true'
+      - name: Upload ors logs
+        uses: actions/upload-artifact@v2
+        with:
+          path: logs/ors/*
+          name: ors-logs
+        if: always() && steps.cache-routing.outputs.cache-hit != 'true'
       - name: Stop ORS
-        if: steps.cache-routing.outputs.cache-hit != 'true' && steps.cache-map.outputs.cache-hit != 'true'
+        if: steps.cache-routing.outputs.cache-hit != 'true'
         run: sudo docker stop ors-app
       - name: Compress result
         if: steps.cache-routing.outputs.cache-hit != 'true'
