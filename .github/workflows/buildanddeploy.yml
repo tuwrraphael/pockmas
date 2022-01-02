@@ -1,7 +1,7 @@
 name: Build and Deploy
 
 env:
-  DATA_FORMAT_VERSION : '2'
+  DATA_FORMAT_VERSION : '3'
   NODE_VERSION: 16.x
 
 on:
@@ -50,6 +50,7 @@ jobs:
         if: steps.cache-routing.outputs.cache-hit != 'true'
         run: |
           mkdir -p ors/elevation_cache ors/graphs logs/ors
+          sudo chmod 777 $PWD/ors/conf $PWD/ors/conf/ors-config.json
           sudo docker run -dt -p 8080:8080 \
           --name ors-app \
           -v $PWD/ors/graphs:/ors-core/data/graphs \
