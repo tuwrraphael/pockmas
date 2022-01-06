@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.html",
   "dependencies": {
-    "core-js": "^3.19.3"
+    "core-js": "^3.19.3",
+    "js-base64": "^3.7.2",
+    "route-it": "^1.2.1"
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",

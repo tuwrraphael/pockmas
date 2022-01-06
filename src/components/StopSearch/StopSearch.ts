@@ -82,6 +82,10 @@ export class StopSearch extends HTMLElement {
         return this.input.value;
     }
 
+    setSelected(name:string) {
+        this.selectedResultLabel.innerText = name;
+    }
+
     setResults(results: { name: string, id: number }[]) {
         if (!this.rendered) {
             return;

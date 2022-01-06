@@ -54,6 +54,10 @@ export class RouteSearch extends HTMLElement {
         if (changes.includes("arrivalStopResults")) {
             this.arrivalStopSearch.setResults(s.arrivalStopResults);
         }
+        if (changes.includes("routeDetail") && s.routeDetail) {
+            this.departureStopSearch.setSelected(s.routeDetail.itinerary.legs[0].departureStop.stopName);
+            this.arrivalStopSearch.setSelected(s.routeDetail.itinerary.legs[s.routeDetail.itinerary.legs.length - 1].arrivalStop.stopName);
+        }
     }
 
     onStopsSelected() {
