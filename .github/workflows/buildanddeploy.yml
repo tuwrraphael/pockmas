@@ -49,7 +49,7 @@ jobs:
       - name: Start ORS
         if: steps.cache-routing.outputs.cache-hit != 'true'
         run: |
-          mkdir -p ors/elevation_cache ors/graphs logs/ors
+          sudo mkdir -p ors/elevation_cache ors/graphs logs/ors
           sudo docker run -dt -p 8080:8080 \
           --name ors-app \
           -v $PWD/ors/graphs:/ors-core/data/graphs \
