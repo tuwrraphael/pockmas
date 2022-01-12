@@ -9,10 +9,12 @@ import { abortableEventListener } from "../../utils/abortableEventListener";
 import { DepartureStopTermChanged } from "../../state/actions/DepartureStopTermChanged";
 import { ArrivalStopTermChanged } from "../../state/actions/ArrivalStopTermChanged";
 import { StopsSelected } from "../../state/actions/StopsSelected";
+import { AppRouter } from "../../app-router";
 
 export class RouteSearch extends HTMLElement {
     private rendered: boolean;
     private store: Store;
+    private appRouter = AppRouter.getInstance();
     private abortController: AbortController;
     private departureStopSearch: StopSearch;
     private arrivalStopSearch: StopSearch;
@@ -62,7 +64,8 @@ export class RouteSearch extends HTMLElement {
 
     onStopsSelected() {
         if (null != this.selectedDepartureStop && null != this.selectedArrivalStop) {
-            this.store.postAction(new StopsSelected(this.selectedDepartureStop, this.selectedArrivalStop));
+            // this.store.postAction(new StopsSelected(this.selectedDepartureStop, this.selectedArrivalStop));
+            this.appRouter.search(this.store.state.departureStopResults[this.selectedDepartureStop].id, this.store.state.arrivalStopResults[this.selectedArrivalStop].id);
         }
     }
 

@@ -23,8 +23,8 @@ type Actions = InitializeStopSearch
 let stopSearchInstance: WebAssemblyInstance<StopSearchExports>;
 let stopGroupIndex: { name: string; stopIds: number[] }[];
 let _departureTime: Date = null;
-let _departure: number = null;
-let _arrival: number = null;
+let _departureStopGroup: number = null;
+let _arrivalStopGroup: number = null;
 
 const dataVersion = new URL("../../preprocessing-dist/raptor_data.bin.bmp", import.meta.url).toString().split("/").pop().replace(".bmp", "");
 const routeUrlEncoder = new RouteUrlEncoder(dataVersion);
@@ -106,8 +106,8 @@ function searchTermChanged(term: string, departure: boolean) {
 }
 
 async function stopsSelected(d: number, a: number) {
-    _departure = d;
-    _arrival = a;
+    _departureStopGroup = d;
+    _arrivalStopGroup = a;
     _departureTime = new Date();
     await route();
 }
@@ -117,7 +117,7 @@ async function departureTimeInc(inc: number) {
         return;
     }
     _departureTime = new Date(_departureTime.getTime() + inc);
-    if (null != _departure && null != _arrival) {
+    if (null != _departureStopGroup && null != _arrivalStopGroup) {
         await route();
     }
 }
@@ -125,8 +125,8 @@ async function departureTimeInc(inc: number) {
 async function route() {
     let routingService = await routingServicesFactory.getRoutingService();
     let routeInfoStore = await routingServicesFactory.getRouteInfoStore();
-    let departureStops = stopGroupIndex[state.departureStopResults[_departure].id].stopIds;
-    let arrivalStop = stopGroupIndex[state.arrivalStopResults[_arrival].id].stopIds[0];
+    let departureStops = stopGroupIndex[_departureStopGroup].stopIds;
+    let arrivalStop = stopGroupIndex[_arrivalStopGroup].stopIds[0];
 
     let lookedUpDivas = new Set<number>();
     for (let i = 0; i < 10; i++) {

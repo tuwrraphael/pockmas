@@ -7,6 +7,8 @@ import { RouteTimeline } from "../RouteTimeline/RouteTimeline";
 import { LegType } from "../../lib/LegType";
 import { FlipTimeDisplay } from "../FlipTimeDisplay/FlipTimeDisplay";
 import { ItineraryDisplayModel } from "../../state/models/ItineraryDisplayModel";
+import { AppRouter } from "../../app-router";
+import { abortableEventListener } from "../../utils/abortableEventListener";
 
 const timeFormat = Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit" });
 
@@ -20,12 +22,16 @@ export class RouteSummary extends HTMLElement {
     private timeLine: RouteTimeline;
     private plannedTime: HTMLSpanElement;
     private link: HTMLAnchorElement;
+    private router = AppRouter.getInstance();
+    private abortController: AbortController;
+
     constructor() {
         super();
 
     }
 
     connectedCallback() {
+        this.abortController = new AbortController();
         if (!this.rendered) {
             this.innerHTML = template;
             this.rendered = true;
@@ -36,6 +42,10 @@ export class RouteSummary extends HTMLElement {
             this.departureHeadsign = this.querySelector(".route-summary__departure-headsign");
             this.timeLine = this.querySelector(".route-summary__timeline");
             this.link = this.querySelector("a");
+            abortableEventListener(this.link, "click", (e) => {
+                e.preventDefault();
+                this.router.router.navigate(`r/${this.itinerary.itineraryUrlEncoded}`, "pockmas - Route");
+            }, this.abortController.signal);
         }
         this.render();
     }
@@ -71,7 +81,7 @@ export class RouteSummary extends HTMLElement {
     }
 
     disconnectedCallback() {
-
+        this.abortController.abort();
     }
 }
 

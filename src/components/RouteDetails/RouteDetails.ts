@@ -20,16 +20,28 @@ export class RouteDetails extends HTMLElement {
             this.rendered = true;
         }
         this.store.subscribe((s, c) => this.update(s, c), this.abortController.signal);
+        this.init(this.store.state);
     }
 
-    update(s: State, c: (keyof State)[]): void {
-        if (c.indexOf("routeDetail") > -1) {
-            let text = "";
-            for (let l of s.routeDetail.itinerary.legs) {
-                text += `<div>${l.departureStop.stopName} - ${l.arrivalStop.stopName}</div>`;
-            }
-            this.innerHTML = text;
+    private setRouteDetail(s:State) {
+        if (!s.routeDetail) {
+            return;
         }
+        let text = "";
+        for (let l of s.routeDetail.itinerary.legs) {
+            text += `<div>${l.departureStop.stopName} - ${l.arrivalStop.stopName}</div>`;
+        }
+        this.innerHTML = text;
+    }
+
+    private update(s: State, c: (keyof State)[]): void {
+        if (c.indexOf("routeDetail") > -1) {
+            this.setRouteDetail(s);
+        }
+    }
+
+    private init(s:State) {
+        this.setRouteDetail(s);
     }
 
     disconnectedCallback() {

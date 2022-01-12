@@ -27,15 +27,27 @@ export class RouteResultsList extends HTMLElement {
             this.renderer = new ArrayToElementRenderer<ItineraryDisplayModel, RouteSummary, number>(this, e => this.itineraries.indexOf(e), e => new RouteSummary());
         }
         this.store.subscribe((s, c) => this.update(s, c), this.abortController.signal);
+        this.init(this.store.state);
+    }
+
+    private setResults(s: State) {
+        if (!s.results) {
+            return;
+        }
+        this.itineraries = s.results;
+        this.renderer.update(this.itineraries, (c, i) => {
+            c.update(i)
+        });
     }
 
     private update(s: State, c: StateChanges) {
         if (c.includes("results")) {
-            this.itineraries = s.results;
-            this.renderer.update(this.itineraries, (c, i) => {
-                c.update(i)
-            });
+            this.setResults(s);    
         }
+    }
+
+    private init(s: State) {
+        this.setResults(s);
     }
 
     disconnectedCallback() {
