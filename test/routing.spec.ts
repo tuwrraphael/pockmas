@@ -1,8 +1,8 @@
 import { RoutingService } from "../src/lib/RoutingService";
 import { findTimeZone, getUnixTime, populateTimeZones } from "timezone-support/dist/lookup-convert";
 import * as tzd from "timezone-support/dist/data-2012-2022";
-import { createRoutingService } from "./createRoutingService";
 import { LegType } from "../src/lib/LegType";
+import { RoutingServicesFactory } from "../src/lib/RoutingServicesFactory";
 
 describe("routing", () => {
     let routingInstance: RoutingService;
@@ -12,7 +12,7 @@ describe("routing", () => {
     beforeAll(async () => {
         populateTimeZones(tzd);
         vienna = findTimeZone("Europe/Vienna");
-        routingInstance = await createRoutingService();
+        routingInstance = await new RoutingServicesFactory().getRoutingService();
         stopgroupIndex = await (await fetch(new URL("../preprocessing-dist/stopgroup-index.json", import.meta.url).toString())).json();
     })
 

@@ -1,4 +1,3 @@
-import { Itinerary } from "../../lib/Itinerary";
 import template from "./RouteSummary.html";
 import "./RouteSummary.scss";
 import "../RouteTimeline/RouteTimeline";
@@ -7,6 +6,9 @@ import { RouteAttribute, RouteColorAttribute, TransitDisplay } from "../TransitD
 import { RouteTimeline } from "../RouteTimeline/RouteTimeline";
 import { LegType } from "../../lib/LegType";
 import { FlipTimeDisplay } from "../FlipTimeDisplay/FlipTimeDisplay";
+import { ItineraryDisplayModel } from "../../state/models/ItineraryDisplayModel";
+import { AppRouter } from "../../app-router";
+import { abortableEventListener } from "../../utils/abortableEventListener";
 
 const timeFormat = Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit" });
 
@@ -14,17 +16,22 @@ export class RouteSummary extends HTMLElement {
     private rendered = false;
     private departureTime: FlipTimeDisplay;
     private departureLine: TransitDisplay;
-    private itinerary: Itinerary;
+    private itinerary: ItineraryDisplayModel;
     private departureStop: HTMLSpanElement;
     private departureHeadsign: HTMLSpanElement;
     private timeLine: RouteTimeline;
     private plannedTime: HTMLSpanElement;
+    private link: HTMLAnchorElement;
+    private router = AppRouter.getInstance();
+    private abortController: AbortController;
+
     constructor() {
         super();
 
     }
 
     connectedCallback() {
+        this.abortController = new AbortController();
         if (!this.rendered) {
             this.innerHTML = template;
             this.rendered = true;
@@ -34,13 +41,18 @@ export class RouteSummary extends HTMLElement {
             this.departureStop = this.querySelector(".route-summary__departure-stop");
             this.departureHeadsign = this.querySelector(".route-summary__departure-headsign");
             this.timeLine = this.querySelector(".route-summary__timeline");
+            this.link = this.querySelector("a");
+            abortableEventListener(this.link, "click", (e) => {
+                e.preventDefault();
+                this.router.router.navigate(`r/${this.itinerary.itineraryUrlEncoded}`, "pockmas - Route");
+            }, this.abortController.signal);
         }
         this.render();
     }
 
     private render() {
-        if (this.rendered && this.itinerary.legs.length > 0) {
-            let firstTransitLeg = this.itinerary.legs.find(l => l.type == LegType.Transit);
+        if (this.rendered && this.itinerary.itinerary.legs.length > 0) {
+            let firstTransitLeg = this.itinerary.itinerary.legs.find(l => l.type == LegType.Transit);
             if (firstTransitLeg) {
                 let departureTime = new Date(firstTransitLeg.plannedDeparture.getTime() + firstTransitLeg.delay * 1000);
                 let depratureTimeFormatted = timeFormat.format(departureTime);
@@ -54,7 +66,8 @@ export class RouteSummary extends HTMLElement {
                 this.departureLine.setAttribute(RouteColorAttribute, firstTransitLeg.route.color);
                 this.departureStop.innerText = firstTransitLeg.departureStop.stopName;
                 this.departureHeadsign.innerText = firstTransitLeg.route.headsign;
-                this.timeLine.update(this.itinerary);
+                this.link.href = `r/${this.itinerary.itineraryUrlEncoded}`;
+                this.timeLine.update(this.itinerary.itinerary);
             }
             else {
                 // TODO
@@ -62,13 +75,13 @@ export class RouteSummary extends HTMLElement {
         }
     }
 
-    update(data: Itinerary) {
+    update(data: ItineraryDisplayModel) {
         this.itinerary = data;
         this.render();
     }
 
     disconnectedCallback() {
-
+        this.abortController.abort();
     }
 }
 

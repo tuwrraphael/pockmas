@@ -3,6 +3,7 @@ import { MonitorResponse } from "../ogd_realtime/MonitorResponse";
 import { getStartOfDayVienna } from "./getStartOfDayVienna";
 import { Itinerary } from "./Itinerary";
 import { Leg } from "./Leg";
+import { RouteInfoStore } from "./RouteInfoStore";
 
 export interface RouteRequest {
     departureStops: number[];
@@ -36,8 +37,7 @@ const RAPTOR_STOPTIME_UPDATE_SIZE = 4 + // diva
 export class RoutingService {
     private mappedRealtimeData: { [routeId: number]: Set<number> } = {};
     constructor(private routingInstance: WebAssemblyInstance<RaptorExports>,
-        private routeNames: [string, string, number, string | null][],
-        private stops: [string, number][]) {
+        private routeInfoStore: RouteInfoStore) {
 
     }
 
@@ -114,38 +114,23 @@ export class RoutingService {
         let arrivalSeconds = view.getUint32(12, true);
         let leg: Leg = {
             type: view.getUint32(0, true),
-            departureStop: {
-                stopId: departureStopId,
-                stopName: this.stops[departureStopId][0]
-            },
-            arrivalStop: {
-                stopId: arrivalStopId,
-                stopName: this.stops[arrivalStopId][0]
-            },
+            departureStop: this.routeInfoStore.getStop(departureStopId),
+            arrivalStop: this.routeInfoStore.getStop(arrivalStopId),
             plannedDeparture: new Date(departureSeconds * 1000),
             delay: view.getInt16(18, true),
             arrivalTime: new Date(arrivalSeconds * 1000),
             duration: (arrivalSeconds - departureSeconds) * 1000,
             route: null,
             tripId: null,
-            isRealtime : false
+            isRealtime: false
         };
         if (leg.type == 1) {
             let routeId = view.getUint16(16, true);
-            leg.route = {
-                name: this.routeNames[routeId][0],
-                color: this.routeNames[routeId].length > 3 ? this.routeNames[routeId][3] : (this.routeNames[routeId][2] == 0 ? "c4121a" : ""),
-                id: routeId,
-                headsign: this.routeNames[routeId][1]
-            };
+            leg.route = this.routeInfoStore.getRoute(routeId);
             leg.tripId = view.getUint32(20, true);
             leg.isRealtime = this.mappedRealtimeData[leg.route.id]?.has(leg.tripId) || false;
         }
         return leg;
-    }
-
-    getDiva(stopId: number) {
-        return this.stops[stopId][1];
     }
 
     private readItinerary(buffer: ArrayBuffer, offset: number, departureDate: number): Itinerary {
@@ -177,7 +162,7 @@ export class RoutingService {
         let realtimeOffset = view.getInt16(4, true);
         return {
             routeId: routeId,
-            route: this.routeNames[routeId][0],
+            route: this.routeInfoStore.getRoute(routeId).name,
             trip: trip,
             realtimeOffset: realtimeOffset
         };

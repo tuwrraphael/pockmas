@@ -1,7 +1,7 @@
 import { RoutingService } from "../src/lib/RoutingService";
 import { findTimeZone, getUnixTime, populateTimeZones } from "timezone-support/dist/lookup-convert";
 import * as tzd from "timezone-support/dist/data-2012-2022";
-import { createRoutingService } from "./createRoutingService";
+import { RoutingServicesFactory } from "../src/lib/RoutingServicesFactory";
 
 describe("realtime", () => {
     let routingInstance: RoutingService;
@@ -13,7 +13,7 @@ describe("realtime", () => {
     })
 
     beforeEach(async () => {
-        routingInstance = await createRoutingService();
+        routingInstance = await new RoutingServicesFactory().getRoutingService();
         vienna = findTimeZone("Europe/Vienna");
         stopgroupIndex = await (await fetch(new URL("../preprocessing-dist/stopgroup-index.json", import.meta.url).toString())).json();
     });

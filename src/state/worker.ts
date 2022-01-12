@@ -1,4 +1,3 @@
-import { RaptorExports } from "../../raptor/wasm-exports";
 import { StopSearchExports } from "../../stopsearch/wasm-exports";
 import { ActionType } from "./actions/ActionType";
 import { ArrivalStopTermChanged } from "./actions/ArrivalStopTermChanged";
@@ -7,39 +6,33 @@ import { InitializeRouting } from "./actions/InitializeRouting";
 import { InitializeStopSearch } from "./actions/InitializeStopSearch";
 import { State } from "./State";
 import { StopsSelected } from "./actions/StopsSelected";
-import { populateTimeZones } from "timezone-support/dist/lookup-convert";
 import { copyToWasmMemory } from "../utils/copyToWasmMemory";
-import { RoutingService } from "../lib/RoutingService";
 import { SetDepartureTime } from "./actions/SetDepartureTime";
+import { RouteUrlEncoder } from "../lib/RouteUrlEncoder";
+import { RoutingServicesFactory } from "../lib/RoutingServicesFactory";
+import { RouteDetailsOpened } from "./actions/RouteDetailsOpened";
 
 type Actions = InitializeStopSearch
     | DepartureStopTermChanged
     | ArrivalStopTermChanged
     | InitializeRouting
     | StopsSelected
-    | SetDepartureTime;
+    | SetDepartureTime
+    | RouteDetailsOpened;
 
 let stopSearchInstance: WebAssemblyInstance<StopSearchExports>;
-let routingInstance: RoutingService;
 let stopGroupIndex: { name: string; stopIds: number[] }[];
 let _departureTime: Date = null;
-let _departure: number = null;
-let _arrival: number = null;
+let _departureStopGroup: number = null;
+let _arrivalStopGroup: number = null;
+
+const dataVersion = new URL("../../preprocessing-dist/raptor_data.bin.bmp", import.meta.url).toString().split("/").pop().replace(".bmp", "");
+const routeUrlEncoder = new RouteUrlEncoder(dataVersion);
+
+const routingServicesFactory = new RoutingServicesFactory();
 
 async function initRouting() {
-    if (routingInstance) {
-        return;
-    }
-    let routeNamesTask = fetch(new URL("../../preprocessing-dist/routes.json", import.meta.url).toString()).then(res => (res.json()) as Promise<[string, string, number, string | null][]>);
-    let stopNamesTask = fetch(new URL("../../preprocessing-dist/stops.json", import.meta.url).toString()).then(res => res.json() as Promise<[string, number][]>);
-    let populateTimezonesTask = import("timezone-support/dist/data-2012-2022").then(d => populateTimeZones(d));
-    let [instantiatedSource, binaryResponse] = await Promise.all([<Promise<WebAssemblyInstantiatedSource<RaptorExports>>>WebAssembly.instantiateStreaming(
-        fetch(new URL("../../raptor/raptor.wasm", import.meta.url).toString())
-    ), fetch(new URL("../../preprocessing-dist/raptor_data.bin.bmp", import.meta.url).toString())]);
-    let [routeNames, stops] = await Promise.all([routeNamesTask, stopNamesTask, populateTimezonesTask, copyToWasmMemory(instantiatedSource.instance, binaryResponse, 11,
-        (instance, sizes) => instance.exports.raptor_allocate(sizes[0], sizes[1], sizes[2], sizes[3], sizes[4], sizes[5], sizes[6], sizes[7], sizes[8], sizes[9], sizes[10]))]);
-    instantiatedSource.instance.exports.initialize();
-    routingInstance = new RoutingService(instantiatedSource.instance, routeNames, stops);
+    await routingServicesFactory.getRoutingService();
 }
 
 async function initStopSearch() {
@@ -59,7 +52,8 @@ let lastValue: string = "";
 let state: State = {
     arrivalStopResults: [],
     departureStopResults: [],
-    results: []
+    results: [],
+    routeDetail: null
 };
 
 function updateState(updateFn: (oldState: State) => Partial<State>) {
@@ -112,10 +106,10 @@ function searchTermChanged(term: string, departure: boolean) {
 }
 
 async function stopsSelected(d: number, a: number) {
-    _departure = d;
-    _arrival = a;
+    _departureStopGroup = d;
+    _arrivalStopGroup = a;
     _departureTime = new Date();
-    route();
+    await route();
 }
 
 async function departureTimeInc(inc: number) {
@@ -123,36 +117,41 @@ async function departureTimeInc(inc: number) {
         return;
     }
     _departureTime = new Date(_departureTime.getTime() + inc);
-    if (null != _departure && null != _arrival) {
-        route();
+    if (null != _departureStopGroup && null != _arrivalStopGroup) {
+        await route();
     }
 }
 
 async function route() {
-    if (null == routingInstance) {
-        return;
-    }
-    let departureStops = stopGroupIndex[state.departureStopResults[_departure].id].stopIds;
-    let arrivalStop = stopGroupIndex[state.arrivalStopResults[_arrival].id].stopIds[0];
+    let routingService = await routingServicesFactory.getRoutingService();
+    let routeInfoStore = await routingServicesFactory.getRouteInfoStore();
+    let departureStops = stopGroupIndex[_departureStopGroup].stopIds;
+    let arrivalStop = stopGroupIndex[_arrivalStopGroup].stopIds[0];
 
     let lookedUpDivas = new Set<number>();
     for (let i = 0; i < 10; i++) {
-        let results = routingInstance.route({
+        let results = routingService.route({
             arrivalStop: arrivalStop,
             departureStops: departureStops,
             departureTimes: departureStops.map(() => _departureTime)
         });
-        updateState(() => ({ results: results }));
-        let divas = results.reduce((divas, itinerary) => [...divas, ...itinerary.legs.map(l => routingInstance.getDiva(l.departureStop.stopId))], [])
+        updateState(() => ({ results: results.map(i => ({ itineraryUrlEncoded: routeUrlEncoder.encode(i), itinerary: i })) }));
+        let divas = results.reduce((divas, itinerary) => [...divas, ...itinerary.legs.map(l => routeInfoStore.getDiva(l.departureStop.stopId))], [])
             .filter(d => !lookedUpDivas.has(d));
         if (divas.length == 0) {
             break;
         }
-        await routingInstance.updateRealtimeForStops(Array.from(new Set(divas).values()));
+        await routingService.updateRealtimeForStops(Array.from(new Set(divas).values()));
         for (let diva of divas) {
             lookedUpDivas.add(diva);
         }
     }
+}
+
+async function routeDetailsOpened(itineraryIdUrlEncoded: string) {
+    let routeDetailsService = await routingServicesFactory.getRouteDetailsService();
+    let itinerary = routeDetailsService.getRouteByUrl(itineraryIdUrlEncoded);
+    updateState(() => ({ routeDetail: { itineraryUrlEncoded: itineraryIdUrlEncoded, itinerary: itinerary } }));
 }
 
 
@@ -174,11 +173,15 @@ async function handleMessage(msg: Actions) {
             break;
         }
         case ActionType.StopsSelected: {
-            stopsSelected(msg.departure, msg.arrival);
+            await stopsSelected(msg.departure, msg.arrival);
             break;
         }
         case ActionType.SetDepartureTime: {
-            departureTimeInc(msg.increment);
+            await departureTimeInc(msg.increment);
+            break;
+        }
+        case ActionType.RouteDetailsOpened: {
+            await routeDetailsOpened(msg.itineraryUrlEncoded);
             break;
         }
     }
