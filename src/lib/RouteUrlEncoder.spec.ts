@@ -19,14 +19,14 @@ describe("RouteUrlService", () => {
                 type: LegType.Walking,
                 departureStop: { stopId: 1, stopName: "A" },
                 arrivalStop: { stopId: 2, stopName: "B" },
-                plannedDeparture: new Date(2022, 0, 1, 12, 31, 0),
+                plannedDeparture: new Date(Date.UTC(2022, 0, 1, 11, 31, 0)),
                 route: null,
                 tripId: null,
             }, {
                 type: LegType.Transit,
                 departureStop: { stopId: 2, stopName: "B" },
                 arrivalStop: { stopId: 4517, stopName: "C" },
-                plannedDeparture: new Date(2022, 0, 1, 12, 41, 0),
+                plannedDeparture: new Date(Date.UTC(2022, 0, 1, 11, 41, 0)),
                 route: {
                     id: 991,
                 },
@@ -36,7 +36,7 @@ describe("RouteUrlService", () => {
         expect(encoded).toBe("1AnQ70GEAAQACAAECAKUR3wNnAg!abc");
         let decoded = routeUrlService.decode(encoded);
         expect(decoded.version).toBe(1);
-        expect(decoded.departureTime).toEqual(new Date(2022, 0, 1, 12, 31, 0));
+        expect(decoded.departureTime).toEqual(new Date(Date.UTC(2022, 0, 1, 11, 31, 0)));
         expect(decoded.legs.length).toEqual(2);
 
         expect(decoded.legs[0].type).toEqual(LegType.Walking);
