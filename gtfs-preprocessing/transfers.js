@@ -14,7 +14,7 @@ async function getTransfers(gtfsPath, outputPath, orsBaseUrl) {
     console.log("Wait until ORS healthy");
     let healthy = false
     let errors = [];
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 8; i++) {
         try {
             let healthRes = await fetch(orsBaseUrl + "/v2/health");
             let healthJson = await healthRes.json();
