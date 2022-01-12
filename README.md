@@ -1,6 +1,8 @@
 # Pockmas
 schneller Öffi Router für Wien, work in progress
 
+[https://pockmas.kesal.at/](https://pockmas.kesal.at/)
+
 # Lizenz
 Diese Software wird unter der MIT Lizenz veröffentlicht.
 
@@ -17,17 +19,20 @@ Datenquelle: Stadt Wien – [data.wien.gv.at](https://data.wien.gv.at)
 Lizenz: Creative Commons Namensnennung 4.0 International
 
 # TODO
-* Continue journey that goes over midnight
+* ✅ Continue journey that goes over midnight
 * Stop Search: Nach zweitem Wort suchen
 * Range query
 * allow footpath as first leg 
 * S-Bahnen
-* Echtzeit-Routing
+* S-Bahnen Echtzeit Routing
+* ✅ Echtzeit-Routing
 * Anzeige der Route
+* personalisiertes Sortieren der Suchergebnisse
+* Geolocation
 
 # Optimization
 * Stop Search
-    * binary search for child nodes
+    * ✅binary search for child nodes
     * track path to go back
 * optimize calendar & calendar_dates
-* use frequencies to save on data
+* maybe: use frequencies to save on data
