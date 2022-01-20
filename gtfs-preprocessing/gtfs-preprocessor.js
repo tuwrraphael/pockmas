@@ -96,8 +96,6 @@ async function process(gtfsPath, outputPath) {
         }
     }
     let tripsByRoute = Object.entries(groupBy(Object.values(trips), "routeId"))
-    console.log("Ordering trips in routes");
-    tripsByRoute = tripsByRoute.map(([routeId, trips]) => [routeId, trips.sort((trip1, trip2) => trip1.stopTimes[0].departureTime - trip2.stopTimes[0].departureTime)]);
     console.log("Splitting routes at different trips");
     let routes = [];
     let originalIdMap = {};
@@ -118,12 +116,34 @@ async function process(gtfsPath, outputPath) {
         }
         routes = [...routes, ...splittedRoutes];
     }
+    console.log("Condensing routes")
+    let concatenatedRoutes = [];
+    let concatenatedIdMap = {};
+    for (let [routeId, trips] of routes) {
+        let existing = concatenatedRoutes.filter(([cRouteId, cTrips]) => {
+            let originalC = routesWithNames[originalIdMap[cRouteId]];
+            let originalR = routesWithNames[originalIdMap[routeId]];
+            return originalC.routeShortName === originalR.routeShortName && originalC.routeType === originalR.routeType;
+        }).find(([cRouteId, cTrips]) => tripEquals(cTrips[0], trips[0]));
+        if (!existing) {
+            concatenatedRoutes.push([routeId, trips]);
+            concatenatedIdMap[routeId] = originalIdMap[routeId];
+        }
+        else {
+            let idx = concatenatedRoutes.indexOf(existing);
+            concatenatedRoutes[idx][1] = [...concatenatedRoutes[idx][1], ...trips];
+            concatenatedIdMap[routeId] = originalIdMap[existing[0]];
+        }
+    }
+    console.log(`Condensed ${routes.length} routes to ${concatenatedRoutes.length}.`);
+    console.log("Ordering trips in routes");
+    concatenatedRoutes = concatenatedRoutes.map(([routeId, trips]) => [routeId, trips.sort((trip1, trip2) => trip1.stopTimes[0].departureTime - trip2.stopTimes[0].departureTime)]);
     console.log("Ordering routes");
-    let tripsByRouteOrdered = routes.sort(([routeId,], [routeId2,]) => routeId.localeCompare(routeId2));
+    let tripsByRouteOrdered = concatenatedRoutes.sort(([routeId,], [routeId2,]) => routeId.localeCompare(routeId2));
     let routeStops = tripsByRouteOrdered.map(([routeId, trips]) => [routeId, trips[0].stopTimes.map(s => s.stopId)]);
     await fs.promises.writeFile(path.join(outputPath, "routeIdMap.json"), JSON.stringify(tripsByRouteOrdered.map(([routeId, trips], idx) => ({
         id: idx,
-        originalId: originalIdMap[routeId],
+        originalId: concatenatedIdMap[routeId],
         direction: trips[0].directionId
     }))));
     console.log("Writing routes");
@@ -188,7 +208,7 @@ async function process(gtfsPath, outputPath) {
     await stopsOutput.close();
     await transfersOutput.close();
     await fs.promises.writeFile(path.join(outputPath, "routes.json"), JSON.stringify(tripsByRouteOrdered.map(([routeId, trips]) => {
-        let route = routesWithNames[originalIdMap[routeId]];
+        let route = routesWithNames[concatenatedIdMap[routeId]];
         let arr = [route.routeShortName, trips[0].tripHeadsign, route.routeType];
         if (route.routeColor) {
             arr.push(route.routeColor);

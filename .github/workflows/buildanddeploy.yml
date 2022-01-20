@@ -1,7 +1,7 @@
 name: Build and Deploy
 
 env:
-  DATA_FORMAT_VERSION : '4'
+  DATA_FORMAT_VERSION : '5'
   NODE_VERSION: 16.x
 
 on:
