@@ -29,6 +29,8 @@ extern "C"
     void initialize_calendar_cache(uint16_t num_calendars);
     
     uint8_t weekday_before(uint8_t weekday);
+    
+    uint8_t weekday_after(uint8_t weekday);
 
     date_t find_date(datetime_t datetime, datetime_t date_with_known_weekday, uint8_t known_weekday);
 

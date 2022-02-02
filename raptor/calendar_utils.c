@@ -1,7 +1,7 @@
 #include "calendar_utils.h"
 #include "bump_allocator.h"
 
-#define NUM_CACHES (2)
+#define NUM_CACHES (3)
 
 typedef struct
 {
@@ -90,6 +90,11 @@ static uint8_t adjust_weekday(uint8_t weekday, int8_t offset)
 uint8_t weekday_before(uint8_t weekday)
 {
     return adjust_weekday(weekday, -1);
+}
+
+uint8_t weekday_after(uint8_t weekday)
+{
+    return adjust_weekday(weekday, 1);
 }
 
 date_t find_date(datetime_t datetime, datetime_t date_with_known_weekday, uint8_t known_weekday)

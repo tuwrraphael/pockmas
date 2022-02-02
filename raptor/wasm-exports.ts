@@ -8,4 +8,5 @@ export interface RaptorExports extends WebAssembly.Exports {
     process_realtime: () => void;
     raptor: () => number;
     memory: WebAssembly.Memory;
+    get_departures: () => number;
 }

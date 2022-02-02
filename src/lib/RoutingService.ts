@@ -34,6 +34,17 @@ const RAPTOR_STOPTIME_UPDATE_SIZE = 4 + // diva
     RAPTOR_MAX_STOPTIME_UPDATES * RAPTOR_UPDATE_RESULT_SIZE + // results
     RAPTOR_MAX_STOPTIME_UPDATES * 1; // matches
 
+const DEPARTURE_RESULT_SIZE = 2 + // route_id
+    2 + // stop_id
+    4 + // trip
+    4 + // planned_departure
+    2 + // delay
+    2; // padding
+
+const MAX_DEPARTURE_RESULTS = 20;
+const DEPARTURE_RESULTS_SIZE = MAX_DEPARTURE_RESULTS * DEPARTURE_RESULT_SIZE + 4;
+
+
 export class RoutingService {
     private mappedRealtimeData: { [routeId: number]: Set<number> } = {};
     constructor(private routingInstance: WebAssemblyInstance<RaptorExports>,
@@ -41,35 +52,60 @@ export class RoutingService {
 
     }
 
+    getDepartures(r: { departureStops: { stopId: number, departureTime: Date }[] }) {
+        this.setRequest(r);
+        let offset = this.routingInstance.exports.get_departures();
+        let view = new DataView(this.routingInstance.exports.memory.buffer, offset, DEPARTURE_RESULTS_SIZE);
+        let numResults = view.getUint32(0, true);
+        let departures = [];
+        for (let i = 0; i < numResults; i++) {
+            let departure = {
+                route: this.routeInfoStore.getRoute(view.getUint16(4 + i * DEPARTURE_RESULT_SIZE, true)),
+                stop: this.routeInfoStore.getStop(view.getUint16(6 + i * DEPARTURE_RESULT_SIZE, true)),
+                trip: view.getUint32(8 + i * DEPARTURE_RESULT_SIZE, true),
+                plannedDeparture: new Date(view.getUint32(12 + i * DEPARTURE_RESULT_SIZE, true) * 1000),
+                delay: view.getInt16(16 + i * DEPARTURE_RESULT_SIZE, true),
+            };
+            departures.push(departure);
+        }
+        return departures;
+    }
+
+    private setRequest(r: { departureStops: { stopId: number, departureTime: Date }[], arrivalStop?: number }) {
+        let requestMemory = this.routingInstance.exports.get_request_memory();
+        let view = new DataView(this.routingInstance.exports.memory.buffer, requestMemory, 4 + 4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + RAPTOR_MAX_REQUEST_STATIONS * 4);
+        view.setUint8(0, 0);
+        view.setUint8(1, Math.min(RAPTOR_MAX_REQUEST_STATIONS, r.departureStops.length));
+        view.setUint8(2, 1);
+        let startOfDayVienna = getStartOfDayVienna(r.departureStops[0].departureTime);
+        view.setUint8(3, startOfDayVienna.dayOfWeek);
+        for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, r.departureStops.length); i++) {
+            view.setUint16(4 + i * 2, r.departureStops[i].stopId, true);
+        }
+        if (typeof r.arrivalStop == "number") {
+            view.setUint16(4 + RAPTOR_MAX_REQUEST_STATIONS * 2, r.arrivalStop, true);
+        }
+        let departureDate = startOfDayVienna.unixTime / 1000;
+        for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, r.departureStops.length); i++) {
+            let departureTime = (+r.departureStops[i].departureTime - startOfDayVienna.unixTime) / 1000;
+            view.setUint32(4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + i * 4, departureTime, true);
+        }
+        view.setUint32(4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + RAPTOR_MAX_REQUEST_STATIONS * 4, departureDate, true);
+    }
+
     route(request: RouteRequest) {
         if (request.departureStops.length != request.departureTimes.length) {
             throw new Error("departureStops and departureTimes must have the same length");
         }
         performance.mark("routing-start");
-        let requestMemory = this.routingInstance.exports.get_request_memory();
-        let view = new DataView(this.routingInstance.exports.memory.buffer, requestMemory, 4 + 4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + RAPTOR_MAX_REQUEST_STATIONS * 4);
-        view.setUint8(0, 0);
-        view.setUint8(1, Math.min(RAPTOR_MAX_REQUEST_STATIONS, request.departureStops.length));
-        view.setUint8(2, 1);
-        let startOfDayVienna = getStartOfDayVienna(request.departureTimes[0]);
-        view.setUint8(3, startOfDayVienna.dayOfWeek);
-        for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, request.departureStops.length); i++) {
-            view.setUint16(4 + i * 2, request.departureStops[i], true);
-        }
-        view.setUint16(4 + RAPTOR_MAX_REQUEST_STATIONS * 2, request.arrivalStop, true);
-        let departureDate = startOfDayVienna.unixTime / 1000;
-        for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, request.departureStops.length); i++) {
-            let departureTime = (+request.departureTimes[i] - startOfDayVienna.unixTime) / 1000;
-            view.setUint32(4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + i * 4, departureTime, true);
-        }
-        view.setUint32(4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + RAPTOR_MAX_REQUEST_STATIONS * 4, departureDate, true);
+        this.setRequest({ departureStops: request.departureStops.map((d, i) => ({ stopId: d, departureTime: request.departureTimes[i] })), arrivalStop: request.arrivalStop });
         let resOffset = this.routingInstance.exports.raptor();
         performance.mark("routing-done");
         performance.measure("routing", "routing-start", "routing-done");
         console.log(`routing took ${(performance.getEntriesByName("routing")[0]).duration}ms`);
         performance.clearMarks();
         performance.clearMeasures();
-        return this.readResults(this.routingInstance.exports.memory, resOffset, startOfDayVienna.unixTime);
+        return this.readResults(this.routingInstance.exports.memory, resOffset);
     }
 
     async updateRealtimeForStops(divas: number[]) {
@@ -106,7 +142,7 @@ export class RoutingService {
 
     }
 
-    private readLeg(buffer: ArrayBuffer, offset: number, departureDate: number): Leg {
+    private readLeg(buffer: ArrayBuffer, offset: number): Leg {
         let view = new DataView(buffer, offset, RAPTOR_LEG_SIZE);
         let departureStopId = view.getUint16(4, true);
         let arrivalStopId = view.getUint16(6, true);
@@ -133,22 +169,22 @@ export class RoutingService {
         return leg;
     }
 
-    private readItinerary(buffer: ArrayBuffer, offset: number, departureDate: number): Itinerary {
+    private readItinerary(buffer: ArrayBuffer, offset: number): Itinerary {
         let legs = [];
         let view = new DataView(buffer, offset, RAPTOR_ITINERARY_SIZE);
         let numLegs = view.getUint32(0, true);
         for (let i = 0; i < numLegs; i++) {
-            legs.push(this.readLeg(buffer, offset + 4 + i * RAPTOR_LEG_SIZE, departureDate));
+            legs.push(this.readLeg(buffer, offset + 4 + i * RAPTOR_LEG_SIZE));
         }
         return { legs: legs.reverse() };
     }
 
-    private readResults(memory: WebAssembly.Memory, offset: number, departureDate: number): Itinerary[] {
+    private readResults(memory: WebAssembly.Memory, offset: number): Itinerary[] {
         let itineraries = [];
         let view = new DataView(memory.buffer, offset, RAPTOR_RESULTS_SIZE);
         let numItineraries = view.getUint32(0, true);
         for (let i = 0; i < numItineraries; i++) {
-            let itinerary = this.readItinerary(memory.buffer, offset + 4 + i * RAPTOR_ITINERARY_SIZE, departureDate);
+            let itinerary = this.readItinerary(memory.buffer, offset + 4 + i * RAPTOR_ITINERARY_SIZE);
             itineraries.push(itinerary);
         }
         return itineraries;

@@ -4,9 +4,13 @@ const { readStops } = require("./read-stops");
 const { enhanceWithTransfers } = require("./read-transfers");
 const csv = require("csv-parser");
 const stripBom = require("strip-bom-stream");
-const { groupBy } = require("./groupBy");
 const { readRoutes } = require("./read-routes");
 const { readCalendar } = require("./read-calendar");
+
+function parseTime(time) {
+    let [hour, minute, second] = time.split(":");
+    return parseInt(hour) * 3600 + parseInt(minute) * 60 + parseInt(second);
+}
 
 async function readTrips(gtfsPath) {
     const tripsStream = fs.createReadStream(path.join(gtfsPath, "trips.txt"));
@@ -52,21 +56,52 @@ async function enhanceWithStopTimes(gtfsPath, trips, stopList) {
     });
 }
 
-function parseTime(time) {
-    let [hour, minute, second] = time.split(":");
-    return parseInt(hour) * 3600 + parseInt(minute) * 60 + parseInt(second);
-}
+function sortTripsIntoRouteBuckets(trips, routes) {
+    let routeBuckets = [];
+    let indexByRouteShortName = {};
+    let tripList = Object.values(trips).sort((tripA, tripB) => tripA.stopTimes[0].departureTime - tripB.stopTimes[0].departureTime);
 
-function tripEquals(tripa, tripb) {
-    if (tripa.stopTimes.length !== tripb.stopTimes.length) {
-        return false;
-    }
-    for (let i = 0; i < tripa.stopTimes.length; i++) {
-        if (tripa.stopTimes[i].stopId !== tripb.stopTimes[i].stopId) {
+    function tripFits(bucket, tNew) {
+        let tBucket = bucket[bucket.length - 1];
+        if (tBucket.stopTimes.length !== tNew.stopTimes.length || tBucket.directionId !== tNew.directionId) {
             return false;
         }
+        for (let i = 0; i < tBucket.stopTimes.length; i++) {
+            if (tBucket.stopTimes[i].stopId !== tNew.stopTimes[i].stopId) {
+                return false;
+            }
+        }
+        if (tNew.stopTimes[0].departureTime < tBucket.stopTimes[tBucket.stopTimes.length - 1].departureTime) {
+            for (let i = 0; i < tNew.stopTimes.length; i++) {
+                if (tNew.stopTimes[i].departureTime < tBucket.stopTimes[i].departureTime) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
-    return true;
+
+    function findBucket(t) {
+        let routeShortName = routes[t.routeId].routeShortName;
+        let candidates = (indexByRouteShortName[routeShortName] || [])
+            .filter(bucket => tripFits(bucket, t));
+        let bucket;
+        if (!candidates.length) {
+            bucket = [];
+            indexByRouteShortName[routeShortName] = indexByRouteShortName[routeShortName] || [];
+            indexByRouteShortName[routeShortName].push(bucket);
+            routeBuckets.push(bucket);
+        } else {
+            bucket = candidates.sort((a, b) => a[0].stopTimes[0].departureTime - b[0].stopTimes[0].departureTime)[0];
+        }
+        return bucket;
+    }
+
+    for (let trip of tripList) {
+        let bucket = findBucket(trip);
+        bucket.push(trip);
+    }
+    return routeBuckets;
 }
 
 async function process(gtfsPath, outputPath) {
@@ -95,55 +130,15 @@ async function process(gtfsPath, outputPath) {
             }
         }
     }
-    let tripsByRoute = Object.entries(groupBy(Object.values(trips), "routeId"))
-    console.log("Splitting routes at different trips");
-    let routes = [];
-    let originalIdMap = {};
-    for (let [routeId, trips] of tripsByRoute) {
-        let splittedRoutes = [];
-        let first = true;
-        for (let trip of trips) {
-            let existing = splittedRoutes.find(([, tr]) => tripEquals(tr[0], trip));
-            if (!existing) {
-                let newRouteId = first ? routeId : `${routeId}_${splittedRoutes.length}`;
-                originalIdMap[newRouteId] = routeId;
-                splittedRoutes.push([newRouteId, [trip]]);
-                first = false;
-            }
-            else {
-                existing[1].push(trip);
-            }
-        }
-        routes = [...routes, ...splittedRoutes];
-    }
-    console.log("Condensing routes")
-    let concatenatedRoutes = [];
-    let concatenatedIdMap = {};
-    for (let [routeId, trips] of routes) {
-        let existing = concatenatedRoutes.filter(([cRouteId, cTrips]) => {
-            let originalC = routesWithNames[originalIdMap[cRouteId]];
-            let originalR = routesWithNames[originalIdMap[routeId]];
-            return originalC.routeShortName === originalR.routeShortName && originalC.routeType === originalR.routeType;
-        }).find(([cRouteId, cTrips]) => tripEquals(cTrips[0], trips[0]));
-        if (!existing) {
-            concatenatedRoutes.push([routeId, trips]);
-            concatenatedIdMap[routeId] = originalIdMap[routeId];
-        }
-        else {
-            let idx = concatenatedRoutes.indexOf(existing);
-            concatenatedRoutes[idx][1] = [...concatenatedRoutes[idx][1], ...trips];
-            concatenatedIdMap[routeId] = originalIdMap[existing[0]];
-        }
-    }
-    console.log(`Condensed ${routes.length} routes to ${concatenatedRoutes.length}.`);
-    console.log("Ordering trips in routes");
-    concatenatedRoutes = concatenatedRoutes.map(([routeId, trips]) => [routeId, trips.sort((trip1, trip2) => trip1.stopTimes[0].departureTime - trip2.stopTimes[0].departureTime)]);
+    console.log("Sorting trips into route buckets");
+    let routeBuckets = sortTripsIntoRouteBuckets(trips, routesWithNames);
+    console.log(`Found ${routeBuckets.length} route buckets`);
     console.log("Ordering routes");
-    let tripsByRouteOrdered = concatenatedRoutes.sort(([routeId,], [routeId2,]) => routeId.localeCompare(routeId2));
-    let routeStops = tripsByRouteOrdered.map(([routeId, trips]) => [routeId, trips[0].stopTimes.map(s => s.stopId)]);
-    await fs.promises.writeFile(path.join(outputPath, "routeIdMap.json"), JSON.stringify(tripsByRouteOrdered.map(([routeId, trips], idx) => ({
+    let routeBucketsOrdered = routeBuckets.sort(([tripA,], [tripB,]) => tripA.routeId.localeCompare(tripB.routeId));
+    let routeStops = routeBucketsOrdered.map((trips) => trips[0].stopTimes.map(s => s.stopId));
+    await fs.promises.writeFile(path.join(outputPath, "routeIdMap.json"), JSON.stringify(routeBucketsOrdered.map((trips, idx) => ({
         id: idx,
-        originalId: concatenatedIdMap[routeId],
+        trips: trips.map(t => t.routeId),
         direction: trips[0].directionId
     }))));
     console.log("Writing routes");
@@ -151,12 +146,11 @@ async function process(gtfsPath, outputPath) {
     let routeStopsOutput = await fs.promises.open(path.join(outputPath, "route_stops.bin.bmp"), "w");
     let routeOutput = await fs.promises.open(path.join(outputPath, "routes.bin.bmp"), "w");
     let tripCalendarsOutput = await fs.promises.open(path.join(outputPath, "trip_calendars.bin.bmp"), "w");
-    let routeIndex = tripsByRouteOrdered.map(([routeId,]) => routeId);
     let stopTimeIndex = 0;
     let stopIndex = 0;
     let tripCalendarsIdx = 0;
-    for (let [routeId, trips] of tripsByRouteOrdered) {
-        let currentStops = routeStops.find(([r,]) => r === routeId)[1];
+    for (let [routeId, trips] of routeBucketsOrdered.map((t, i) => [i, t])) {
+        let currentStops = routeStops[routeId];
         let routeArray = new Uint32Array([stopTimeIndex, stopIndex, currentStops.length, trips.length, tripCalendarsIdx]);
         await routeOutput.write(new Uint8Array(routeArray.buffer));
         for (let trip of trips) {
@@ -189,8 +183,8 @@ async function process(gtfsPath, outputPath) {
     for (let stopId = 0; stopId < stops.length; stopId++) {
         let stop = stops[stopId];
         let numTransfers = stop.transfers ? stop.transfers.length : 0;
-        let routeIds = routeStops.filter(([, routeStops]) => routeStops.indexOf(stopId) > -1)
-            .map(([routeId,]) => routeIndex.indexOf(routeId));
+        let routeIds = routeStops.map((s, i) => [i, s]).filter(([, routeStops]) => routeStops.indexOf(stopId) > -1)
+            .map(([routeId,]) => routeId);
         let routeIdsArray = new Uint16Array(routeIds);
         await stopServingRoutesOutput.write(new Uint8Array(routeIdsArray.buffer));
         if (numTransfers > 0) {
@@ -207,9 +201,20 @@ async function process(gtfsPath, outputPath) {
     await stopServingRoutesOutput.close();
     await stopsOutput.close();
     await transfersOutput.close();
-    await fs.promises.writeFile(path.join(outputPath, "routes.json"), JSON.stringify(tripsByRouteOrdered.map(([routeId, trips]) => {
-        let route = routesWithNames[concatenatedIdMap[routeId]];
-        let arr = [route.routeShortName, trips[0].tripHeadsign, route.routeType];
+    await fs.promises.writeFile(path.join(outputPath, "routes.json"), JSON.stringify(routeBucketsOrdered.map((trips, id) => {
+        let route = routesWithNames[trips[0].routeId];
+        if (trips.some(t => {
+            let r = routesWithNames[t.routeId];
+            return r.routeShortName !== route.routeShortName || r.routeType !== route.routeType;
+        })) {
+            throw new Error("Route description of trips doesn't match");
+        }
+        let tripHeadsign = trips[0].tripHeadsign;
+        let nonmatchingheadsigns = trips.filter(t => t.tripHeadsign !== tripHeadsign);
+        if (nonmatchingheadsigns.length > 0) {
+            console.log(`Headsign of trips don't match ${nonmatchingheadsigns[0].tripHeadsign} !== ${tripHeadsign}`);
+        }
+        let arr = [route.routeShortName, tripHeadsign, route.routeType];
         if (route.routeColor) {
             arr.push(route.routeColor);
         }

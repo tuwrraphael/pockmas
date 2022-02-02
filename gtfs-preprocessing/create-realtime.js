@@ -61,7 +61,7 @@ async function createRealtime(gtfsPath, rtPath, outputPath) {
                     throw new Error(`Stop ${stop.idx} not found in route ${routeId}`);
                 }
                 let originalRouteMapping = routeIdMap.find(r => r.id == routeId);
-                let route = routes[originalRouteMapping.originalId];
+                let route = routes[originalRouteMapping.trips[0]];
                 let linie = linien.find(l => l.text == route.routeShortName);
                 if (linie) {
                     divaRoutes[diva].push({

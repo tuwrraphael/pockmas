@@ -5,9 +5,10 @@
 #include "boolean.h"
 
 #define MAX_INTERCHANGES (11)
-#define MAX_LEGS (MAX_INTERCHANGES-1)
+#define MAX_LEGS (MAX_INTERCHANGES - 1)
 #define MAX_ITINERARYS (8)
 #define MAX_REQUEST_STATIONS (20)
+#define MAX_DEPARTURE_RESULTS (20)
 
 typedef struct
 {
@@ -60,6 +61,22 @@ typedef struct
 	uint32_t num_itineraries;
 	itinerary_t itineraries[MAX_ITINERARYS];
 } results_t;
+
+typedef struct
+{
+	route_id_t route_id;
+	stop_id_t stop_id;
+	uint32_t trip;
+	datetime_t planned_departure;
+	int16_t delay;
+	uint16_t padding;
+} departure_result_t;
+
+typedef struct
+{
+	uint32_t num_results;
+	departure_result_t results[MAX_DEPARTURE_RESULTS];
+} departure_results_t;
 
 typedef uint8_t time_type_t;
 #define TIME_TYPE_DEPARTURE (0)
@@ -127,6 +144,8 @@ extern "C"
 	__attribute__((export_name("initialize"))) void initialize();
 
 	__attribute__((export_name("process_realtime"))) void process_realtime();
+
+	__attribute__((export_name("get_departures"))) departure_results_t *get_departures();
 
 #ifdef __cplusplus
 }

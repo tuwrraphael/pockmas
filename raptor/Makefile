@@ -5,6 +5,7 @@ default: raptor.wasm
 FILES = build/raptor.o \
 build/realtime.o \
 build/calendar_utils.o \
+build/catch_trip.o \
 build/stdlib/bump_allocator.o \
 build/stdlib/memset.o
 
@@ -33,7 +34,7 @@ else
 	LDOPT = -O0
 endif
 
-CFLAGS = $(INCLUDE) $(COPT) $(DEFINE) --target=wasm32
+CFLAGS = $(INCLUDE) $(COPT) $(DEFINE) --target=wasm32 -Wall
 
 build:
 	mkdir $@
