@@ -111,9 +111,9 @@ describe("realtime", () => {
             linie: 477,
             timeReal: [
                 new Date("2022-11-11T15:03:46.000+0100"),
-                new Date("2022-11-11T15:13:00.000+0100"),
+                new Date("2022-11-11T15:13:11.000+0100"),
                 new Date("2022-11-11T15:23:15.000+0100"),
-                new Date("2022-11-11T15:33:00.000+0100"),
+                new Date("2022-11-11T15:33:14.000+0100"),
                 new Date("2022-11-11T15:43:00.000+0100"),
             ],
             apply: false
@@ -124,9 +124,9 @@ describe("realtime", () => {
             expect(r.route).toBe("77A");
         }
         expect(result[0].realtimeOffset).toBe(46);
-        expect(result[1].realtimeOffset).toBe(60);
+        expect(result[1].realtimeOffset).toBe(11);
         expect(result[2].realtimeOffset).toBe(15);
-        expect(result[3].realtimeOffset).toBe(60);
+        expect(result[3].realtimeOffset).toBe(14);
         expect(result[4].realtimeOffset).toBe(0);
     });
 
