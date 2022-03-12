@@ -32,7 +32,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-core-js v3.21.0
+core-js v3.21.1
 https://github.com/zloirock/core-js.git
 --------------------------------------------------------------------------------
 
@@ -58,7 +58,7 @@ THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-css-loader v6.6.0 - Tobias Koppers @sokra
+css-loader v6.7.1 - Tobias Koppers @sokra
 webpack-contrib/css-loader
 --------------------------------------------------------------------------------
 
@@ -173,7 +173,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 --------------------------------------------------------------------------------
-mini-css-extract-plugin v2.5.3 - Tobias Koppers @sokra
+mini-css-extract-plugin v2.6.0 - Tobias Koppers @sokra
 webpack-contrib/mini-css-extract-plugin
 --------------------------------------------------------------------------------
 
@@ -254,7 +254,7 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-sass-loader v12.4.0 - J. Tangelder
+sass-loader v12.6.0 - J. Tangelder
 webpack-contrib/sass-loader
 --------------------------------------------------------------------------------
 
@@ -308,7 +308,7 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-ts-loader v9.2.6 - John Reilly <johnny_reilly@hotmail.com> (https://blog.johnnyreilly.com)
+ts-loader v9.2.8 - John Reilly <johnny_reilly@hotmail.com> (https://blog.johnnyreilly.com)
 https://github.com/TypeStrong/ts-loader.git
 --------------------------------------------------------------------------------
 
