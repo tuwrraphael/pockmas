@@ -142,17 +142,21 @@
   <ItemGroup>
     <ClCompile Include="..\stdlib\bump_allocator.c" />
     <ClCompile Include="calendar_utils.c" />
+    <ClCompile Include="catch_trip.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="raptor.c" />
     <ClCompile Include="realtime.c" />
+    <ClCompile Include="schedule_scanner.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\stdlib\boolean.h" />
     <ClInclude Include="..\stdlib\bump_allocator.h" />
     <ClInclude Include="calendar_utils.h" />
+    <ClInclude Include="catch_trip.h" />
     <ClInclude Include="input_data.h" />
     <ClInclude Include="raptor.h" />
     <ClInclude Include="realtime.h" />
+    <ClInclude Include="schedule_scanner.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

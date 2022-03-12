@@ -6,6 +6,7 @@ FILES = build/raptor.o \
 build/realtime.o \
 build/calendar_utils.o \
 build/catch_trip.o \
+build/schedule_scanner.o \
 build/stdlib/bump_allocator.o \
 build/stdlib/memset.o
 

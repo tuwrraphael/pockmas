@@ -30,6 +30,12 @@
     <ClCompile Include="realtime.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="catch_trip.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="schedule_scanner.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="raptor.h">
@@ -48,6 +54,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="realtime.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="catch_trip.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="schedule_scanner.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
