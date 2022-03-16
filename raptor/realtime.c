@@ -92,9 +92,13 @@ static trip_offset_t get_closer_trip(timeofday_t stop_time_a, timeofday_t stop_t
 	return result;
 }
 
-static void scan_routes(input_data_t *input_data, diva_index_t *diva_index_obj, datetime_t date, uint8_t weekday, boolean_t yesterday, best_result_t *best_results)
+static void scan_routes(input_data_t *input_data, diva_index_t *diva_index_obj, datetime_t datetime, uint8_t weekday, best_result_t *best_results)
 {
-	schedule_scan_state_t *schedule_scan_state = schedule_scan_initialize(diva_index_obj->diva_routes_count, TRUE, stoptime_update->date, stoptime_update->weekday);
+	schedule_scan_state_t *schedule_scan_state = schedule_scan_initialize(diva_index_obj->diva_routes_count, TRUE, stoptime_update->date - ONE_DAY, FALSE);
+	date_t date = {
+		.datetime = datetime,
+		.weekday = weekday,
+	};
 	for (uint16_t i = 0; i < diva_index_obj->diva_routes_count; i++)
 	{
 
@@ -102,11 +106,11 @@ static void scan_routes(input_data_t *input_data, diva_index_t *diva_index_obj, 
 		boolean_t matching = diva_route->linie_id == stoptime_update->linie && diva_route->direction == stoptime_update->direction;
 		if (matching)
 		{
-			schedule_scan_add_route(input_data, schedule_scan_state, diva_route->route_id, diva_route->stop_offset);
+			schedule_scan_add_route(input_data, schedule_scan_state, diva_route->route_id, diva_route->stop_offset, ADD_ROUTE_AT_LAST_TRIP, date);
 		}
 	}
 	int16_t update_idx = stoptime_update->num_updates - 1;
-	timeofday_t time_real = yesterday ? stoptime_update->time_real[update_idx] + ONE_DAY : stoptime_update->time_real[update_idx];
+	datetime_t time_real = stoptime_update->time_real[update_idx] + datetime;
 	while (update_idx >= 0)
 	{
 
@@ -115,22 +119,18 @@ static void scan_routes(input_data_t *input_data, diva_index_t *diva_index_obj, 
 		{
 			break;
 		}
-		if (yesterday && res.current.stop_time < ONE_DAY)
-		{
-			break;
-		}
 
 		if (res.next.trip >= 0)
 		{
-			if (res.next.stop_time < time_real)
+			if (res.next.departure.planned_departure < time_real)
 			{
-				if (res.current.stop_time < time_real)
+				if (res.current.departure.planned_departure < time_real)
 				{
-					set_best_result(&best_results[update_idx], res.current.route_id, res.current.trip, time_real - res.current.stop_time, FALSE);
+					set_best_result(&best_results[update_idx], res.current.route_id, res.current.trip, time_real - res.current.departure.planned_departure, FALSE);
 				}
 				else
 				{
-					trip_offset_t closer_trip = get_closer_trip(res.next.stop_time, res.current.stop_time, time_real);
+					trip_offset_t closer_trip = get_closer_trip(res.next.departure.planned_departure, res.current.departure.planned_departure, time_real);
 					if (closer_trip.trip_a_closer)
 					{
 						set_best_result(&best_results[update_idx], res.next.route_id, res.next.trip, closer_trip.realtime_offset, FALSE);
@@ -142,12 +142,12 @@ static void scan_routes(input_data_t *input_data, diva_index_t *diva_index_obj, 
 				}
 				stoptime_update->num_matches[update_idx]++;
 				update_idx--;
-				time_real = yesterday ? stoptime_update->time_real[update_idx] + ONE_DAY : stoptime_update->time_real[update_idx];
+				time_real = stoptime_update->time_real[update_idx] + datetime;
 			}
 		}
 		else
 		{
-			set_best_result(&best_results[update_idx], res.current.route_id, res.current.trip, time_real - res.current.stop_time, TRUE);
+			set_best_result(&best_results[update_idx], res.current.route_id, res.current.trip, time_real - res.current.departure.planned_departure, TRUE);
 			break;
 		}
 	}
@@ -175,12 +175,7 @@ void process_stoptime_update(input_data_t *input_data)
 		best_results[i].was_last_trip = FALSE;
 	}
 	create_savepoint();	
-	// check yesterday
-	datetime_t date_yesterday = stoptime_update->date - ONE_DAY;
-	uint8_t weekday_yesterday = weekday_before(stoptime_update->weekday);
-	scan_routes(input_data, diva_index_obj, date_yesterday, weekday_yesterday, TRUE, best_results);
-	// check today
-	scan_routes(input_data, diva_index_obj, stoptime_update->date, stoptime_update->weekday, FALSE, best_results);
+	scan_routes(input_data, diva_index_obj, stoptime_update->date, stoptime_update->weekday, best_results);
 	reset_to_savepoint();
 	for (uint8_t i = 0; i < stoptime_update->num_updates; i++)
 	{

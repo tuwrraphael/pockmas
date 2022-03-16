@@ -3,6 +3,7 @@
 #include "realtime.h"
 #include "calendar_utils.h"
 #include "catch_trip.h"
+#include "schedule_scanner.h"
 
 static input_data_t input_data;
 static results_t *results = NULL;
@@ -266,23 +267,12 @@ void initialize()
 
 static uint32_t stop_index_in_route(route_t *route, stop_id_t stop_id)
 {
-	uint32_t lower = 0;
-	uint32_t upper = route->stop_count;
-	while (lower < upper)
+	// can't binary search here, route_stops is not sorted by stop_id but by stop serving order of the route
+	for (uint32_t i = 0; i < route->stop_count; i++)
 	{
-		uint32_t mid = (lower + upper) / 2;
-		stop_id_t mid_stop_id = input_data.route_stops[route->stop_idx + mid].stop_id;
-		if (mid_stop_id == stop_id)
+		if (stop_id == input_data.route_stops[route->stop_idx + i].stop_id)
 		{
-			return mid;
-		}
-		else if (mid_stop_id < stop_id)
-		{
-			lower = mid + 1;
-		}
-		else
-		{
-			upper = mid;
+			return i;
 		}
 	}
 	return 0;
@@ -291,6 +281,15 @@ static uint32_t stop_index_in_route(route_t *route, stop_id_t stop_id)
 departure_results_t *get_departures()
 {
 	departure_results.num_results = 0;
+	create_savepoint();
+	uint16_t num_routes_to_step = 0;
+	for (uint8_t i = 0; i < request->num_departure_stations; i++)
+	{
+		stop_id_t stop_id = request->departure_stations[i];
+		stop_t *stop = &input_data.stops[stop_id];
+		num_routes_to_step += stop->serving_routes_count;
+	}
+	schedule_scan_state_t *state = schedule_scan_initialize(num_routes_to_step, FALSE, request->date + ONE_DAY, TRUE);
 	for (uint8_t i = 0; i < request->num_departure_stations; i++)
 	{
 		stop_id_t stop_id = request->departure_stations[i];
@@ -303,36 +302,25 @@ departure_results_t *get_departures()
 			caught_trip_t e = catch_trip(&input_data, stop_serving_route->route_id, stop_index, request->date + request->times[i], request->date, request->weekday);
 			if (e.trip > -1)
 			{
-				uint8_t result_index = departure_results.num_results;
-				// for (result_index = departure_results.num_results; result_index > 0; result_index--)
-				// {
-				// 	if ((departure_results.results[result_index - 1].planned_departure + departure_results.results[result_index - 1].delay) > (e.departure))
-				// 	{
-				// 		if (result_index < MAX_DEPARTURE_RESULTS)
-				// 		{
-				// 			departure_results.results[result_index] = departure_results.results[result_index - 1];
-				// 		}
-				// 	}
-				// 	else
-				// 	{
-				// 		break;
-				// 	}
-				// }
-				if (result_index < MAX_DEPARTURE_RESULTS)
-				{
-					departure_results.results[result_index].planned_departure = e.planned_departure;
-					departure_results.results[result_index].delay = e.delay;
-					departure_results.results[result_index].route_id = stop_serving_route->route_id;
-					departure_results.results[result_index].stop_id = stop_id;
-					departure_results.results[result_index].trip = e.trip;
-				}
-				if (departure_results.num_results < MAX_DEPARTURE_RESULTS)
-				{
-					departure_results.num_results++;
-				}
+				date_t trip_date = find_date(e.boarded_date, request->date, request->weekday);
+				schedule_scan_add_route(&input_data, state, stop_serving_route->route_id, stop_index, e.trip, trip_date);
 			}
 		}
 	}
+	schedule_scan_result_t res = schedule_scan_advance(&input_data, state);
+	while (departure_results.num_results < MAX_DEPARTURE_RESULTS && !res.end)
+	{
+		route_t *route = &input_data.routes[res.current.route_id];
+		stop_id_t stop_id = input_data.route_stops[route->stop_idx + res.current.stop_offset].stop_id;
+		departure_results.results[departure_results.num_results].delay = res.current.departure.delay;
+		departure_results.results[departure_results.num_results].stop_id = stop_id;
+		departure_results.results[departure_results.num_results].planned_departure = res.current.departure.planned_departure;
+		departure_results.results[departure_results.num_results].route_id = res.current.route_id;
+		departure_results.results[departure_results.num_results].trip = res.current.trip;
+		departure_results.num_results++;
+		res = schedule_scan_advance(&input_data, state);
+	}
+	reset_to_savepoint();
 	return &departure_results;
 }
 
