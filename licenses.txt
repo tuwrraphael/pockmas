@@ -3,7 +3,7 @@ Do Not Translate or Localize
 
 
 --------------------------------------------------------------------------------
-babel-loader v8.2.3 - Luis Couto <hello@luiscouto.pt>
+babel-loader v8.2.5 - Luis Couto <hello@luiscouto.pt>
 https://github.com/babel/babel-loader.git
 --------------------------------------------------------------------------------
 
@@ -32,7 +32,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-core-js v3.21.1
+core-js v3.22.5
 https://github.com/zloirock/core-js.git
 --------------------------------------------------------------------------------
 
@@ -308,7 +308,7 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-ts-loader v9.2.8 - John Reilly <johnny_reilly@hotmail.com> (https://blog.johnnyreilly.com)
+ts-loader v9.3.0 - John Reilly <johnny_reilly@hotmail.com> (https://blog.johnnyreilly.com)
 https://github.com/TypeStrong/ts-loader.git
 --------------------------------------------------------------------------------
 
