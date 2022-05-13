@@ -29,6 +29,7 @@ Lizenz: Creative Commons Namensnennung 4.0 International
 * Anzeige der Route
 * personalisiertes Sortieren der Suchergebnisse
 * Geolocation
+* Calender File viel zu lang
 
 # Optimization
 * Stop Search
