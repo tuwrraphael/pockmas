@@ -24,7 +24,7 @@ export class RouteDetails extends HTMLElement {
     }
 
     private setRouteDetail(s:State) {
-        if (!s.routeDetail) {
+        if (!s?.routeDetail) {
             return;
         }
         let text = "";

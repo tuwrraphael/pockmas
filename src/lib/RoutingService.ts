@@ -1,5 +1,6 @@
 import { RaptorExports } from "../../raptor/wasm-exports";
 import { MonitorResponse } from "../ogd_realtime/MonitorResponse";
+import { Departure } from "./Departure";
 import { getStartOfDayVienna } from "./getStartOfDayVienna";
 import { Itinerary } from "./Itinerary";
 import { Leg } from "./Leg";
@@ -52,19 +53,22 @@ export class RoutingService {
 
     }
 
-    getDepartures(r: { departureStops: { stopId: number, departureTime: Date }[] }) {
+    getDepartures(r: { departureStops: { stopId: number, departureTime: Date }[] }): Departure[] {
         this.setRequest(r);
         let offset = this.routingInstance.exports.get_departures();
         let view = new DataView(this.routingInstance.exports.memory.buffer, offset, DEPARTURE_RESULTS_SIZE);
         let numResults = view.getUint32(0, true);
-        let departures = [];
+        let departures: Departure[] = [];
         for (let i = 0; i < numResults; i++) {
-            let departure = {
-                route: this.routeInfoStore.getRoute(view.getUint16(4 + i * DEPARTURE_RESULT_SIZE, true)),
+            let route = this.routeInfoStore.getRoute(view.getUint16(4 + i * DEPARTURE_RESULT_SIZE, true));
+            let tripId = view.getUint32(8 + i * DEPARTURE_RESULT_SIZE, true);
+            let departure: Departure = {
+                route: route,
                 stop: this.routeInfoStore.getStop(view.getUint16(6 + i * DEPARTURE_RESULT_SIZE, true)),
-                trip: view.getUint32(8 + i * DEPARTURE_RESULT_SIZE, true),
+                tripId: tripId,
                 plannedDeparture: new Date(view.getUint32(12 + i * DEPARTURE_RESULT_SIZE, true) * 1000),
                 delay: view.getInt16(16 + i * DEPARTURE_RESULT_SIZE, true),
+                isRealtime: this.mappedRealtimeData[route.id]?.has(tripId) || false
             };
             departures.push(departure);
         }

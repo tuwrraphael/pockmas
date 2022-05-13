@@ -41,8 +41,12 @@ export class AppRouter {
     }
 
     search(departureStopGroup: number, arrivalStopGroup: number) {
-        this.router.navigate(`s?${DepartureStopGroupParam}=${departureStopGroup}&${ArrivalStopGroupParam}=${arrivalStopGroup}`, "pockmas - Suchergebnisse",
-            this.currentElement instanceof RouteResultsType);
+        let params = new URLSearchParams();
+        params.set(DepartureStopGroupParam, departureStopGroup.toString());
+        if (arrivalStopGroup) {
+            params.set(ArrivalStopGroupParam, arrivalStopGroup.toString());
+        }
+        this.router.navigate(`s?${params}`, "pockmas - Suchergebnisse");
     }
 
     constructor() {
@@ -53,13 +57,19 @@ export class AppRouter {
 
             private parseSearchRoute(pathName: string, params: URLSearchParams) {
                 if (pathName == "s") {
-                    if (!params.has(DepartureStopGroupParam) || !params.has(ArrivalStopGroupParam)) {
+                    if (!params.has(DepartureStopGroupParam)) {
                         return null;
                     }
                     let from = parseInt(params.get(DepartureStopGroupParam));
-                    let to = parseInt(params.get(ArrivalStopGroupParam));
-                    if (isNaN(from) || isNaN(to)) {
+                    if (isNaN(from)) {
                         return null;
+                    }
+                    let to: number;
+                    if (params.has(ArrivalStopGroupParam)) {
+                        to = parseInt(params.get(ArrivalStopGroupParam));
+                        if (isNaN(to)) {
+                            return null;
+                        }
                     }
                     return { from, to };
                 }

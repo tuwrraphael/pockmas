@@ -5,6 +5,8 @@ import { RaptorExports } from "../../raptor/wasm-exports";
 import { copyToWasmMemory } from "../utils/copyToWasmMemory";
 import { RouteDetailsService } from "./RouteDetailsService";
 import { RouteUrlEncoder } from "./RouteUrlEncoder";
+import { RealtimeLookupService } from "./RealtimeLookupService";
+import { StopGroupStore } from "./StopGroupStore";
 
 export class RoutingServicesFactory {
     private routingServicePromise: Promise<RoutingService>;
@@ -13,6 +15,8 @@ export class RoutingServicesFactory {
     private routingInstancePromise: Promise<WebAssemblyInstance<RaptorExports>>;
     private routeDetailsServicePromise: Promise<RouteDetailsService>;
     private readonly dataVersion = new URL("../../preprocessing-dist/raptor_data.bin.bmp", import.meta.url).toString().split("/").pop().replace(".bmp", "");
+    private realtimeLookupServicePromise: Promise<RealtimeLookupService>;
+    private stopGroupStorePromise: Promise<StopGroupStore>;
 
     private populateTimeZones() {
         if (this.timezonesPromise == null) {
@@ -74,5 +78,29 @@ export class RoutingServicesFactory {
             this.routeDetailsServicePromise = this.createRouteDetailsService();
         }
         return this.routeDetailsServicePromise;
+    }
+
+    private async createRealtimeLookupService() {
+        let [routingService, routeInfoStore] = await Promise.all([this.getRoutingService(), this.getRouteInfoStore()])
+        return new RealtimeLookupService(routeInfoStore, routingService);
+    }
+
+    async getRealtimeLookupService() {
+        if (this.realtimeLookupServicePromise == null) {
+            this.realtimeLookupServicePromise = this.createRealtimeLookupService();
+        }
+        return this.realtimeLookupServicePromise;
+    }
+
+    private async createStopGroupStore() {
+        let stopGroupIndexTask = fetch(new URL("../../preprocessing-dist/stopgroup-index.json", import.meta.url).toString()).then(res => res.json()) as Promise<{ name: string; stopIds: number[] }[]>;
+        return new StopGroupStore(await stopGroupIndexTask);
+    }
+
+    async getStopGroupStore() {
+        if (this.stopGroupStorePromise == null) {
+            this.stopGroupStorePromise = this.createStopGroupStore();
+        }
+        return this.stopGroupStorePromise;
     }
 }

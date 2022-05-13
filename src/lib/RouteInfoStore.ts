@@ -1,3 +1,6 @@
+import { Route } from "./Route";
+import { Stop } from "./Stop";
+
 export class RouteInfoStore {
     constructor(private routeNames: [string, string, number, string | null][],
         private stops: [string, number][]) {
@@ -8,10 +11,7 @@ export class RouteInfoStore {
         return this.stops[stopId][1];
     }
 
-    getStop(stopId: number): {
-        stopId: number;
-        stopName: string;
-    } {
+    getStop(stopId: number): Stop {
         if (stopId > this.stops.length) {
             throw new Error(`Invalid stop id ${stopId}`);
         }
@@ -21,12 +21,7 @@ export class RouteInfoStore {
         };
     }
 
-    getRoute(routeId: number): {
-        name: string;
-        id: number;
-        color: string;
-        headsign: string;
-    } {
+    getRoute(routeId: number): Route {
         if (routeId > this.routeNames.length) {
             throw new Error(`Invalid route id ${routeId}`);
         }

@@ -1,18 +1,17 @@
-import { Itinerary } from "../../lib/Itinerary";
-import { ItineraryDisplayModel } from "../../state/models/ItineraryDisplayModel";
+import { Departure } from "../../lib/Departure";
 import { State, StateChanges } from "../../state/State";
 import { Store } from "../../state/Store";
 import { ArrayToElementRenderer } from "../../utils/ArrayToElementRenderer";
-import { RouteSummary } from "../RouteSummary/RouteSummary";
-import template from "./RouteResultsList.html";
-import "./RouteResultsList.scss";
+import { DepartureSummary } from "../DepartureSummary/DepartureSummary";
+import template from "./DepartureResultsList.html";
+import "./DepartureResultsList.scss";
 
-export class RouteResultsList extends HTMLElement {
+export class DepartureResultsList extends HTMLElement {
     private rendered = false;
     private store: Store;
     private abortController: AbortController;
-    private itineraries: ItineraryDisplayModel[] = [];
-    private renderer: ArrayToElementRenderer<ItineraryDisplayModel, RouteSummary, number>;
+    private departures: Departure[] = [];
+    private renderer: ArrayToElementRenderer<Departure, DepartureSummary, number>;
 
     constructor() {
         super();
@@ -24,24 +23,24 @@ export class RouteResultsList extends HTMLElement {
         if (!this.rendered) {
             this.innerHTML = template;
             this.rendered = true;
-            this.renderer = new ArrayToElementRenderer<ItineraryDisplayModel, RouteSummary, number>(this, e => this.itineraries.indexOf(e), e => new RouteSummary());
+            this.renderer = new ArrayToElementRenderer<Departure, DepartureSummary, number>(this, e => this.departures.indexOf(e), e => new DepartureSummary());
         }
         this.store.subscribe((s, c) => this.update(s, c), this.abortController.signal);
         this.init(this.store.state);
     }
 
     private setResults(s: State) {
-        if (!s?.results) {
+        if (!s?.departures) {
             return;
         }
-        this.itineraries = s.results;
-        this.renderer.update(this.itineraries, (c, i) => {
+        this.departures = s.departures;
+        this.renderer.update(this.departures, (c, i) => {
             c.update(i)
         });
     }
 
     private update(s: State, c: StateChanges) {
-        if (c.includes("results")) {
+        if (c.includes("departures")) {
             this.setResults(s);    
         }
     }
@@ -55,4 +54,4 @@ export class RouteResultsList extends HTMLElement {
     }
 }
 
-customElements.define("route-results-list", RouteResultsList);
+customElements.define("departure-results-list", DepartureResultsList);

@@ -1,0 +1,15 @@
+.route-results {
+    &__header {
+        padding-left: 0.4em;
+        display: flex;
+    }
+    &__tab-title {
+        margin-right: 0.5em;
+        text-decoration: none;
+        color : var(--text);
+        &--disabled {
+            color: var(--text-disabled);
+        }
+        
+    }
+}

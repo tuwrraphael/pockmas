@@ -1,21 +1,19 @@
 import { LegType } from "./LegType";
-import { LegStop } from "./LegStop";
+import { Stop } from "./Stop";
+import { Route } from "./Route";
 
 
 export interface Leg {
     type: LegType;
-    departureStop: LegStop;
-    arrivalStop: LegStop;
+    departureStop: Stop;
+    arrivalStop: Stop;
     plannedDeparture: Date;
     delay: number;
     arrivalTime: Date;
     duration: number;
-    route: {
-        name: string;
-        id: number;
-        color: string;
-        headsign: string;
-    };
+    route: Route;
     isRealtime: boolean;
     tripId: number | null;
 }
+
+

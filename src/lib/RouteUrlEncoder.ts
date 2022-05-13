@@ -1,6 +1,6 @@
 import { LegType } from "./LegType";
 import { Base64 } from "js-base64";
-import { LegStop } from "./LegStop";
+import { Stop } from "./Stop";
 
 const UrlVersion = 1;
 
@@ -33,8 +33,8 @@ export class RouteUrlEncoder {
     encode(r: {
         legs: {
             type: LegType;
-            departureStop: LegStop;
-            arrivalStop: LegStop;
+            departureStop: Stop;
+            arrivalStop: Stop;
             route: {
                 id: number;
             };

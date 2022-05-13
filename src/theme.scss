@@ -10,6 +10,7 @@ $focus : color.adjust($primary, $lightness: 50%);
     --border : #e0e0e0;
     --hover : #f0f0f0;
     --focus: #{$focus};
+    --text-disabled : #999999;
 
     --timeline--time:#f0f0f0;
     --timeline--walking:#999999;
@@ -28,6 +29,7 @@ $focus : color.adjust($primary, $lightness: 50%);
         --border : #999999;
         --hover : #666666;
         --focus: #667667;
+        --text-disabled : #999999;
 
         --timeline--time:#666666;
 

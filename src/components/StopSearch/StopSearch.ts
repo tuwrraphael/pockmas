@@ -48,7 +48,6 @@ export class StopSearch extends HTMLElement {
     }
 
     private onSearchResultClick(i: number) {
-        this.selectedResultLabel.innerText = this.searchResults[i].getAttribute("label");
         this.dispatchEvent(new CustomEvent("stop-selected", { detail: i }));
         this.popup.hide();
     }
@@ -82,8 +81,13 @@ export class StopSearch extends HTMLElement {
         return this.input.value;
     }
 
-    setSelected(name:string) {
-        this.selectedResultLabel.innerText = name;
+    setSelected(name: string) {
+        if (name) {
+            this.selectedResultLabel.innerText = name;
+        }
+        else {
+            this.selectedResultLabel.innerText = "auswählen";
+        }
     }
 
     setResults(results: { name: string, id: number }[]) {

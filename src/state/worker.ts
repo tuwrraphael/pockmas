@@ -21,10 +21,7 @@ type Actions = InitializeStopSearch
     | RouteDetailsOpened;
 
 let stopSearchInstance: WebAssemblyInstance<StopSearchExports>;
-let stopGroupIndex: { name: string; stopIds: number[] }[];
 let _departureTime: Date = null;
-let _departureStopGroup: number = null;
-let _arrivalStopGroup: number = null;
 
 const dataVersion = new URL("../../preprocessing-dist/raptor_data.bin.bmp", import.meta.url).toString().split("/").pop().replace(".bmp", "");
 const routeUrlEncoder = new RouteUrlEncoder(dataVersion);
@@ -39,11 +36,10 @@ async function initStopSearch() {
     if (stopSearchInstance) {
         return;
     }
-    let stopGroupIndexTask = fetch(new URL("../../preprocessing-dist/stopgroup-index.json", import.meta.url).toString()).then(res => res.json()).then(idx => stopGroupIndex = idx);
     let [instantiatedSource, binaryResponse] = await Promise.all([<Promise<WebAssemblyInstantiatedSource<StopSearchExports>>>WebAssembly.instantiateStreaming(
         fetch(new URL("../../stopsearch/stopsearch.wasm", import.meta.url).toString())
     ), fetch(new URL("../../preprocessing-dist/stop_search.bin.bmp", import.meta.url).toString())]);
-    await Promise.all([stopGroupIndexTask, copyToWasmMemory(instantiatedSource.instance, binaryResponse, 4, (instance, sizes) => instance.exports.stopsearch_allocate(sizes[0] / 12, sizes[1], sizes[3] / 2))]);
+    await Promise.all([await routingServicesFactory.getStopGroupStore(), copyToWasmMemory(instantiatedSource.instance, binaryResponse, 4, (instance, sizes) => instance.exports.stopsearch_allocate(sizes[0] / 12, sizes[1], sizes[3] / 2))]);
     instantiatedSource.instance.exports.stopsearch_reset();
     stopSearchInstance = instantiatedSource.instance;
 }
@@ -53,7 +49,12 @@ let state: State = {
     arrivalStopResults: [],
     departureStopResults: [],
     results: [],
-    routeDetail: null
+    routeDetail: null,
+    departures: [],
+    selectedStopgroups: {
+        departure: null,
+        arrival: null
+    }
 };
 
 function updateState(updateFn: (oldState: State) => Partial<State>) {
@@ -65,7 +66,8 @@ function updateState(updateFn: (oldState: State) => Partial<State>) {
     self.postMessage([update, Object.keys(update)]);
 }
 
-function searchTermChanged(term: string, departure: boolean) {
+async function searchTermChanged(term: string, departure: boolean) {
+    let stopGroupStore = await routingServicesFactory.getStopGroupStore();
     if (null == stopSearchInstance) {
         return;
     }
@@ -97,7 +99,7 @@ function searchTermChanged(term: string, departure: boolean) {
     let results: { id: number, name: string }[] = [];
     for (let i = 0; i < resultsCount; i++) {
         let stopGroupId = resultsView.getUint16(i * 2, true);
-        let stopGroup = stopGroupIndex[stopGroupId];
+        let stopGroup = stopGroupStore.getStopGroup(stopGroupId);
         results.push({ id: stopGroupId, name: stopGroup.name });
     }
     updateState(s => ({
@@ -105,11 +107,40 @@ function searchTermChanged(term: string, departure: boolean) {
     }));
 }
 
+async function searchInputChanged() {
+
+    if (state.selectedStopgroups.arrival != null && state.selectedStopgroups.departure != null) {
+        await route();
+    } else if (state.selectedStopgroups.departure != null) {
+        updateState(s => ({
+            results: []
+        }));
+        let stopGroupStore = await routingServicesFactory.getStopGroupStore();
+        let routingService = await routingServicesFactory.getRoutingService();
+        let realtimeLookupService = await routingServicesFactory.getRealtimeLookupService();
+
+        let departureStops = stopGroupStore.getStopGroup(state.selectedStopgroups.departure.id).stopIds;
+
+        await realtimeLookupService.performWithRealtimeLoopkup(async () => {
+            let results = routingService.getDepartures({
+                departureStops: departureStops.map(d => ({ departureTime: _departureTime, stopId: d })),
+            });
+            updateState(() => ({ departures: results }));
+            return results.map(r => r.stop.stopId);
+        });
+    }
+}
+
 async function stopsSelected(d: number, a: number) {
-    _departureStopGroup = d;
-    _arrivalStopGroup = a;
+    let stopGroupStore = await routingServicesFactory.getStopGroupStore();
+    updateState(s => ({
+        selectedStopgroups: {
+            departure: d == null ? null : { id: d, name: stopGroupStore.getStopGroup(d).name },
+            arrival: a == null ? null : { id: a, name: stopGroupStore.getStopGroup(a).name }
+        }
+    }));
     _departureTime = new Date();
-    await route();
+    await searchInputChanged();
 }
 
 async function departureTimeInc(inc: number) {
@@ -117,41 +148,39 @@ async function departureTimeInc(inc: number) {
         return;
     }
     _departureTime = new Date(_departureTime.getTime() + inc);
-    if (null != _departureStopGroup && null != _arrivalStopGroup) {
-        await route();
-    }
+    await searchInputChanged();
 }
 
 async function route() {
     let routingService = await routingServicesFactory.getRoutingService();
-    let routeInfoStore = await routingServicesFactory.getRouteInfoStore();
-    let departureStops = stopGroupIndex[_departureStopGroup].stopIds;
-    let arrivalStop = stopGroupIndex[_arrivalStopGroup].stopIds[0];
+    let realtimeLookupService = await routingServicesFactory.getRealtimeLookupService();
+    let stopGroupStore = await routingServicesFactory.getStopGroupStore();
 
-    let lookedUpDivas = new Set<number>();
-    for (let i = 0; i < 10; i++) {
+    let departureStops = stopGroupStore.getStopGroup(state.selectedStopgroups.departure.id).stopIds;
+    let arrivalStop = stopGroupStore.getStopGroup(state.selectedStopgroups.arrival.id).stopIds[0];
+
+    await realtimeLookupService.performWithRealtimeLoopkup(async () => {
         let results = routingService.route({
             arrivalStop: arrivalStop,
             departureStops: departureStops,
             departureTimes: departureStops.map(() => _departureTime)
         });
         updateState(() => ({ results: results.map(i => ({ itineraryUrlEncoded: routeUrlEncoder.encode(i), itinerary: i })) }));
-        let divas = results.reduce((divas, itinerary) => [...divas, ...itinerary.legs.map(l => routeInfoStore.getDiva(l.departureStop.stopId))], [])
-            .filter(d => !lookedUpDivas.has(d));
-        if (divas.length == 0) {
-            break;
-        }
-        await routingService.updateRealtimeForStops(Array.from(new Set(divas).values()));
-        for (let diva of divas) {
-            lookedUpDivas.add(diva);
-        }
-    }
+        return results.reduce((stopIds, r) => [...stopIds, ...r.legs.map(l => l.departureStop.stopId)], []);
+    });
 }
 
 async function routeDetailsOpened(itineraryIdUrlEncoded: string) {
     let routeDetailsService = await routingServicesFactory.getRouteDetailsService();
+    let stopGroupStore = await routingServicesFactory.getStopGroupStore();
     let itinerary = routeDetailsService.getRouteByUrl(itineraryIdUrlEncoded);
-    updateState(() => ({ routeDetail: { itineraryUrlEncoded: itineraryIdUrlEncoded, itinerary: itinerary } }));
+    updateState(() => ({
+        routeDetail: { itineraryUrlEncoded: itineraryIdUrlEncoded, itinerary: itinerary },
+        selectedStopgroups: {
+            departure: stopGroupStore.findByStopId(itinerary.legs[0].departureStop.stopId),
+            arrival: stopGroupStore.findByStopId(itinerary.legs[itinerary.legs.length - 1].arrivalStop.stopId)
+        }
+    }));
 }
 
 
@@ -186,7 +215,7 @@ async function handleMessage(msg: Actions) {
         }
     }
 }
-
+self.postMessage([state, Object.keys(state)]);
 self.addEventListener("message", ev => {
     let msg: Actions = ev.data;
     handleMessage(msg).catch(err => console.error(err));
