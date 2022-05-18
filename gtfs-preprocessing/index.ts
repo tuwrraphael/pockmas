@@ -1,17 +1,17 @@
-const { createSearchIndex } = require("./create-searchindex");
-const { preprocessGtfs } = require("./gtfs-preprocessor");
+import { createSearchIndex } from "./create-searchindex";
+import { preprocessGtfs } from "./gtfs-preprocessor";
 import { env } from "process";
 import { downloadOebbGtfs } from "./download-oebb";
 import { downloadWienerlinienGtfs } from "./download-wienerlinien";
 import { fixTimeZones } from "./fix-timezones";
 import { gtfsTidy } from "./gtfstidy";
 import { getStopPopularity } from "./stop-popularity.js";
-const { getTransfers } = require("./transfers");
-const { createRealtime } = require("./create-realtime");
-const { concatResults } = require("./concat-results");
-const path = require("path");
-const fs = require("fs");
-const { createCalendar } = require("./create-calendar");
+import { getTransfers } from "./transfers";
+import { createRealtime } from "./create-realtime";
+import { concatResults } from "./concat-results";
+import path from "path";
+import fs from "fs";
+import { createCalendar } from "./create-calendar";
 
 let pathToGtfsTidyExecutable = env.GTFSTIDY_EXECUTABLE || "gtfstidy";
 

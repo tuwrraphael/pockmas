@@ -1,8 +1,9 @@
-const fetch = require("node-fetch");
-const { readStops } = require("./read-stops");
-const { coordinateDistance } = require("./coordinate-distance");
-const fs = require("fs");
-const path = require("path");
+import fetch from "node-fetch";
+import { GtfsStop, readStops } from "./read-stops";
+import { coordinateDistance } from "./coordinate-distance";
+import fs from "fs";
+import path from "path";
+import { enhanceWithTransfers } from "./read-transfers";
 
 let maxDistance = 0.8;
 let walkingSpeed = 5;
@@ -10,7 +11,7 @@ let kmPerMinute = walkingSpeed / 60;
 let maxMinutes = maxDistance / kmPerMinute;
 let maxSeconds = maxMinutes * 60;
 
-async function getTransfers(gtfsPath, outputPath, orsBaseUrl) {
+export async function getTransfers(gtfsPath: string, outputPath: string, orsBaseUrl: string) {
     console.log("Wait until ORS healthy");
     let healthy = false
     let errors = [];
@@ -40,7 +41,8 @@ async function getTransfers(gtfsPath, outputPath, orsBaseUrl) {
     }
     console.log("ORS healthy. Reading stops.");
     let stops = await readStops(gtfsPath);
-    let stopsMap = new Map();
+    await enhanceWithTransfers(stops, gtfsPath);
+    let stopsMap = new Map<GtfsStop, GtfsStop[]>();
     for (let stop of stops) {
         for (let stop2 of stops) {
             if (stop2 == stop) {
@@ -48,9 +50,10 @@ async function getTransfers(gtfsPath, outputPath, orsBaseUrl) {
             }
             if (coordinateDistance(stop.lat, stop.lon, stop2.lat, stop2.lon) < maxDistance) {
                 if (!stopsMap.has(stop)) {
-                    stopsMap.set(stop, []);
+                    stopsMap.set(stop, [stop2]);
+                } else {
+                    stopsMap.get(stop)!.push(stop2);
                 }
-                stopsMap.get(stop).push(stop2);
             }
         }
     }
@@ -94,8 +97,17 @@ async function getTransfers(gtfsPath, outputPath, orsBaseUrl) {
                         await unknownTransfersOutput.write(`Null duration: ${stop.stopId} - ${stopB.stopId}: ${stop.name} - ${stopB.name}\n`, null, "utf8");
                     }
                     else {
+                        if (time === 0) {
+                            let distance = coordinateDistance(stop.lat, stop.lon, stopB.lat, stopB.lon);
+                            if (distance < (30/1000)) {
+                                time = Math.round((distance * 1000) / (walkingSpeed / 3.6));
+                            }
+                        }
                         if (time < maxSeconds) {
                             await transfersOutput.write(`"${stop.stopId}","${stopB.stopId}","2",${Math.ceil(time)}\n`, null, "utf8");
+                            await transfersOutput.write(`"${stopB.stopId}","${stop.stopId}","2",${Math.ceil(time)}\n`, null, "utf8");
+                            let stopBEntry = entries.find(e => e[0] == stopB)!;
+                            stopBEntry[1].splice(stopBEntry.indexOf(stop), 1);
                         }
                         if (time === 0) {
                             let distance = coordinateDistance(stop.lat, stop.lon, stopB.lat, stopB.lon);
@@ -112,4 +124,3 @@ async function getTransfers(gtfsPath, outputPath, orsBaseUrl) {
     await unknownTransfersOutput.close();
     console.log("Done");
 }
-exports.getTransfers = getTransfers;

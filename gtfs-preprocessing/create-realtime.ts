@@ -1,15 +1,15 @@
-const fs = require("fs");
-const path = require("path");
-const { readStops } = require("./read-stops");
-const { groupBy } = require("./groupBy");
-const { readLinien } = require("./read-linien");
-const { readRoutes } = require("./read-routes");
-const { DivaIndexBytes, DivaRouteBytes, RouteBytes } = require("./structures");
+import fs from "fs";
+import path from "path";
+import { GtfsStop, readStops } from "./read-stops";
+import { groupBy } from "./groupBy";
+import { readLinien } from "./read-linien";
+import { readRoutes } from "./read-routes";
+import { DivaIndexBytes, DivaRouteBytes, RouteBytes } from "./structures";
 
-let divaregex = /at:(43|49):(\d+):/;
+let divaregex = /1::at:(43|49):(\d+):/;
 const divabase = 60200000;
 
-function getDiva(stop) {
+function getDiva(stop: GtfsStop) {
     const match = divaregex.exec(stop.stopId);
     if (match) {
         return parseInt(match[2]) + divabase;
@@ -17,19 +17,25 @@ function getDiva(stop) {
     return null;
 }
 
-async function createRealtime(gtfsPath, rtPath, outputPath) {
-    let stops = await readStops(gtfsPath);
-    stops = stops.map((stop, idx) => {
-        stop.diva = getDiva(stop);
-        stop.idx = idx;
-        return stop;
-    });
 
-    const groupedByDiva = Object.entries(groupBy(stops, "diva")).sort(([divaa,], [divab,]) => divaa - divab);
+export async function createRealtime(gtfsPath: string, rtPath: string, outputPath: string) {
+    let s = await readStops(gtfsPath);
+    let stops = s.map((stop, idx) => ({
+        ...stop,
+        diva: getDiva(stop),
+        idx: idx,
+    }));
+    let stopsWithDiva = stops.filter(stop => stop.diva !== null);
+    const groupedByDiva = Object.entries(groupBy(stopsWithDiva, "diva")).map(([diva, stops]) => ({ diva: parseInt(diva), stops })).sort((a, b) => a.diva - b.diva);
+    
     const linien = await readLinien(rtPath);
 
     const routes = await readRoutes(gtfsPath);
-    const routeIdMap = JSON.parse(await fs.promises.readFile(path.join(outputPath, "routeIdMap.json"), "utf8"));
+    const routeIdMap: {
+        id: number;
+        trips: string[];
+        direction: number;
+    }[] = JSON.parse(await fs.promises.readFile(path.join(outputPath, "routeIdMap.json"), "utf8"));
     const stopServingRoutes = await fs.promises.readFile(path.join(outputPath, "stop_serving_routes.bin.bmp"));
     const preprocessedRoutes = await fs.promises.readFile(path.join(outputPath, "routes.bin.bmp"));
     const routeStops = await fs.promises.readFile(path.join(outputPath, "route_stops.bin.bmp"));
@@ -39,8 +45,17 @@ async function createRealtime(gtfsPath, rtPath, outputPath) {
     let stopServingRoutesView = new DataView(stopServingRoutes.buffer);
     let preprocessedRoutesView = new DataView(preprocessedRoutes.buffer);
     let routeStopsView = new DataView(routeStops.buffer);
-    const divaRoutes = {};
-    for (let [diva, divastops] of groupedByDiva) {
+    const divaRoutes: {
+        [diva: number]: {
+            routeId: number;
+            linie: number;
+            direction: number;
+            stopOffset: number;
+        }[]
+    } = {};
+    for (let group of groupedByDiva) {
+        let diva = group.diva;
+        let divastops = group.stops;
         divaRoutes[diva] = [];
         for (let stop of divastops) {
             let stopServingRoutesIndex = stopIndexView.getUint32(stop.idx * 12, true);
@@ -61,6 +76,9 @@ async function createRealtime(gtfsPath, rtPath, outputPath) {
                     throw new Error(`Stop ${stop.idx} not found in route ${routeId}`);
                 }
                 let originalRouteMapping = routeIdMap.find(r => r.id == routeId);
+                if (!originalRouteMapping) {
+                    throw new Error(`Original route mapping for ${routeId} not found`);
+                }
                 let route = routes[originalRouteMapping.trips[0]];
                 let linie = linien.find(l => l.text == route.routeShortName);
                 if (linie) {
@@ -75,7 +93,11 @@ async function createRealtime(gtfsPath, rtPath, outputPath) {
         }
         divaRoutes[diva].sort((a, b) => a.linie - b.linie);
     }
-    let divas = Object.entries(divaRoutes).filter(([diva, routes]) => routes.length > 0).map(([diva, routes]) => diva).sort((a, b) => a - b);
+    let divas = Object.entries(divaRoutes)
+        .map(([diva, routes]) => ({
+            diva, routes
+        }))
+        .filter(({ diva, routes }) => routes.length > 0).map(({ diva, routes }) => parseInt(diva)).sort((a, b) => a - b);
     const divaLookup = new Uint8Array(divas.length * DivaIndexBytes);
     const divaLookupView = new DataView(divaLookup.buffer);
     const divaRoutesLookup = new Uint8Array(Object.values(divaRoutes).reduce((acc, routes) => acc + routes.length, 0) * DivaRouteBytes);
@@ -98,5 +120,3 @@ async function createRealtime(gtfsPath, rtPath, outputPath) {
     await fs.promises.writeFile(path.join(outputPath, "diva_index.bin.bmp"), Buffer.from(divaLookup));
     await fs.promises.writeFile(path.join(outputPath, "diva_routes.bin.bmp"), Buffer.from(divaRoutesLookup));
 }
-
-exports.createRealtime = createRealtime;

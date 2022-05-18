@@ -1,12 +1,12 @@
-const fs = require("fs");
-const path = require("path");
-const { CalendarExceptionBytes, CalendarBytes } = require("./structures");
-const { readCalendar } = require("./read-calendar");
+import fs from "fs";
+import path from "path";
+import { CalendarExceptionBytes, CalendarBytes } from "./structures";
+import { readCalendar } from "./read-calendar";
 
-async function createCalendar(gtfsPath, outputPath) {
+export async function createCalendar(gtfsPath:string, outputPath:string) {
     let calendar = await readCalendar(gtfsPath, true);
-    let calendarArray = new Uint32Array(calendar.length * CalendarBytes);
-    let calendarExceptionArray = new Uint32Array(calendar.reduce((acc, cur) => acc + cur.exceptions.length, 0) * CalendarExceptionBytes);
+    let calendarArray = new Uint8Array(calendar.length * CalendarBytes);
+    let calendarExceptionArray = new Uint8Array(calendar.reduce((acc, cur) => acc + cur.exceptions.length, 0) * CalendarExceptionBytes);
     let calendarExceptionArrayView = new DataView(calendarExceptionArray.buffer);
     let calendarView = new DataView(calendarArray.buffer);
     let exceptionIndex = 0;
@@ -31,5 +31,3 @@ async function createCalendar(gtfsPath, outputPath) {
     await calendarExceptionOutput.close();
     
 }
-
-exports.createCalendar = createCalendar;
