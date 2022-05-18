@@ -15,6 +15,8 @@ OpenRouteService (© openrouteservice.org by HeiGIT | Map data © OpenStreetMap 
 ## Datenquellen
 ### Wiener Linien – Fahrplandaten GTFS Wien
 Datenquelle: Stadt Wien – [data.wien.gv.at](https://data.wien.gv.at)
+### OEBB - Soll Fahrplan GTFS
+Datenquelle: [data.oebb.at](https://data.oebb.at/)
 
 Lizenz: Creative Commons Namensnennung 4.0 International
 

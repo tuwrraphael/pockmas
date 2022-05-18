@@ -20,10 +20,12 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - run: npm ci
+      - name: Build preprocessing
+        run: npm run build-preprocess
       - name: Get last modified header
         id: getlastmodified
         run: |
-          echo "::set-output name=lastmodified::$(node gtfs-preprocessing/get-lastmodified.js)"
+          echo "::set-output name=lastmodified::$(node gtfs-preprocessing/dist/get-lastmodified.js)"
       - name: Cache preprocessed routing data
         id: cache-routing
         uses: actions/cache@v2
