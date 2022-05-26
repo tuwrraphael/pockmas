@@ -27,7 +27,7 @@ export async function createRealtime(gtfsPath: string, rtPath: string, outputPat
     }));
     let stopsWithDiva = stops.filter(stop => stop.diva !== null);
     const groupedByDiva = Object.entries(groupBy(stopsWithDiva, "diva")).map(([diva, stops]) => ({ diva: parseInt(diva), stops })).sort((a, b) => a.diva - b.diva);
-    
+
     const linien = await readLinien(rtPath);
 
     const routes = await readRoutes(gtfsPath);
@@ -116,7 +116,7 @@ export async function createRealtime(gtfsPath: string, rtPath: string, outputPat
             divaRoutesIndex++;
         }
     }
-    await fs.promises.writeFile(path.join(outputPath, "stops.json"), JSON.stringify(stops.map(s => [s.name, s.diva])));
+    await fs.promises.writeFile(path.join(outputPath, "stops.json"), JSON.stringify(stops.map(s => [s.name, ...(s.diva ? [s.diva] : [])])));
     await fs.promises.writeFile(path.join(outputPath, "diva_index.bin.bmp"), Buffer.from(divaLookup));
     await fs.promises.writeFile(path.join(outputPath, "diva_routes.bin.bmp"), Buffer.from(divaRoutesLookup));
 }
