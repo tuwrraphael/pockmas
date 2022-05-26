@@ -124,11 +124,13 @@ jobs:
       run: npm run build -- --mode="production" --env environment="gh-pages"
     - name: Run tests
       run: npm run test
+    - name: Compress dist
+      run: tar -cvzf dist.tar.gz dist
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: dist
-        path: dist
+        path: dist.tar.gz
 
   deploy:
     name: Deploy to gh pages
@@ -140,6 +142,8 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: dist
+    - name: Uncompress
+      run: tar -xvzf dist.tar.gz
     - name: Copy index.html to 404.html
       run: cp dist/index.html dist/404.html
     - name: Install SSH Client 🔑
