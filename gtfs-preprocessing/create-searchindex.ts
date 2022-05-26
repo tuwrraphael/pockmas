@@ -220,7 +220,6 @@ export async function createSearchIndex(gtfsPath: string, outputPath: string) {
     }));
     let done = new WeakMap();
     let groupedStops: StopGroup[] = [];
-    let stopGroupIdx = 0;
     for (let [stopAIndex, stopA] of stops.entries()) {
         if (done.has(stopA)) {
             continue;
@@ -244,14 +243,13 @@ export async function createSearchIndex(gtfsPath: string, outputPath: string) {
         }
         if (!done.has(stopA)) {
             let stopGroup : StopGroup = {
-                stopGroupIdx: stopGroupIdx,
+                stopGroupIdx: 0,
                 idx: stopAIndex,
                 groupedStops: [],
                 name: stopA.name,
                 popularity: 0,
                 cleanedName: stopA.cleanedName
             };
-            stopGroupIdx++;
             groupedStops.push(stopGroup);
             done.set(stopA, stopGroup);
         }
@@ -265,8 +263,12 @@ export async function createSearchIndex(gtfsPath: string, outputPath: string) {
         }, 0),
         name: [g.name, ...g.groupedStops.map(s => s.name)].sort((a, b) => a.length - b.length)[0]
             .replace(/^Wien\s/ig, "")
-            .replace(/\bhbf\b/ig, "Hauptbahnhof")
+            .replace(/\bhbf\b/ig, "Hauptbahnhof"),
     })).sort((a, b) => a.name.localeCompare(b.name));
+    grouped = grouped.map((g,idx)=> {
+        g.stopGroupIdx = idx;
+        return g;
+    });
 
     let root = new TrieNode(grouped.map(g => ({ group: g, typos: 0, level: 0 })));
     console.log(`Alphabet size: ${TrieNode.alphabet.length}`);

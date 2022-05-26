@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "type": "pwa-node",
             "request": "launch",
@@ -11,7 +12,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/gtfs-preprocessing/index.js",
+            "program": "${workspaceFolder}/gtfs-preprocessing/dist/index.js",
             "args": ["search-index"],
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
@@ -24,7 +25,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/gtfs-preprocessing/index.js",
+            "program": "${workspaceFolder}/gtfs-preprocessing/dist/index.js",
             "args": ["gtfs"],
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
@@ -37,7 +38,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/gtfs-preprocessing/index.js",
+            "program": "${workspaceFolder}/gtfs-preprocessing/dist/index.js",
             "args": ["transfers"],
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
@@ -50,7 +51,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/gtfs-preprocessing/index.js",
+            "program": "${workspaceFolder}/gtfs-preprocessing/dist/index.js",
             "args": ["realtime"],
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
