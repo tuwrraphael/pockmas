@@ -138,7 +138,7 @@ jobs:
       with:
         name: dist
     - name: Copy index.html to 404.html
-        run: cp dist/index.html dist/404.html
+      run: cp dist/index.html dist/404.html
     - name: Install SSH Client 🔑
       uses: webfactory/ssh-agent@v0.4.1
       with:
