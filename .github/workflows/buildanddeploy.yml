@@ -31,7 +31,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: preprocessing-dist.tar.gz
-          key: ${{ steps.getlastmodified.outputs.lastmodified }}-${{ env.DATA_FORMAT_VERSION }}-${{GITHUB_REF}}
+          key: ${{ steps.getlastmodified.outputs.lastmodified }}-${{ env.DATA_FORMAT_VERSION }}-${{ github.ref }}
       - name: Cache map data
         if: steps.cache-routing.outputs.cache-hit != 'true'
         id: cache-map
