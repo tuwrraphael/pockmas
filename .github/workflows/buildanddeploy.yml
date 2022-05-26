@@ -22,8 +22,6 @@ jobs:
       - run: npm ci
       - name: Build preprocessing
         run: npm run build-preprocess
-      - name: Check dependencies
-        run: npm run check-dependencies
       - name: Get last modified header
         id: getlastmodified
         run: |
@@ -46,6 +44,9 @@ jobs:
         if: steps.cache-routing.outputs.cache-hit != 'true' && steps.cache-map.outputs.cache-hit != 'true'
       - name: Install gtfstidy
         run: go get github.com/patrickbr/gtfstidy
+        if: steps.cache-routing.outputs.cache-hit != 'true'
+      - name: Check dependencies
+        run: npm run check-dependencies
         if: steps.cache-routing.outputs.cache-hit != 'true'
       - name: Download austria-latest.osm.pbf
         run: wget -q -O ors/austria-latest.osm.pbf https://download.geofabrik.de/europe/austria-latest.osm.pbf
