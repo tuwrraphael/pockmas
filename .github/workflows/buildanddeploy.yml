@@ -3,7 +3,7 @@ name: Build and Deploy
 env:
   DATA_FORMAT_VERSION : '6'
   NODE_VERSION: 16.x
-  GTFSTIDY_EXECUTABLE: go/bin/gtfstidy
+  GTFSTIDY_EXECUTABLE: ~/go/bin/gtfstidy
 
 on:
   push:
@@ -22,6 +22,8 @@ jobs:
       - run: npm ci
       - name: Build preprocessing
         run: npm run build-preprocess
+      - name: Check dependencies
+        run: npm run check-dependencies
       - name: Get last modified header
         id: getlastmodified
         run: |

@@ -57,6 +57,7 @@
     "build": "webpack",
     "start": "webpack serve --mode development --env development",
     "preprocess": "node gtfs-preprocessing/dist/index.js",
+    "check-dependencies": "node gtfs-preprocessing/dist/check-gtfstidy.js",
     "build-preprocess": "tsc --p gtfs-preprocessing/tsconfig.json"
   },
   "author": "",
