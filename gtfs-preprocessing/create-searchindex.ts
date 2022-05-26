@@ -243,7 +243,7 @@ export async function createSearchIndex(gtfsPath: string, outputPath: string) {
             }
         }
         if (!done.has(stopA)) {
-            let stopGroup = {
+            let stopGroup : StopGroup = {
                 stopGroupIdx: stopGroupIdx,
                 idx: stopAIndex,
                 groupedStops: [],
