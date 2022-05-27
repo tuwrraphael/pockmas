@@ -12,6 +12,8 @@ The public transport routing algorithm is inspired / an extension of the algorit
 Um die Umstiegszeiten im GTFS-Format zu generieren (transfers.txt), wird
 OpenRouteService (© openrouteservice.org by HeiGIT | Map data © OpenStreetMap contributors) eingesetzt.
 
+To merge and optimize the GTFS feeds [gtfstidy](https://github.com/patrickbr/gtfstidy) from [patrickbr](https://github.com/patrickbr) is used.
+
 ## Datenquellen
 ### Wiener Linien – Fahrplandaten GTFS Wien
 Datenquelle: Stadt Wien – [data.wien.gv.at](https://data.wien.gv.at)
@@ -25,7 +27,7 @@ Lizenz: Creative Commons Namensnennung 4.0 International
 * Stop Search: Nach zweitem Wort suchen
 * Range query
 * allow footpath as first leg 
-* S-Bahnen
+* ✅ S-Bahnen
 * S-Bahnen Echtzeit Routing
 * ✅ Echtzeit-Routing
 * Anzeige der Route
