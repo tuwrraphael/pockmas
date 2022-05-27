@@ -15,6 +15,8 @@ OpenRouteService (© openrouteservice.org by HeiGIT | Map data © OpenStreetMap 
 ## Datenquellen
 ### Wiener Linien – Fahrplandaten GTFS Wien
 Datenquelle: Stadt Wien – [data.wien.gv.at](https://data.wien.gv.at)
+### OEBB - Soll Fahrplan GTFS
+Datenquelle: [data.oebb.at](https://data.oebb.at/)
 
 Lizenz: Creative Commons Namensnennung 4.0 International
 
@@ -29,7 +31,7 @@ Lizenz: Creative Commons Namensnennung 4.0 International
 * Anzeige der Route
 * personalisiertes Sortieren der Suchergebnisse
 * Geolocation
-* Calender File viel zu lang
+* ✅ Calender File viel zu lang
 
 # Optimization
 * Stop Search
@@ -37,3 +39,5 @@ Lizenz: Creative Commons Namensnennung 4.0 International
     * track path to go back
 * optimize calendar & calendar_dates
 * maybe: use frequencies to save on data
+* align memory to 32 bit
+* binary search calendar exceptions

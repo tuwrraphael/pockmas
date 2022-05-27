@@ -12,3 +12,8 @@ stopsearch/.vs
 stopsearch/Debug
 stopsearch/build
 stopsearch/stopsearch.wasm
+gtfs-preprocessing/gtfs-oebb
+gtfs-preprocessing/gtfs-wienerlinien
+ors/graphs
+ors/elevation_cache
+ors/vienna.osm.pbf

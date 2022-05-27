@@ -1,29 +1,44 @@
-const fs = require("fs");
-const path = require("path");
-const csv = require("csv-parser");
-const stripBom = require("strip-bom-stream");
-const { getUnixTime, findTimeZone } = require("timezone-support");
+import fs from "fs";
+import path from "path";
+import csv from "csv-parser";
+import stripBom from "strip-bom-stream";
+import { getUnixTime, findTimeZone } from "timezone-support";
 
 let timezone = findTimeZone("Europe/Vienna");
 
-function parseDate(date) {
+export interface GtfsCalendarException {
+    date: number;
+    type: number;
+}
+
+export interface GtfsCalendar {
+    serviceId: string;
+    weekdays: number;
+    startDate: number;
+    endDate: number;
+    exceptions: GtfsCalendarException[]
+}
+
+function parseDate(date: string) {
     let year = date.substring(0, 4);
     let month = date.substring(4, 6);
     let day = date.substring(6, 8);
     return getUnixTime({
-        year: year,
-        month: month,
-        day: day,
+        year: parseInt(year),
+        month: parseInt(month),
+        day: parseInt(day),
         hours: 0,
         minutes: 0,
         seconds: 0
     }, timezone) / 1000;
 }
 
-async function readExceptions(gtfsPath) {
+type GtfsCalendarExceptionMap = { [serviceId: string]: GtfsCalendarException[] };
+
+async function readExceptions(gtfsPath: string) {
     const calendarStream = fs.createReadStream(path.join(gtfsPath, "calendar_dates.txt"));
-    return new Promise(resolve => {
-        let calendarExceptions = {};
+    return new Promise<GtfsCalendarExceptionMap>(resolve => {
+        let calendarExceptions: GtfsCalendarExceptionMap = {};
         calendarStream
             .pipe(stripBom())
             .pipe(csv())
@@ -41,10 +56,10 @@ async function readExceptions(gtfsPath) {
     });
 }
 
-async function readCalendar(gtfsPath, includeExceptions) {
+export async function readCalendar(gtfsPath: string, includeExceptions: boolean) {
     const calendarStream = fs.createReadStream(path.join(gtfsPath, "calendar.txt"));
-    return new Promise(resolve => {
-        let calendar = [];
+    return new Promise<GtfsCalendar[]>(resolve => {
+        let calendar: GtfsCalendar[] = [];
         calendarStream
             .pipe(stripBom())
             .pipe(csv())
@@ -61,7 +76,8 @@ async function readCalendar(gtfsPath, includeExceptions) {
                     serviceId: data.service_id,
                     weekdays: weekdays,
                     startDate: parseDate(data.start_date),
-                    endDate: parseDate(data.end_date) + 24 * 3600
+                    endDate: parseDate(data.end_date) + 24 * 3600,
+                    exceptions: []
                 });
             })
             .on('end', () => {
@@ -79,4 +95,3 @@ async function readCalendar(gtfsPath, includeExceptions) {
             });
     });
 }
-exports.readCalendar = readCalendar;

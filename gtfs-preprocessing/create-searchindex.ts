@@ -1,9 +1,9 @@
-const { readStops } = require("./read-stops.js");
-const levenshtein = require("js-levenshtein");
-const { coordinateDistance } = require("./coordinate-distance");
-const fs = require("fs");
-const possibleTypos = require("./possible-typos");
-const path = require("path");
+import { GtfsStop, readStops } from "./read-stops.js";
+import levenshtein from "js-levenshtein";
+import { coordinateDistance } from "./coordinate-distance";
+import fs from "fs";
+import { possibleTypos } from "./possible-typos";
+import path from "path";
 
 const maxDistance = 0.4;
 const maxEditDistance = 0.2;
@@ -12,11 +12,60 @@ const maxTypos = 2;
 const stopIdSize = 16;
 
 
-function getCanonicalName(stopGroup) {
+function getCanonicalName(stopGroup: { cleanedName: string }) {
     return stopGroup.cleanedName.replace(/\s+/g, "");
 }
 
-function samePossibleChildren(possibleChildrenA, possibleChildrenB) {
+interface GroupedStop extends GtfsStop {
+    idx: number;
+    cleanedName: string;
+}
+
+interface StopGroup {
+    stopGroupIdx: number;
+    groupedStops: GroupedStop[];
+    popularity: number;
+    cleanedName: string;
+    name: string;
+}
+
+function canAddToStopGroup(group: StopGroup, stop: GroupedStop) {
+    if (group.groupedStops.length == 0) {
+        return true;
+    }
+    if (group.cleanedName.indexOf("hauptbahnhof") > -1 && stop.cleanedName.indexOf("hauptbahnhof") > -1) {
+        return true;
+    }
+    for (let g of group.groupedStops) {
+        if (coordinateDistance(g.lat, g.lon, stop.lat, stop.lon) > maxDistance) {
+            return false;
+        }
+    }
+    if (/(\d)\s+?tor/.test(group.cleanedName)) {
+        if (!/(\d)\s+?tor/.test(stop.cleanedName)) {
+            return false;
+        } else {
+            let tornr1 = parseInt((group.cleanedName.match(/(\d)\s+?tor/))![1]);
+            let tornr2 = parseInt((stop.cleanedName.match(/(\d)\s+?tor/))![1]);
+            if (tornr1 != tornr2){
+                return false;
+            }
+        }
+    }
+    let editDistance = levenshtein(stop.cleanedName, group.cleanedName) / Math.max(stop.cleanedName.length, group.cleanedName.length);
+    if (editDistance > maxEditDistance) {
+        return false;
+    }
+    return true;
+}
+
+interface TrieNodeData {
+    group: StopGroup;
+    typos: number;
+    level: number;
+}
+
+function samePossibleChildren(possibleChildrenA: TrieNodeData[], possibleChildrenB: TrieNodeData[]) {
     if (possibleChildrenA.length != possibleChildrenB.length) {
         return false;
     }
@@ -32,15 +81,21 @@ function samePossibleChildren(possibleChildrenA, possibleChildrenB) {
 }
 
 class TrieNode {
+
+    private index: number;
+    private value: StopGroup[];
+    private children: { [letter: string]: TrieNode };
+
     static numNodes = 0;
     static numResultValues = 0;
-    static alphabet = [];
+    static alphabet: string[] = [];
     static trieSize = 0;
 
     static lastIndex = 0;
-    static allNodes = [];
+    static allNodes: TrieNode[] = [];
 
-    constructor(stopGroups) {
+
+    constructor(stopGroups: TrieNodeData[]) {
         this.index = TrieNode.lastIndex;
         TrieNode.lastIndex++;
         TrieNode.allNodes.push(this);
@@ -64,7 +119,7 @@ class TrieNode {
         TrieNode.numResultValues += this.value.length;
         if (allResults.length > resultsPerNode) {
 
-            let possibleChildren = {};
+            let possibleChildren: { [letter: string]: TrieNodeData[] } = {};
             for (let stopGroup of stopGroups) {
                 if (stopGroup.typos >= maxTypos) {
                     continue;
@@ -111,7 +166,7 @@ class TrieNode {
                     TrieNode.alphabet.push(letter);
                     done.add(letter);
                 }
-                for(let letter2 in possibleChildren) {
+                for (let letter2 in possibleChildren) {
                     if (samePossibleChildren(possibleChildren[letter], possibleChildren[letter2])) {
                         this.children[letter2] = this.children[letter];
                         if (TrieNode.alphabet.indexOf(letter2) < 0) {
@@ -153,12 +208,12 @@ class TrieNode {
             trieView.setUint32(8, resultsIndex, true);
             for (let [letter, child] of entries) {
                 childrenIndexView.setUint32(childrenIndex * 4, child.index, true);
-                childrenLookupView.setUint8(childrenIndex, letter.charCodeAt(0), true);
+                childrenLookupView.setUint8(childrenIndex, letter.charCodeAt(0));
                 childrenIndex++;
             }
             let resultsView = new DataView(resultsOutput.buffer, resultsIndex * 2, node.value.length * 2);
             for (let [idx, stopGroup] of Object.entries(node.value)) {
-                resultsView.setUint16(2 * idx, stopGroup.stopGroupIdx, true);
+                resultsView.setUint16(2 * parseInt(idx), stopGroup.stopGroupIdx, true);
                 resultsIndex++;
             }
         }
@@ -176,11 +231,15 @@ class TrieNode {
     }
 }
 
-async function createSearchIndex(gtfsPath, outputPath) {
-    const stops = await readStops(gtfsPath);
+export async function createSearchIndex(gtfsPath: string, outputPath: string) {
+    const rawstops = await readStops(gtfsPath);
     const popularity = (await fs.promises.readFile(path.join(outputPath, "stop-popularity.txt"), "utf8")).split("\n").map(n => parseInt(n));
-    for (let stop of stops) {
-        stop.cleanedName = stop.name
+    let stops = rawstops.map(s => ({
+        ...s, cleanedName: s.name
+            .replace(/^Wien\s/ig, "")
+            .replace(/\bbahnhof\b/ig, "")
+            .replace(/\bbahnhst\b/ig, "")
+            .replace(/\bhbf\b/ig, "Hauptbahnhof")
             .replace(/\bU\b/g, "")
             .replace(/\bS\+U\b/g, "")
             .replace(/\bS\b/g, "")
@@ -192,49 +251,47 @@ async function createSearchIndex(gtfsPath, outputPath) {
             .replace(/[^a-z0-9]/g, " ")
             .replace(/ +(?= )/g, '')
             .trim()
-    }
-    let done = new WeakMap();
-    let groupedStops = [];
-    let stopGroupIdx = 0;
+    }));
+    let groupedStops: StopGroup[] = [];
     for (let [stopAIndex, stopA] of stops.entries()) {
-        if (done.has(stopA)) {
+        let candidate = { ...stopA, idx: stopAIndex };
+        let added = false;
+        for (let g of groupedStops) {
+            if (canAddToStopGroup(g, candidate)) {
+                g.groupedStops.push(candidate);
+                added = true;
+                break;
+            }
+        }
+        if (added) {
             continue;
         }
-        for (let [stopBIndex, stopB] of stops.entries()) {
-            if (stopA == stopB || !done.has(stopB)) {
-                continue;
-            }
-            let editDistance = levenshtein(stopA.cleanedName, stopB.cleanedName) / Math.max(stopA.cleanedName.length, stopB.name.length);
-            if (editDistance < maxEditDistance) {
-                let distance = coordinateDistance(stopA.lat, stopA.lon, stopB.lat, stopB.lon);
-                if (distance < maxDistance) {
-                    let stopGroup = done.get(stopB);
-                    stopGroup.groupedStops.push({ ...stopA, idx: stopAIndex });
-                    done.set(stopA, stopGroup);
-                    break;
-                }
-            }
-        }
-        if (!done.has(stopA)) {
-            let stopGroup = {
-                ...stopA,
-                stopGroupIdx: stopGroupIdx,
-                idx: stopAIndex,
-                groupedStops: []
-            };
-            stopGroupIdx++;
-            groupedStops.push(stopGroup);
-            done.set(stopA, stopGroup);
-        }
+        let stopGroup: StopGroup = {
+            stopGroupIdx: 0,
+            groupedStops: [candidate],
+            name: stopA.name,
+            popularity: 0,
+            cleanedName: stopA.cleanedName
+        };
+        groupedStops.push(stopGroup);
     }
     console.log(`Found ${groupedStops.length} stop groups`);
-    for (let g of groupedStops) {
-        g.popularity = g.groupedStops.reduce((acc, stop) => {
+
+    let grouped = groupedStops.map(g => ({
+        ...g,
+        popularity: g.groupedStops.reduce((acc, stop) => {
             return acc + popularity[stop.idx];
-        }, 0);
-        g.name = [g.name, ...g.groupedStops.map(s => s.name)].sort((a, b) => a.length - b.length)[0];
-    }
-    let root = new TrieNode(groupedStops.map(g => ({ group: g, typos: 0, level: 0 })));
+        }, 0),
+        name: [g.name, ...g.groupedStops.map(s => s.name)].sort((a, b) => a.length - b.length)[0]
+            .replace(/^Wien\s/ig, "")
+            .replace(/\bhbf\b/ig, "Hauptbahnhof"),
+    })).sort((a, b) => a.name.localeCompare(b.name));
+    grouped = grouped.map((g, idx) => {
+        g.stopGroupIdx = idx;
+        return g;
+    });
+
+    let root = new TrieNode(grouped.map(g => ({ group: g, typos: 0, level: 0 })));
     console.log(`Alphabet size: ${TrieNode.alphabet.length}`);
     console.log("Alphabet", TrieNode.alphabet.sort((a, b) => a.localeCompare(b)));
     console.log(`Trie will take up ${TrieNode.trieSize / (1024 * 1024)} MB of space.`)
@@ -243,8 +300,7 @@ async function createSearchIndex(gtfsPath, outputPath) {
     let binary = TrieNode.getBinary();
     await destination.write(binary);
     destination.close();
-    let stopGroupIndex = groupedStops.map(g => ({ name: g.name, stopIds: [g.idx, ...g.groupedStops.map(s => s.idx)] }));
+    let stopGroupIndex = grouped.map(g => ({ name: g.name, stopIds: [...g.groupedStops.map(s => s.idx)] }));
     await fs.promises.writeFile(path.join(outputPath, "stopgroup-index.json"), JSON.stringify(stopGroupIndex));
+    await fs.promises.writeFile(path.join(outputPath, "stopgroups.txt"), grouped.map(g => `${g.name}\n${g.groupedStops.map(s => `+ ${s.name}`).join("\n")}`).join("\n\n"));
 }
-
-exports.createSearchIndex = createSearchIndex;

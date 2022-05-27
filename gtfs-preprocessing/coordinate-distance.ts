@@ -1,4 +1,4 @@
-function coordinateDistance(lat, lon, lat2, lon2) {
+export function coordinateDistance(lat:number, lon:number, lat2:number, lon2:number):number {
     var R = 6371; // Radius of the earth in km
     var dLat = (lat2 - lat) * Math.PI / 180; // deg2rad below
     var dLon = (lon2 - lon) * Math.PI / 180;
@@ -9,4 +9,3 @@ function coordinateDistance(lat, lon, lat2, lon2) {
     var d = R * c; // Distance in km
     return d;
 }
-exports.coordinateDistance = coordinateDistance;

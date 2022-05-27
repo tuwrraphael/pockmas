@@ -32,7 +32,8 @@ export class TransitDisplay extends HTMLElement {
         if (!this.rendered) {
             return;
         }
-        let label = this.getAttribute(RouteAttribute);
+        let label = this.getAttribute(RouteAttribute).replace(/\s/g,"");
+        this.routeLabel.classList.toggle("transit-display__route--long", label.length > 3);
         this.routeLabel.innerText = label;
         let color = this.getAttribute(RouteColorAttribute);
         this.style.backgroundColor = color ?`#${color}` : "";

@@ -1,12 +1,17 @@
-const fs = require("fs");
-const path = require("path");
-const csv = require("csv-parser");
-const stripBom = require("strip-bom-stream");
+import fs from "fs";
+import path from "path";
+import csv from "csv-parser";
+import stripBom from "strip-bom-stream";
 
-async function readLinien(rtPath) {
+export interface Linie {
+    id: number;
+    text: string;
+}
+
+export async function readLinien(rtPath:string) {
     const stopsStream = fs.createReadStream(path.join(rtPath, "wienerlinien-ogd-linien.csv"));
-    return new Promise(resolve => {
-        const linien = [];
+    return new Promise<Linie[]>(resolve => {
+        const linien :Linie[] = [];
         stopsStream
             .pipe(stripBom())
             .pipe(csv({
@@ -23,4 +28,3 @@ async function readLinien(rtPath) {
             });
     })
 }
-exports.readLinien = readLinien;

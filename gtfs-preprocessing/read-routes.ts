@@ -1,13 +1,22 @@
-const fs = require("fs");
-const path = require("path");
-const csv = require("csv-parser");
-const stripBom = require("strip-bom-stream");
+import fs from "fs";
+import path from "path";
+import csv from "csv-parser";
+import stripBom from "strip-bom-stream";
 
+export interface GtfsRoute {
+    routeId: string;
+    routeShortName: string;
+    routeLongName: string;
+    routeType: number;
+    routeColor: string;
+}
 
-async function readRoutes(gtfsPath) {
+export type GtfsRouteMap = { [routeId: string]: GtfsRoute };
+
+export async function readRoutes(gtfsPath: string) {
     const routesStream = fs.createReadStream(path.join(gtfsPath, "routes.txt"));
-    return new Promise(resolve => {
-        let routes = {};
+    return new Promise<GtfsRouteMap>(resolve => {
+        let routes: GtfsRouteMap = {};
         routesStream
             .pipe(stripBom())
             .pipe(csv())
@@ -25,4 +34,3 @@ async function readRoutes(gtfsPath) {
             });
     });
 }
-exports.readRoutes = readRoutes;

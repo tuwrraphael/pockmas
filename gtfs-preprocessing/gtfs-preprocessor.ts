@@ -1,21 +1,37 @@
-const fs = require("fs");
-const path = require("path");
-const { readStops } = require("./read-stops");
-const { enhanceWithTransfers } = require("./read-transfers");
-const csv = require("csv-parser");
-const stripBom = require("strip-bom-stream");
-const { readRoutes } = require("./read-routes");
-const { readCalendar } = require("./read-calendar");
+import fs from "fs";
+import path from "path";
+import { readStops } from "./read-stops";
+import { enhanceWithTransfers } from "./read-transfers";
+import csv from "csv-parser";
+import stripBom from "strip-bom-stream";
+import { GtfsRouteMap, readRoutes } from "./read-routes";
+import { readCalendar } from "./read-calendar";
 
-function parseTime(time) {
+function parseTime(time: string) {
     let [hour, minute, second] = time.split(":");
     return parseInt(hour) * 3600 + parseInt(minute) * 60 + parseInt(second);
 }
 
-async function readTrips(gtfsPath) {
+interface GtfsTrip {
+    tripId: string;
+    routeId: string;
+    serviceId: string;
+    directionId: number;
+    tripHeadsign: string;
+    stopTimes: {
+        arrivalTime: number,
+        departureTime: number,
+        stopSequence: number,
+        stopId: number
+    }[];
+}
+
+type GtfsTripMap = { [tripId: string]: GtfsTrip };
+
+async function readTrips(gtfsPath: string) {
     const tripsStream = fs.createReadStream(path.join(gtfsPath, "trips.txt"));
-    return new Promise(resolve => {
-        let trips = {};
+    return new Promise<GtfsTripMap>(resolve => {
+        let trips: GtfsTripMap = {};
         tripsStream
             .pipe(stripBom())
             .pipe(csv())
@@ -26,6 +42,7 @@ async function readTrips(gtfsPath) {
                     serviceId: data.service_id,
                     directionId: parseInt(data.direction_id),
                     tripHeadsign: data.trip_headsign,
+                    stopTimes: []
                 };
             })
             .on('end', () => {
@@ -34,9 +51,9 @@ async function readTrips(gtfsPath) {
     });
 }
 
-async function enhanceWithStopTimes(gtfsPath, trips, stopList) {
+async function enhanceWithStopTimes(gtfsPath: string, trips: GtfsTripMap, stopList: string[]) {
     const stopTimesStream = fs.createReadStream(path.join(gtfsPath, "stop_times.txt"));
-    return new Promise(resolve => {
+    return new Promise<GtfsTripMap>(resolve => {
         stopTimesStream
             .pipe(stripBom())
             .pipe(csv())
@@ -56,13 +73,18 @@ async function enhanceWithStopTimes(gtfsPath, trips, stopList) {
     });
 }
 
-function sortTripsIntoRouteBuckets(trips, routes) {
-    let routeBuckets = [];
-    let indexByRouteShortName = {};
+function sortTripsIntoRouteBuckets(trips: GtfsTripMap, routes: GtfsRouteMap) {
+    type RouteBucket = GtfsTrip[];
+    let routeBuckets: RouteBucket[] = [];
+    let indexByRouteShortName: { [routeShortName: string]: RouteBucket[] } = {};
     let tripList = Object.values(trips).sort((tripA, tripB) => tripA.stopTimes[0].departureTime - tripB.stopTimes[0].departureTime);
 
-    function tripFits(bucket, tNew) {
+    function tripFits(bucket: RouteBucket, tNew: GtfsTrip) {
         let tBucket = bucket[bucket.length - 1];
+        // because we cut the routes of oebb we can't sort into the same bucket to display the correct headsign
+        if (tBucket.tripHeadsign !== tNew.tripHeadsign) {
+            return false;
+        }
         if (tBucket.stopTimes.length !== tNew.stopTimes.length || tBucket.directionId !== tNew.directionId) {
             return false;
         }
@@ -81,11 +103,11 @@ function sortTripsIntoRouteBuckets(trips, routes) {
         return true;
     }
 
-    function findBucket(t) {
+    function findBucket(t: GtfsTrip) {
         let routeShortName = routes[t.routeId].routeShortName;
         let candidates = (indexByRouteShortName[routeShortName] || [])
-            .filter(bucket => tripFits(bucket, t));
-        let bucket;
+            .filter(b => tripFits(b, t));
+        let bucket: RouteBucket;
         if (!candidates.length) {
             bucket = [];
             indexByRouteShortName[routeShortName] = indexByRouteShortName[routeShortName] || [];
@@ -104,7 +126,7 @@ function sortTripsIntoRouteBuckets(trips, routes) {
     return routeBuckets;
 }
 
-async function process(gtfsPath, outputPath) {
+export async function preprocessGtfs(gtfsPath: string, outputPath: string) {
     console.log("Reading trips");
     let trips = await readTrips(gtfsPath);
     console.log(`Found ${Object.keys(trips).length} trips`);
@@ -116,7 +138,7 @@ async function process(gtfsPath, outputPath) {
     let stopList = stops.map(s => s.stopId);
     console.log(`Found ${stops.length} stops`);
     console.log("Reading calendar");
-    let calendar = await readCalendar(gtfsPath);
+    let calendar = await readCalendar(gtfsPath, false);
     console.log(`Found ${calendar.length} serviceIds`);
     let routesWithNames = await readRoutes(gtfsPath);
     trips = await enhanceWithStopTimes(gtfsPath, trips, stopList);
@@ -149,7 +171,7 @@ async function process(gtfsPath, outputPath) {
     let stopTimeIndex = 0;
     let stopIndex = 0;
     let tripCalendarsIdx = 0;
-    for (let [routeId, trips] of routeBucketsOrdered.map((t, i) => [i, t])) {
+    for (let { routeId, trips } of routeBucketsOrdered.map((t, i) => ({ routeId: i, trips: t }))) {
         let currentStops = routeStops[routeId];
         let routeArray = new Uint32Array([stopTimeIndex, stopIndex, currentStops.length, trips.length, tripCalendarsIdx]);
         await routeOutput.write(new Uint8Array(routeArray.buffer));
@@ -161,7 +183,11 @@ async function process(gtfsPath, outputPath) {
             if (stopTimeIndex > 0xFFFFFFFF) {
                 throw new Error("Too many stop times");
             }
-            let calendarId = calendar.indexOf(calendar.find(c => c.serviceId === trip.serviceId));
+            let foundCalendar = calendar.find(c => c.serviceId === trip.serviceId);
+            if (!foundCalendar) {
+                throw new Error(`Could not find calendar for ${trip.serviceId}`);
+            }
+            let calendarId = calendar.indexOf(foundCalendar);
             let tripCalendarArray = new Uint16Array([calendarId]);
             await tripCalendarsOutput.write(new Uint8Array(tripCalendarArray.buffer));
             tripCalendarsIdx += 1;
@@ -183,12 +209,12 @@ async function process(gtfsPath, outputPath) {
     for (let stopId = 0; stopId < stops.length; stopId++) {
         let stop = stops[stopId];
         let numTransfers = stop.transfers ? stop.transfers.length : 0;
-        let routeIds = routeStops.map((s, i) => [i, s]).filter(([, routeStops]) => routeStops.indexOf(stopId) > -1)
-            .map(([routeId,]) => routeId);
+        let routeIds = routeStops.map((s, i) => ({ routeId: i, routeStops: s })).filter(({ routeStops }) => routeStops.indexOf(stopId) > -1)
+            .map(({ routeId }) => routeId);
         let routeIdsArray = new Uint16Array(routeIds);
         await stopServingRoutesOutput.write(new Uint8Array(routeIdsArray.buffer));
         if (numTransfers > 0) {
-            let transfersArray = new Uint16Array(stop.transfers.flatMap(t => [t.to, t.minTransferTime]));
+            let transfersArray = new Uint16Array((stop.transfers || []).flatMap(t => [t.to, t.minTransferTime]));
             await transfersOutput.write(new Uint8Array(transfersArray.buffer));
         }
 
@@ -221,5 +247,3 @@ async function process(gtfsPath, outputPath) {
         return arr;
     })));
 }
-
-exports.preprocessGtfs = process;
