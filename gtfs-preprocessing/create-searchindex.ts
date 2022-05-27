@@ -249,7 +249,7 @@ export async function createSearchIndex(gtfsPath: string, outputPath: string) {
             .replace(/ü/g, "u")
             .replace(/ß/g, "ss")
             .replace(/[^a-z0-9]/g, " ")
-            .replace(/mitte\s+landstraße/g, "landstraße")
+            .replace(/mitte\s+landstrasse/g, "landstrasse")
             .replace(/ +(?= )/g, '')
             .trim()
     }));
