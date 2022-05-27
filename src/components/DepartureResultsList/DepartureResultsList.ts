@@ -37,9 +37,6 @@ export class DepartureResultsList extends HTMLElement {
                 }
                 this.moreRequestedAt = this.departures.length;
             }
-        }, {
-            root: null,
-            threshold: 1.0
         });
         if (!this.rendered) {
             this.innerHTML = template;
