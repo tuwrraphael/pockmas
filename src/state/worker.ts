@@ -11,6 +11,7 @@ import { SetDepartureTime } from "./actions/SetDepartureTime";
 import { RouteUrlEncoder } from "../lib/RouteUrlEncoder";
 import { RoutingServicesFactory } from "../lib/RoutingServicesFactory";
 import { RouteDetailsOpened } from "./actions/RouteDetailsOpened";
+import { DisplayMoreDepartures } from "./actions/DisplayMoreDepartures";
 
 type Actions = InitializeStopSearch
     | DepartureStopTermChanged
@@ -18,7 +19,8 @@ type Actions = InitializeStopSearch
     | InitializeRouting
     | StopsSelected
     | SetDepartureTime
-    | RouteDetailsOpened;
+    | RouteDetailsOpened
+    | DisplayMoreDepartures;
 
 let stopSearchInstance: WebAssemblyInstance<StopSearchExports>;
 let _departureTime: Date = null;
@@ -107,27 +109,54 @@ async function searchTermChanged(term: string, departure: boolean) {
     }));
 }
 
+let getDeparturesRunning: Promise<void> = Promise.resolve();
+
 async function searchInputChanged() {
 
     if (state.selectedStopgroups.arrival != null && state.selectedStopgroups.departure != null) {
         await route();
     } else if (state.selectedStopgroups.departure != null) {
-        updateState(s => ({
-            results: []
-        }));
-        let stopGroupStore = await routingServicesFactory.getStopGroupStore();
-        let routingService = await routingServicesFactory.getRoutingService();
-        let realtimeLookupService = await routingServicesFactory.getRealtimeLookupService();
+        getDeparturesRunning = (async () => {
+            updateState(s => ({
+                results: []
+            }));
+            let stopGroupStore = await routingServicesFactory.getStopGroupStore();
+            let routingService = await routingServicesFactory.getRoutingService();
+            let realtimeLookupService = await routingServicesFactory.getRealtimeLookupService();
 
-        let departureStops = stopGroupStore.getStopGroup(state.selectedStopgroups.departure.id).stopIds;
+            let departureStops = stopGroupStore.getStopGroup(state.selectedStopgroups.departure.id).stopIds;
 
-        await realtimeLookupService.performWithRealtimeLoopkup(async () => {
-            let results = routingService.getDepartures({
-                departureStops: departureStops.map(d => ({ departureTime: _departureTime, stopId: d })),
+            await realtimeLookupService.performWithRealtimeLoopkup(async () => {
+                let results = routingService.getDepartures({
+                    departureStops: departureStops.map(d => ({ departureTime: _departureTime, stopId: d })),
+                });
+                updateState(() => ({ departures: results }));
+                return results.map(r => r.stop.stopId);
             });
-            updateState(() => ({ departures: results }));
-            return results.map(r => r.stop.stopId);
-        });
+        })();
+        await getDeparturesRunning;
+    }
+}
+
+async function displayMoreDepartures() {
+    await getDeparturesRunning;
+    if (state.selectedStopgroups.departure != null && state.departures?.length > 0) {
+        getDeparturesRunning = (async () => {
+            let stopGroupStore = await routingServicesFactory.getStopGroupStore();
+            let routingService = await routingServicesFactory.getRoutingService();
+            let realtimeLookupService = await routingServicesFactory.getRealtimeLookupService();
+
+            let departureStops = stopGroupStore.getStopGroup(state.selectedStopgroups.departure.id).stopIds;
+            let departuresBefore = state.departures;
+            await realtimeLookupService.performWithRealtimeLoopkup(async () => {
+                let results = routingService.getDepartures({
+                    departureStops: departureStops.map(d => ({ departureTime: new Date(departuresBefore[departuresBefore.length - 1].plannedDeparture.getTime() + departuresBefore[departuresBefore.length - 1].delay), stopId: d })),
+                });
+                let firstDuplicate = departuresBefore.findIndex(dbefore => results.some(dNew => dbefore.route.id == dNew.route.id && dbefore.tripId == dNew.tripId && dbefore.stop.stopId == dNew.stop.stopId));
+                updateState(() => ({ departures: [...departuresBefore.slice(0, firstDuplicate), ...results] }));
+                return results.map(r => r.stop.stopId);
+            });
+        })();
     }
 }
 
@@ -183,7 +212,6 @@ async function routeDetailsOpened(itineraryIdUrlEncoded: string) {
     }));
 }
 
-
 async function handleMessage(msg: Actions) {
     switch (msg.type) {
         case ActionType.InitializeStopSearch:
@@ -211,6 +239,10 @@ async function handleMessage(msg: Actions) {
         }
         case ActionType.RouteDetailsOpened: {
             await routeDetailsOpened(msg.itineraryUrlEncoded);
+            break;
+        }
+        case ActionType.DisplayMoreDepartures: {
+            await displayMoreDepartures();
             break;
         }
     }

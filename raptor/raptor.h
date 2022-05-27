@@ -8,7 +8,7 @@
 #define MAX_LEGS (MAX_INTERCHANGES - 1)
 #define MAX_ITINERARYS (8)
 #define MAX_REQUEST_STATIONS (20)
-#define MAX_DEPARTURE_RESULTS (20)
+#define MAX_DEPARTURE_RESULTS (10)
 
 typedef struct
 {

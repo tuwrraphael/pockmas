@@ -4,6 +4,8 @@ departure-summary {
     display: block;
     border-bottom: 1px solid var(--border);
     padding: 0.4em;
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 2.56em;
 
     & > a {
         text-decoration: none;

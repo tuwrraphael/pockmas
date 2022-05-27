@@ -42,7 +42,7 @@ const DEPARTURE_RESULT_SIZE = 2 + // route_id
     2 + // delay
     2; // padding
 
-const MAX_DEPARTURE_RESULTS = 20;
+const MAX_DEPARTURE_RESULTS = 10;
 const DEPARTURE_RESULTS_SIZE = MAX_DEPARTURE_RESULTS * DEPARTURE_RESULT_SIZE + 4;
 
 

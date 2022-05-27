@@ -5,5 +5,6 @@ export const enum ActionType {
     InitializeRouting,
     StopsSelected,
     SetDepartureTime,
-    RouteDetailsOpened
+    RouteDetailsOpened,
+    DisplayMoreDepartures
 }

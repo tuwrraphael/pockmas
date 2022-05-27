@@ -1,4 +1,5 @@
 import { Departure } from "../../lib/Departure";
+import { DisplayMoreDepartures } from "../../state/actions/DisplayMoreDepartures";
 import { State, StateChanges } from "../../state/State";
 import { Store } from "../../state/Store";
 import { ArrayToElementRenderer } from "../../utils/ArrayToElementRenderer";
@@ -12,21 +13,45 @@ export class DepartureResultsList extends HTMLElement {
     private abortController: AbortController;
     private departures: Departure[] = [];
     private renderer: ArrayToElementRenderer<Departure, DepartureSummary, number>;
+    private intersectionObserver: IntersectionObserver;
+    private moreRequestedAt = 0;
+    private lastSelectedDest: number = null;
 
     constructor() {
         super();
         this.store = Store.getInstance();
     }
 
+    private requestMoreDepartures() {
+        this.store.postAction(new DisplayMoreDepartures());
+    }
+
     connectedCallback() {
         this.abortController = new AbortController();
+        this.intersectionObserver = new IntersectionObserver((intersections) => {
+            if (intersections.some(i => i.isIntersecting)) {
+                if (this.moreRequestedAt >= this.departures.length) {
+                    return;
+                } else {
+                    this.requestMoreDepartures();
+                }
+                this.moreRequestedAt = this.departures.length;
+            }
+        }, {
+            root: null,
+            threshold: 1.0
+        });
         if (!this.rendered) {
             this.innerHTML = template;
             this.rendered = true;
-            this.renderer = new ArrayToElementRenderer<Departure, DepartureSummary, number>(this, e => this.departures.indexOf(e), e => new DepartureSummary());
+            this.renderer = new ArrayToElementRenderer<Departure, DepartureSummary, number>(this, e => this.departures.indexOf(e), e => {
+                let s = new DepartureSummary();
+                return s;
+            });
         }
         this.store.subscribe((s, c) => this.update(s, c), this.abortController.signal);
         this.init(this.store.state);
+
     }
 
     private setResults(s: State) {
@@ -35,13 +60,24 @@ export class DepartureResultsList extends HTMLElement {
         }
         this.departures = s.departures;
         this.renderer.update(this.departures, (c, i) => {
-            c.update(i)
+            c.update(i);
         });
+        this.intersectionObserver.disconnect();
+        if (this.lastElementChild) {
+            this.intersectionObserver.observe(this.lastElementChild);
+        }
+
     }
 
     private update(s: State, c: StateChanges) {
         if (c.includes("departures")) {
-            this.setResults(s);    
+            this.setResults(s);
+        }
+        if (c.includes("selectedStopgroups")) {
+            if (s.selectedStopgroups.departure?.id != this.lastSelectedDest) {
+                this.lastSelectedDest = s.selectedStopgroups.departure?.id;
+                this.moreRequestedAt = 0;
+            }
         }
     }
 
@@ -51,6 +87,7 @@ export class DepartureResultsList extends HTMLElement {
 
     disconnectedCallback() {
         this.abortController.abort();
+        this.intersectionObserver.disconnect();
     }
 }
 

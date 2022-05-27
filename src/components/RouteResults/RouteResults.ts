@@ -71,9 +71,9 @@ export class RouteResults extends HTMLElement {
         if (displayRouten && null == this.routeResultsList) {
             this.routeResultsList = new (await import("../RouteResultsList/RouteResultsList")).RouteResultsList;
             this.querySelector(".button-pane").insertAdjacentElement("beforebegin", this.routeResultsList);
-        } else if (!displayRouten && null != this.departureResultsList) {
-            this.departureResultsList.remove();
-            this.departureResultsList = null;
+        } else if (!displayRouten && null != this.routeResultsList) {
+            this.routeResultsList.remove();
+            this.routeResultsList = null;
         }
         if (!displayRouten && null == this.departureResultsList) {
             this.departureResultsList = new (await import("../DepartureResultsList/DepartureResultsList")).DepartureResultsList;
