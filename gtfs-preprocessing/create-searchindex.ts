@@ -1,4 +1,4 @@
-import { readStops } from "./read-stops.js";
+import { GtfsStop, readStops } from "./read-stops.js";
 import levenshtein from "js-levenshtein";
 import { coordinateDistance } from "./coordinate-distance";
 import fs from "fs";
@@ -16,13 +16,47 @@ function getCanonicalName(stopGroup: { cleanedName: string }) {
     return stopGroup.cleanedName.replace(/\s+/g, "");
 }
 
+interface GroupedStop extends GtfsStop {
+    idx: number;
+    cleanedName: string;
+}
+
 interface StopGroup {
     stopGroupIdx: number;
-    idx: number;
-    groupedStops: StopGroup[];
+    groupedStops: GroupedStop[];
     popularity: number;
     cleanedName: string;
     name: string;
+}
+
+function canAddToStopGroup(group: StopGroup, stop: GroupedStop) {
+    if (group.groupedStops.length == 0) {
+        return true;
+    }
+    if (group.cleanedName.indexOf("hauptbahnhof") > -1 && stop.cleanedName.indexOf("hauptbahnhof") > -1) {
+        return true;
+    }
+    for (let g of group.groupedStops) {
+        if (coordinateDistance(g.lat, g.lon, stop.lat, stop.lon) > maxDistance) {
+            return false;
+        }
+    }
+    if (/(\d)\s+?tor/.test(group.cleanedName)) {
+        if (!/(\d)\s+?tor/.test(stop.cleanedName)) {
+            return false;
+        } else {
+            let tornr1 = parseInt((group.cleanedName.match(/(\d)\s+?tor/))![1]);
+            let tornr2 = parseInt((stop.cleanedName.match(/(\d)\s+?tor/))![1]);
+            if (tornr1 != tornr2){
+                return false;
+            }
+        }
+    }
+    let editDistance = levenshtein(stop.cleanedName, group.cleanedName) / Math.max(stop.cleanedName.length, group.cleanedName.length);
+    if (editDistance > maxEditDistance) {
+        return false;
+    }
+    return true;
 }
 
 interface TrieNodeData {
@@ -218,41 +252,28 @@ export async function createSearchIndex(gtfsPath: string, outputPath: string) {
             .replace(/ +(?= )/g, '')
             .trim()
     }));
-    let done = new WeakMap();
     let groupedStops: StopGroup[] = [];
     for (let [stopAIndex, stopA] of stops.entries()) {
-        if (done.has(stopA)) {
+        let candidate = { ...stopA, idx: stopAIndex };
+        let added = false;
+        for (let g of groupedStops) {
+            if (canAddToStopGroup(g, candidate)) {
+                g.groupedStops.push(candidate);
+                added = true;
+                break;
+            }
+        }
+        if (added) {
             continue;
         }
-        for (let [stopBIndex, stopB] of stops.entries()) {
-            if (stopA == stopB || !done.has(stopB)) {
-                continue;
-            }
-            let distance = coordinateDistance(stopA.lat, stopA.lon, stopB.lat, stopB.lon);
-
-            if (distance < maxDistance) {
-
-                let editDistance = levenshtein(stopA.cleanedName, stopB.cleanedName) / Math.max(stopA.cleanedName.length, stopB.cleanedName.length);
-                if (editDistance < maxEditDistance) {
-                    let stopGroup = done.get(stopB);
-                    stopGroup.groupedStops.push({ ...stopA, idx: stopAIndex });
-                    done.set(stopA, stopGroup);
-                    break;
-                }
-            }
-        }
-        if (!done.has(stopA)) {
-            let stopGroup : StopGroup = {
-                stopGroupIdx: 0,
-                idx: stopAIndex,
-                groupedStops: [],
-                name: stopA.name,
-                popularity: 0,
-                cleanedName: stopA.cleanedName
-            };
-            groupedStops.push(stopGroup);
-            done.set(stopA, stopGroup);
-        }
+        let stopGroup: StopGroup = {
+            stopGroupIdx: 0,
+            groupedStops: [candidate],
+            name: stopA.name,
+            popularity: 0,
+            cleanedName: stopA.cleanedName
+        };
+        groupedStops.push(stopGroup);
     }
     console.log(`Found ${groupedStops.length} stop groups`);
 
@@ -265,7 +286,7 @@ export async function createSearchIndex(gtfsPath: string, outputPath: string) {
             .replace(/^Wien\s/ig, "")
             .replace(/\bhbf\b/ig, "Hauptbahnhof"),
     })).sort((a, b) => a.name.localeCompare(b.name));
-    grouped = grouped.map((g,idx)=> {
+    grouped = grouped.map((g, idx) => {
         g.stopGroupIdx = idx;
         return g;
     });
@@ -279,6 +300,7 @@ export async function createSearchIndex(gtfsPath: string, outputPath: string) {
     let binary = TrieNode.getBinary();
     await destination.write(binary);
     destination.close();
-    let stopGroupIndex = grouped.map(g => ({ name: g.name, stopIds: [g.idx, ...g.groupedStops.map(s => s.idx)] }));
+    let stopGroupIndex = grouped.map(g => ({ name: g.name, stopIds: [...g.groupedStops.map(s => s.idx)] }));
     await fs.promises.writeFile(path.join(outputPath, "stopgroup-index.json"), JSON.stringify(stopGroupIndex));
+    await fs.promises.writeFile(path.join(outputPath, "stopgroups.txt"), grouped.map(g => `${g.name}\n${g.groupedStops.map(s => `+ ${s.name}`).join("\n")}`).join("\n\n"));
 }
