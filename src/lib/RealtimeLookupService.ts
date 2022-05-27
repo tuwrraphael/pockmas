@@ -12,7 +12,7 @@ export class RealtimeLookupService {
         for (let i = 0; i < 10; i++) {
             let stopIds = await perform();
             let divas = stopIds.reduce((divas, stopId) => [...divas, this.routeInfoStore.getDiva(stopId)], [])
-                .filter(d => null != d && !this.lookedUpDivas.has(d) || (new Date().getTime() - this.lookedUpDivas.get(d).getTime()) > 1000 * 30);
+                .filter(d => null != d && (!this.lookedUpDivas.has(d) || (new Date().getTime() - this.lookedUpDivas.get(d).getTime()) > 1000 * 30));
             if (divas.length == 0) {
                 break;
             }

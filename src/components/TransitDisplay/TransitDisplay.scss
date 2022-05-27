@@ -3,9 +3,20 @@
 $bus-color : #032960;
 
 transit-display {
-    display: inline;;
+    display: inline;
+    ;
     background-color: $bus-color;
     color: white;
     padding: 0.1em 0.3em;
     border-radius: variables.$timeline-border-radius;
+
+}
+
+.transit-display {
+    &__route {
+        white-space: nowrap;
+        &--long {
+            font-size: 0.8em;
+        }
+    }
 }
