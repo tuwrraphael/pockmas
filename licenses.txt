@@ -32,7 +32,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-core-js v3.22.5
+core-js v3.22.8
 https://github.com/zloirock/core-js.git
 --------------------------------------------------------------------------------
 
@@ -200,7 +200,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-postcss-loader v6.2.1 - Andrey Sitnik <andrey@sitnik.ru>
+postcss-loader v7.0.0 - Andrey Sitnik <andrey@sitnik.ru>
 webpack-contrib/postcss-loader
 --------------------------------------------------------------------------------
 
@@ -254,7 +254,7 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-sass-loader v12.6.0 - J. Tangelder
+sass-loader v13.0.0 - J. Tangelder
 webpack-contrib/sass-loader
 --------------------------------------------------------------------------------
 
