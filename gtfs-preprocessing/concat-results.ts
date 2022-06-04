@@ -1,6 +1,6 @@
-const fs = require("fs");
-const path = require("path");
-const { StopTimeBytes, RouteBytes, TransferBytes, StopBytes, CalendarBytes, RouteStopBytes, StopServingRouteBytes, TripCalendarBytes, DivaIndexBytes, DivaRouteBytes, CalendarExceptionBytes } = require("./structures");
+import fs from "fs";
+import path from "path";
+import { StopTimeBytes, RouteBytes, TransferBytes, StopBytes, CalendarBytes, RouteStopBytes, StopServingRouteBytes, TripCalendarBytes, DivaIndexBytes, DivaRouteBytes, CalendarExceptionBytes } from "./structures";
 
 
 const files = [
@@ -17,7 +17,7 @@ const files = [
     { file: "trip_calendars.bin.bmp", structSize: TripCalendarBytes }
 ];
 
-async function concatResults(outputPath) {
+export async function concatResults(outputPath:string) {
     let destination = await fs.promises.open(path.join(outputPath, "raptor_data.bin.bmp"), "w");
     let fileSizesBytes = await Promise.all(files.map(f => fs.promises.stat(path.join(outputPath, f.file)).then(s => s.size)));
     for (let i = 0; i < files.length; i++) {
@@ -26,11 +26,13 @@ async function concatResults(outputPath) {
         }
     }
     let numbeOfElements = fileSizesBytes.map((b, i) => b / files[i].structSize);
-    destination.write(new Uint8Array(new Uint32Array(numbeOfElements).buffer));
+    for (let i = 0; i < files.length; i++) {
+        console.log(`file ${files[i].file} has ${numbeOfElements[i]} elements`);
+    }
+    await destination.write(new Uint8Array(new Uint32Array(numbeOfElements).buffer));
     for (let f of files) {
         let binary = await fs.promises.readFile(path.join(outputPath, f.file));
-        destination.write(new Uint8Array(binary));
+        await destination.write(new Uint8Array(binary));
     }
     destination.close();
 }
-exports.concatResults = concatResults;
