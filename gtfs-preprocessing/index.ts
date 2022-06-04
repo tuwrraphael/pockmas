@@ -44,7 +44,7 @@ async function doSteps() {
     for (let step of steps) {
         switch (step) {
             case "download-oebb":
-                await downloadOebbGtfs(gtfsOebbDir);
+                await downloadOebbGtfs(gtfsOebbDir, console.log);
                 break;
             case "download-wienerlinien":
                 await downloadWienerlinienGtfs(gtfsWienerLinienDir);

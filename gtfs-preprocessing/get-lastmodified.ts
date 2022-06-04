@@ -15,7 +15,7 @@ async function getLastModifiedDateWienerlinien() {
 }
 
 async function getLastModifiedOebb() {
-    let metadata = await getOebbGtfsMetadata();
+    let metadata = await getOebbGtfsMetadata(() => { });
     if (!metadata.gtfsZipFile) {
         throw new Error("No gtfsZipFile found");
     }

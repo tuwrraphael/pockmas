@@ -3,7 +3,7 @@ import fs from "fs";
 import streamZip from "node-stream-zip";
 import path from "path";
 
-export async function getOebbGtfsMetadata() {
+export async function getOebbGtfsMetadata(log: (message: string) => void) {
     let datasetsResponse = await fetch("https://data.oebb.at/oebb/DatasetsConfig.js");
     if (!datasetsResponse.ok) {
         console.error(await datasetsResponse.text());
@@ -20,7 +20,7 @@ export async function getOebbGtfsMetadata() {
     }
     let restServicesBaseUrl = restServicesBaseUrlRes[2];
     let basicAuth = basicAuthRes[2];
-    console.log(`Retrieving OEBB GTFS metadata from ${restServicesBaseUrl} using basic auth ${basicAuth}`);
+    log(`Retrieving OEBB GTFS metadata from ${restServicesBaseUrl} using basic auth ${basicAuth}`);
     let opendataResponse = await fetch(`${restServicesBaseUrl}opendata`, { headers: { Authorization: `Basic ${basicAuth}` } });
     if (!opendataResponse.ok) {
         console.error(await opendataResponse.text());
@@ -56,11 +56,11 @@ export async function getOebbGtfsMetadata() {
     };
 }
 
-export async function downloadOebbGtfs(gtfsDir: string) {
-    let { gtfsZipFile, restServicesBaseUrl, basicAuth } = await getOebbGtfsMetadata();
+export async function downloadOebbGtfs(gtfsDir: string, log: (message: string) => void) {
+    let { gtfsZipFile, restServicesBaseUrl, basicAuth } = await getOebbGtfsMetadata(log);
 
     let gtfsZipUrl = `${restServicesBaseUrl}opendata/download?url=${gtfsZipFile.link}`;
-    console.log(`Downloading OEBB GTFS from ${gtfsZipUrl}`);
+    log(`Downloading OEBB GTFS from ${gtfsZipUrl}`);
     if (!fs.existsSync(gtfsDir)) {
         fs.mkdirSync(gtfsDir, { recursive: true });
     }
