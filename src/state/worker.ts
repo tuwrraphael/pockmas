@@ -153,6 +153,9 @@ async function displayMoreDepartures() {
                     departureStops: departureStops.map(d => ({ departureTime: new Date(departuresBefore[departuresBefore.length - 1].plannedDeparture.getTime() + departuresBefore[departuresBefore.length - 1].delay), stopId: d })),
                 });
                 let firstDuplicate = departuresBefore.findIndex(dbefore => results.some(dNew => dbefore.route.id == dNew.route.id && dbefore.tripId == dNew.tripId && dbefore.stop.stopId == dNew.stop.stopId));
+                if (firstDuplicate != -1) {
+                    firstDuplicate = departuresBefore.length;
+                }
                 updateState(() => ({ departures: [...departuresBefore.slice(0, firstDuplicate), ...results] }));
                 return results.map(r => r.stop.stopId);
             });

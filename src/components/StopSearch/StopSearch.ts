@@ -12,7 +12,7 @@ export class StopSearch extends HTMLElement {
     private rendered = false;
     private labels: HTMLLabelElement[];
     private button: HTMLButtonElement;
-    private popup: Popup;
+    private stopSearchPopup: Popup;
     private abortController: AbortController;
     private input: HTMLInputElement;
     private searchResults: SearchResultCard[];
@@ -29,8 +29,8 @@ export class StopSearch extends HTMLElement {
             this.rendered = true;
             this.labels = Array.from(this.querySelectorAll(".stop-search__label"));
             this.button = this.querySelector("button");
-            this.popup = this.querySelector("app-popup");
-            this.popup.setSource(this);
+            this.stopSearchPopup = this.querySelector("app-popup");
+            this.stopSearchPopup.setSource(this);
             this.input = this.querySelector(".stop-search__search-input");
             this.searchResults = Array.from(this.querySelectorAll(".stop-search__search-result"));
             this.selectedResultLabel = this.querySelector(".stop-search__selected-result-label");
@@ -43,13 +43,13 @@ export class StopSearch extends HTMLElement {
     }
 
     private onClick(evt: MouseEvent) {
-        this.popup.show();
+        this.stopSearchPopup.show();
         this.input.focus();
     }
 
     private onSearchResultClick(i: number) {
         this.dispatchEvent(new CustomEvent("stop-selected", { detail: i }));
-        this.popup.hide();
+        this.stopSearchPopup.hide();
     }
 
     attributeChangedCallback() {
