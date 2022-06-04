@@ -12,8 +12,8 @@ export async function downloadWienerlinienGtfs(gtfsDir: string) {
     const res = await fetch(gtfsZipUrl);
     const fileStream = fs.createWriteStream(path.join(gtfsDir, "wienerlinien-gtfs.zip"));
     await new Promise((resolve, reject) => {
-        res.body.pipe(fileStream);
-        res.body.on("error", reject);
+        res.body!.pipe(fileStream);
+        res.body!.on("error", reject);
         fileStream.on("finish", resolve);
     });
     let zip = new streamZip.async({

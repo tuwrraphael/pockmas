@@ -23,7 +23,8 @@ async function getLastModifiedOebb() {
 }
 
 async function getLastModifiedDate() {
-    return (await Promise.all([getLastModifiedDateWienerlinien(), getLastModifiedOebb()])).sort()[0];
+    let sorted = (await Promise.all([getLastModifiedDateWienerlinien(), getLastModifiedOebb()])).sort();
+    return sorted[sorted.length - 1];
 }
 
 getLastModifiedDate().then(d => console.log(d));
