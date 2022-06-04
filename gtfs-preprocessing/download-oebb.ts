@@ -26,7 +26,7 @@ export async function getOebbGtfsMetadata() {
         console.error(await opendataResponse.text());
         throw new Error("Could not fetch oebb opendata list");
     }
-    let opendata: { openDataDocuments: { uddikey: string; name: string }[] } = await opendataResponse.json();
+    let opendata = await opendataResponse.json() as { openDataDocuments: { uddikey: string; name: string }[] };
     let oebbGtfs = opendata.openDataDocuments.find(d => d.name.indexOf("GTFS") > -1);
     if (!oebbGtfs?.uddikey) {
         throw new Error(`Could not find OEBB GTFS in opendata list : ${JSON.stringify(opendata, null, 2)}`);
@@ -36,14 +36,15 @@ export async function getOebbGtfsMetadata() {
         console.error(await gtfsDetailRequest.text());
         throw new Error("Could not fetch oebb opendata detail");
     }
-    let gtfsDetail: {
-        datenUndResourcen: {
-            name: string;
-            link: string;
-            type: string;
-            modified: string;
-        }[]
-    } = await gtfsDetailRequest.json();
+    let gtfsDetail
+        = await gtfsDetailRequest.json() as {
+            datenUndResourcen: {
+                name: string;
+                link: string;
+                type: string;
+                modified: string;
+            }[]
+        };
     let gtfsZipFile = gtfsDetail.datenUndResourcen.find(d => d.name == "GFTS_Fahrplan_OEBB" && d.type == "ZIP");
     if (!gtfsZipFile?.link) {
         throw new Error(`Could not find OEBB GTFS zip file in opendata detail : ${JSON.stringify(gtfsDetail, null, 2)}`);
@@ -66,8 +67,8 @@ export async function downloadOebbGtfs(gtfsDir: string) {
     const res = await fetch(gtfsZipUrl, { headers: { Authorization: `Basic ${basicAuth}` } });
     const fileStream = fs.createWriteStream(path.join(gtfsDir, "oebb-gtfs.zip"));
     await new Promise((resolve, reject) => {
-        res.body.pipe(fileStream);
-        res.body.on("error", reject);
+        res.body!.pipe(fileStream);
+        res.body!.on("error", reject);
         fileStream.on("finish", resolve);
     });
     let zip = new streamZip.async({

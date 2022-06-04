@@ -18,7 +18,7 @@ export async function getTransfers(gtfsPath: string, outputPath: string, orsBase
     for (let i = 0; i < 8; i++) {
         try {
             let healthRes = await fetch(orsBaseUrl + "/v2/health");
-            let healthJson = await healthRes.json();
+            let healthJson = await healthRes.json() as {status: string};
             if (healthJson.status !== "ready") {
                 console.log(`status: ${healthJson.status}, wait 30s`);
                 await new Promise(resolve => setTimeout(resolve, 30000));
@@ -88,7 +88,7 @@ export async function getTransfers(gtfsPath: string, outputPath: string, orsBase
                 }
             }
             else {
-                let json = await res.json();
+                let json = await res.json() as {durations: number[][]};
                 let times = json.durations[0].slice(1);
                 for (let i = 0; i < stopsToCheck.length; i++) {
                     let stopB = stopsToCheck[i];
