@@ -2,6 +2,7 @@ import { RoutingService } from "../src/lib/RoutingService";
 import { findTimeZone, getUnixTime, populateTimeZones } from "timezone-support/dist/lookup-convert";
 import * as tzd from "timezone-support/dist/data-2012-2022";
 import { RoutingServicesFactory } from "../src/lib/RoutingServicesFactory";
+import { RealtimeIdentifierType } from "../src/lib/RealtimeIdentifierType";
 
 describe("realtime", () => {
     let routingInstance: RoutingService;
@@ -20,14 +21,17 @@ describe("realtime", () => {
 
     it("updates realtime for 22A Kagran", () => {
         routingInstance.upsertRealtimeData({
-            direction: 0,
-            diva: 60200627,
-            linie: 422,
-            timeReal: [
+            realtimeIdentifier: {
+                type: RealtimeIdentifierType.WienerLinien,
+                value: 60200627
+            },
+            routeShortName: "22A",
+            headsign: "Aspernstraße",
+            times: [
                 new Date("2022-10-29T18:29:02.000+0200")
             ],
-            apply: false
-        });
+
+        }, false);
         let result = routingInstance.getRealtimeUpdateResult();
         expect(result.length).toBe(1);
         expect(result[0].route).toBe("22A");
@@ -36,17 +40,19 @@ describe("realtime", () => {
 
     it("updates realtime for 25 if its very late", () => {
         routingInstance.upsertRealtimeData({
-            direction: 1,
-            diva: 60201031,
-            linie: 125,
-            timeReal: [
+            realtimeIdentifier: {
+                type: RealtimeIdentifierType.WienerLinien,
+                value: 60201031
+            },
+            routeShortName: "25",
+            headsign: "Oberdorfstraße",
+            times: [
                 new Date("2022-11-25T16:55:33.000+0100"),
                 new Date("2022-11-25T16:55:43.000+0100"),
                 new Date("2022-11-25T16:58:58.000+0100"),
                 new Date("2022-11-25T17:05:00.000+0100")
             ],
-            apply: false
-        });
+        }, false);
         let result = routingInstance.getRealtimeUpdateResult();
 
         expect(result[0].realtimeOffset).toBe(513);
@@ -60,20 +66,33 @@ describe("realtime", () => {
 
     it("updates next U1", () => {
         routingInstance.upsertRealtimeData({
-            direction: 1,
-            diva: 60200627,
-            linie: 301,
-            timeReal: [
+            realtimeIdentifier: {
+                type: RealtimeIdentifierType.WienerLinien,
+                value: 60200627
+            },
+            routeShortName: "U1",
+            headsign: "OBERLAA          ",
+            times: [
                 new Date("2022-11-27T14:06:55.000+0100"),
-                new Date("2022-11-27T14:12:55.000+0100")
             ],
-            apply: false
-        });
+        }, false);
         let result = routingInstance.getRealtimeUpdateResult();
         expect(result[0].route).toBe("U1");
         expect(result[0].realtimeOffset).toBe(-5);
-        expect(result[1].route).toBe("U1");
-        expect(result[1].realtimeOffset).toBe(55);
+        routingInstance.upsertRealtimeData({
+            realtimeIdentifier: {
+                type: RealtimeIdentifierType.WienerLinien,
+                value: 60200627
+            },
+            routeShortName: "U1",
+            headsign: "Alaudagasse",
+            times: [
+                new Date("2022-11-27T14:12:55.000+0100")
+            ],
+        }, false);
+        result = routingInstance.getRealtimeUpdateResult();
+        expect(result[0].route).toBe("U1");
+        expect(result[0].realtimeOffset).toBe(55);
     });
 
     // 26A Sonntag, Siebeckstraße, 00:07, 00:27, 00:47
@@ -88,14 +107,16 @@ describe("realtime", () => {
     ].map((v, i) => {
         it(`updates trip with departure time > 24h (${i})`, () => {
             routingInstance.upsertRealtimeData({
-                direction: 0,
-                diva: 60200238,
-                linie: 426,
-                timeReal: [
+                headsign: "Groß-Enzersdorf",
+                realtimeIdentifier: {
+                    type: RealtimeIdentifierType.WienerLinien,
+                    value: 60200238
+                },
+                routeShortName: "26A",
+                times: [
                     v.d
-                ],
-                apply: false
-            });
+                ]
+            }, false);
             let result = routingInstance.getRealtimeUpdateResult();
             expect(result.length).toBe(1);
             expect(result[0].route).toBe("26A");
@@ -106,18 +127,20 @@ describe("realtime", () => {
 
     it("distributes correctly if sequence belongs to different routes", () => {
         routingInstance.upsertRealtimeData({
-            direction: 1,
-            diva: 60201039,
-            linie: 477,
-            timeReal: [
+            headsign: "Rennweg",
+            realtimeIdentifier: {
+                type: RealtimeIdentifierType.WienerLinien,
+                value: 60201039
+            },
+            routeShortName: "77A",
+            times: [
                 new Date("2022-11-11T15:03:46.000+0100"),
                 new Date("2022-11-11T15:13:11.000+0100"),
                 new Date("2022-11-11T15:23:15.000+0100"),
                 new Date("2022-11-11T15:33:14.000+0100"),
                 new Date("2022-11-11T15:43:00.000+0100"),
-            ],
-            apply: false
-        });
+            ]
+        }, false);
         let result = routingInstance.getRealtimeUpdateResult();
         expect(result.length).toBe(5);
         for (let r of result) {
@@ -136,14 +159,16 @@ describe("realtime", () => {
     ].map((v, i) => {
         it(`updates first nightline (${i})`, () => {
             routingInstance.upsertRealtimeData({
-                direction: 0,
-                diva: 60200627,
-                linie: 526,
-                timeReal: [
+                headsign: "Eßling Schule",
+                realtimeIdentifier: {
+                    type: RealtimeIdentifierType.WienerLinien,
+                    value: 60200627
+                },
+                routeShortName: "N26",
+                times: [
                     v.d
-                ],
-                apply: false
-            });
+                ]
+            }, false);
             let result = routingInstance.getRealtimeUpdateResult();
             expect(result.length).toBe(1);
             expect(result[0].route).toBe("N26");
@@ -172,18 +197,20 @@ describe("realtime", () => {
         let resultBeforeRealtime = routingInstance.route(request);
 
         routingInstance.upsertRealtimeData({
-            direction: 0,
-            diva: 60200299,
-            linie: 426,
-            timeReal: [
+            headsign: "Groß-Enzersdorf",
+            realtimeIdentifier: {
+                type: RealtimeIdentifierType.WienerLinien,
+                value: 60200299
+            },
+            routeShortName: "26A",
+            times: [
                 new Date("2022-10-28T18:30:33.000+0200"),
                 new Date("2022-10-28T18:37:29.000+0200"),
                 new Date("2022-10-28T18:44:04.000+0200"),
                 new Date("2022-10-28T18:50:20.000+0200"),
                 new Date("2022-10-28T18:57:00.000+0200"),
-            ],
-            apply: true
-        });
+            ]
+        }, true);
 
         let result = routingInstance.route(request);
 
@@ -194,7 +221,6 @@ describe("realtime", () => {
     });
 
     it("realtime route in the morning from Polgarstraße to Kagran", () => {
-
         let departureStops = stopgroupIndex.find(n => n.name == "Polgarstraße").stopIds;
         let departureTime = new Date(getUnixTime({
             year: 2022,
@@ -211,14 +237,16 @@ describe("realtime", () => {
             departureTimes: new Array(departureStops.length).fill(departureTime)
         };
         routingInstance.upsertRealtimeData({
-            direction: 1,
-            diva: 60201031,
-            linie: 426,
-            timeReal: [
+            headsign: "Kagran",
+            realtimeIdentifier: {
+                type: RealtimeIdentifierType.WienerLinien,
+                value: 60201031
+            },
+            routeShortName: "26A",
+            times: [
                 new Date("2022-11-09T09:41:33.000+0100")
-            ],
-            apply: true
-        });
+            ]
+        }, true);
         let result = routingInstance.route(request);
         expect(result[0].legs[0].delay).toEqual(2 * 60 + 33);
     });

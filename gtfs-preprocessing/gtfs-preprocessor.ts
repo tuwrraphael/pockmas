@@ -28,6 +28,13 @@ interface GtfsTrip {
 
 type GtfsTripMap = { [tripId: string]: GtfsTrip };
 
+export type RouteIdMap = {
+    id: number;
+    tripRoutes: string[];
+    direction: number;
+    headsign: string;
+}[];
+
 async function readTrips(gtfsPath: string) {
     const tripsStream = fs.createReadStream(path.join(gtfsPath, "trips.txt"));
     return new Promise<GtfsTripMap>(resolve => {
@@ -72,9 +79,10 @@ async function enhanceWithStopTimes(gtfsPath: string, trips: GtfsTripMap, stopLi
             });
     });
 }
+type RouteBucket = GtfsTrip[];
 
 function sortTripsIntoRouteBuckets(trips: GtfsTripMap, routes: GtfsRouteMap) {
-    type RouteBucket = GtfsTrip[];
+
     let routeBuckets: RouteBucket[] = [];
     let indexByRouteShortName: { [routeShortName: string]: RouteBucket[] } = {};
     let tripList = Object.values(trips).sort((tripA, tripB) => tripA.stopTimes[0].departureTime - tripB.stopTimes[0].departureTime);
@@ -126,6 +134,23 @@ function sortTripsIntoRouteBuckets(trips: GtfsTripMap, routes: GtfsRouteMap) {
     return routeBuckets;
 }
 
+function validateRouteBuckets(routesWithNames: GtfsRouteMap, routeBucketsOrdered: RouteBucket[]) {
+    for (let trips of routeBucketsOrdered) {
+        let route = routesWithNames[trips[0].routeId];
+        if (trips.some(t => {
+            let r = routesWithNames[t.routeId];
+            return r.routeShortName !== route.routeShortName || r.routeType !== route.routeType;
+        })) {
+            throw new Error("Route description of trips doesn't match");
+        }
+        let tripHeadsign = trips[0].tripHeadsign;
+        let nonmatchingheadsigns = trips.filter(t => t.tripHeadsign !== tripHeadsign);
+        if (nonmatchingheadsigns.length > 0) {
+            console.log(`Headsign of trips don't match ${nonmatchingheadsigns[0].tripHeadsign} !== ${tripHeadsign}`);
+        }
+    }
+}
+
 export async function preprocessGtfs(gtfsPath: string, outputPath: string) {
     console.log("Reading trips");
     let trips = await readTrips(gtfsPath);
@@ -157,13 +182,15 @@ export async function preprocessGtfs(gtfsPath: string, outputPath: string) {
     console.log(`Found ${routeBuckets.length} route buckets`);
     console.log("Ordering routes");
     let routeBucketsOrdered = routeBuckets.sort(([tripA,], [tripB,]) => tripA.routeId.localeCompare(tripB.routeId));
+    validateRouteBuckets(routesWithNames, routeBucketsOrdered);
     let routeStops = routeBucketsOrdered.map((trips) => trips[0].stopTimes.map(s => s.stopId));
-    await fs.promises.writeFile(path.join(outputPath, "routeIdMap.json"), JSON.stringify(routeBucketsOrdered.map((trips, idx) => ({
+    let routeIdMap: RouteIdMap = routeBucketsOrdered.map((trips, idx) => ({
         id: idx,
         tripRoutes: trips.map(t => t.routeId),
         direction: trips[0].directionId,
         headsign: trips[0].tripHeadsign
-    }))));
+    }));
+    await fs.promises.writeFile(path.join(outputPath, "routeIdMap.json"), JSON.stringify(routeIdMap));
     console.log("Writing routes");
     let stoptimesOutput = await fs.promises.open(path.join(outputPath, "stoptimes.bin.bmp"), "w");
     let routeStopsOutput = await fs.promises.open(path.join(outputPath, "route_stops.bin.bmp"), "w");
@@ -228,23 +255,4 @@ export async function preprocessGtfs(gtfsPath: string, outputPath: string) {
     await stopServingRoutesOutput.close();
     await stopsOutput.close();
     await transfersOutput.close();
-    await fs.promises.writeFile(path.join(outputPath, "routes.json"), JSON.stringify(routeBucketsOrdered.map((trips, id) => {
-        let route = routesWithNames[trips[0].routeId];
-        if (trips.some(t => {
-            let r = routesWithNames[t.routeId];
-            return r.routeShortName !== route.routeShortName || r.routeType !== route.routeType;
-        })) {
-            throw new Error("Route description of trips doesn't match");
-        }
-        let tripHeadsign = trips[0].tripHeadsign;
-        let nonmatchingheadsigns = trips.filter(t => t.tripHeadsign !== tripHeadsign);
-        if (nonmatchingheadsigns.length > 0) {
-            console.log(`Headsign of trips don't match ${nonmatchingheadsigns[0].tripHeadsign} !== ${tripHeadsign}`);
-        }
-        let arr = [route.routeShortName, tripHeadsign, route.routeType];
-        if (route.routeColor) {
-            arr.push(route.routeColor);
-        }
-        return arr;
-    })));
 }

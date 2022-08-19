@@ -112,7 +112,7 @@ typedef struct
     uint16_t calendar_count;
     trip_calendar_t *trip_calendars;
     realtime_route_index_t *realtime_route_index;
-    uint16_t realtime_route_count;
+    uint16_t realtime_route_identifiers_count;
     realtime_route_t *realtime_routes;
     int16_t *realtime_offsets;
     real_time_index_t *realtime_index;

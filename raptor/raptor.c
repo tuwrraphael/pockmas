@@ -12,7 +12,7 @@ static departure_results_t departure_results;
 
 void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, uint32_t number_of_transfers,
 					  uint16_t number_of_stops, uint16_t number_of_calendars, uint32_t number_of_calendar_exceptions,
-					  uint32_t number_of_divas, uint32_t number_of_diva_routes, uint32_t number_of_route_stops,
+					  uint32_t number_of_realtime_route_identifiers, uint32_t number_of_realtime_routes, uint32_t number_of_route_stops,
 					  uint32_t number_of_stop_routes, uint32_t number_of_trip_calendars)
 {
 	size_t number_of_bytes = sizeof(stop_time_t) * number_of_stoptimes +
@@ -21,8 +21,8 @@ void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, u
 							 sizeof(stop_t) * number_of_stops +
 							 sizeof(calendar_t) * number_of_calendars +
 							 sizeof(calendar_exception_t) * number_of_calendar_exceptions +
-							 sizeof(diva_index_t) * number_of_divas +
-							 sizeof(diva_route_t) * number_of_diva_routes +
+							 sizeof(realtime_route_index_t) * number_of_realtime_route_identifiers +
+							 sizeof(realtime_route_t) * number_of_realtime_routes +
 							 sizeof(route_stop_t) * number_of_route_stops +
 							 sizeof(stop_serving_route_t) * number_of_stop_routes +
 							 sizeof(trip_calendar_t) * number_of_trip_calendars;
@@ -51,12 +51,12 @@ void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, u
 	input_data.calendar_exceptions = (void *)(memory);
 	memory += sizeof(calendar_exception_t) * number_of_calendar_exceptions;
 
-	input_data.diva_index = (void *)(memory);
-	input_data.diva_count = number_of_divas;
-	memory += sizeof(diva_index_t) * number_of_divas;
+	input_data.realtime_route_index = (void *)(memory);
+	input_data.realtime_route_identifiers_count = number_of_realtime_route_identifiers;
+	memory += sizeof(realtime_route_index_t) * number_of_realtime_route_identifiers;
 
-	input_data.diva_routes = (void *)(memory);
-	memory += sizeof(diva_route_t) * number_of_diva_routes;
+	input_data.realtime_routes = (void *)(memory);
+	memory += sizeof(realtime_route_t) * number_of_realtime_routes;
 
 	input_data.route_stops = (void *)(memory);
 	memory += sizeof(route_stop_t) * number_of_route_stops;
@@ -76,17 +76,17 @@ stop_time_t *get_stoptimes_memory(uint32_t number_of_stoptimes)
 	return input_data.stop_times;
 }
 
-diva_index_t *get_diva_index_memory(uint32_t number_of_divas)
+realtime_route_index_t *get_realtime_route_index_memory(uint32_t number_of_realtime_route_identifiers)
 {
-	input_data.diva_index = malloc(sizeof(diva_index_t) * number_of_divas);
-	input_data.diva_count = number_of_divas;
-	return input_data.diva_index;
+	input_data.realtime_route_index = malloc(sizeof(realtime_route_index_t) * number_of_realtime_route_identifiers);
+	input_data.realtime_route_identifiers_count = number_of_realtime_route_identifiers;
+	return input_data.realtime_route_index;
 }
 
-diva_route_t *get_diva_routes_memory(uint32_t number_of_diva_routes)
+realtime_route_t *get_realtime_routes_memory(uint32_t number_of_realtime_routes)
 {
-	input_data.diva_routes = malloc(sizeof(diva_route_t) * number_of_diva_routes);
-	return input_data.diva_routes;
+	input_data.realtime_routes = malloc(sizeof(realtime_route_t) * number_of_realtime_routes);
+	return input_data.realtime_routes;
 }
 
 route_t *get_routes_memory(uint16_t number_of_routes)

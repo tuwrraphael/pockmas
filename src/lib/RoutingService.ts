@@ -1,10 +1,15 @@
 import { RaptorExports } from "../../raptor/wasm-exports";
-import { MonitorResponse } from "../ogd_realtime/MonitorResponse";
+import { WienerLinienMonitorResponse } from "../ogd_realtime/WienerLinienMonitorResponse";
 import { Departure } from "./Departure";
 import { getStartOfDayVienna } from "./getStartOfDayVienna";
 import { Itinerary } from "./Itinerary";
 import { Leg } from "./Leg";
+import { RealtimeData } from "./RealtimeData";
+import { RealtimeIdentifier } from "./RealtimeIdentifier";
+import { RealtimeIdentifierType } from "./RealtimeIdentifierType";
+import { ResolvedRealtimeData } from "./ResolvedRealtimeData";
 import { RouteInfoStore } from "./RouteInfoStore";
+import { findBestMatch } from "string-similarity";
 
 export interface RouteRequest {
     departureStops: number[];
@@ -23,14 +28,14 @@ const RAPTOR_RESULTS_SIZE = RAPTOR_MAX_ITINERARIES * RAPTOR_ITINERARY_SIZE + 4;
 const RAPTOR_MAX_STOPTIME_UPDATES = 5;
 const RAPTOR_UPDATE_RESULT_SIZE = 2 + 2 + 2 + 2;
 
-const RAPTOR_STOPTIME_UPDATE_SIZE = 4 + // diva
+const RAPTOR_STOPTIME_UPDATE_SIZE = 4 + // realtime_route_identifier
     2 +  // linie
     1 + // direction
     1 + // weekday
     4 + // date
     1 + // apply
     1 + // num_updates
-    2 + // padding
+    2 + // realtime_route_identifier_type
     RAPTOR_MAX_STOPTIME_UPDATES * 4 + // time_real
     RAPTOR_MAX_STOPTIME_UPDATES * RAPTOR_UPDATE_RESULT_SIZE + // results
     RAPTOR_MAX_STOPTIME_UPDATES * 1; // matches
@@ -44,7 +49,6 @@ const DEPARTURE_RESULT_SIZE = 2 + // route_id
 
 const MAX_DEPARTURE_RESULTS = 10;
 const DEPARTURE_RESULTS_SIZE = MAX_DEPARTURE_RESULTS * DEPARTURE_RESULT_SIZE + 4;
-
 
 export class RoutingService {
     private mappedRealtimeData: { [routeId: number]: Set<number> } = {};
@@ -112,38 +116,44 @@ export class RoutingService {
         return this.readResults(this.routingInstance.exports.memory, resOffset);
     }
 
-    async updateRealtimeForStops(divas: number[]) {
+    private async getRealtimeForWienerLinien(divas: number[]): Promise<RealtimeData[]> {
         let params = new URLSearchParams();
         for (let diva of divas) {
             params.append("diva", diva.toString());
         }
         let res = await fetch(`https://realtime-api.grapp.workers.dev/ogd_realtime/monitor?${params}`);
-        let monitorResponse: MonitorResponse = await res.json();
+        let monitorResponse: WienerLinienMonitorResponse = await res.json();
+        let result: RealtimeData[] = [];
         for (let monitor of monitorResponse.data.monitors) {
+            let identifier: RealtimeIdentifier = {
+                type: RealtimeIdentifierType.WienerLinien,
+                value: parseInt(monitor.locationStop.properties.name)
+            };
             for (let line of monitor.lines) {
-                let direction: number;
-                if (line.richtungsId == "1") {
-                    direction = 0;
-                } else if (line.richtungsId == "2") {
-                    direction = 1;
-                } else {
-                    throw new Error(`unknown richtungsId in monitor ${line.richtungsId}`);
-                }
                 let timeReal = line.departures.departure
                     .filter(d => null != d.departureTime.timeReal)
                     .map(d => new Date(d.departureTime.timeReal));
                 if (timeReal.length > 0) {
-                    this.upsertRealtimeData({
-                        diva: parseInt(monitor.locationStop.properties.name),
-                        linie: line.lineId,
-                        apply: true,
-                        direction: direction,
-                        timeReal: timeReal
-                    });
+                    let realtimeData: RealtimeData = {
+                        realtimeIdentifier: identifier,
+                        routeShortName: line.name,
+                        headsign: line.towards,
+                        times: timeReal
+                    };
+                    result.push(realtimeData);
+                } else {
+                    console.log(`No realtime data in monitor line`, line);
                 }
             }
         }
+        return result;
+    }
 
+    async updateRealtimeForStops(realtimeIdentifiers: RealtimeIdentifier[]) {
+        let data = await this.getRealtimeForWienerLinien(realtimeIdentifiers.filter(v => v.type == RealtimeIdentifierType.WienerLinien).map(i => i.value));
+        for (let realtimeData of data) {
+            this.upsertRealtimeData(realtimeData, true);
+        }
     }
 
     private readLeg(buffer: ArrayBuffer, offset: number): Leg {
@@ -220,26 +230,41 @@ export class RoutingService {
         return updates;
     }
 
-    upsertRealtimeData(updates: {
-        diva: number,
-        linie: number,
-        direction: number,
-        timeReal: Date[],
-        apply: boolean
-    }) {
+    upsertRealtimeData(realtimeData: RealtimeData, apply: boolean) {
+        performance.mark("realtime-upsert-start");
+        let routeClasses = this.routeInfoStore.getRouteClassesFotRealtimeIdentifier(realtimeData.realtimeIdentifier);
+        let bestRouteClassMatch = findBestMatch(realtimeData.routeShortName.trim().toLowerCase(), routeClasses.map(rc => rc.routeShortName.toLowerCase()));
+        let bestRouteClass = routeClasses[bestRouteClassMatch.bestMatchIndex];
+        let match = realtimeData.headsign.replace(/^Wien /, "").trim().toLowerCase();
+        let variants = bestRouteClass.headsignVariants.map(h => h.replace(/^Wien /, "").toLowerCase());
+        let bestHeadsignVariantMatch = findBestMatch(match, variants);
+        this.upsertResolvedRealtimeData({
+            headsignVariant: bestHeadsignVariantMatch.bestMatchIndex,
+            realtimeIdentifier: realtimeData.realtimeIdentifier,
+            routeClass: bestRouteClass.id,
+            times: realtimeData.times
+        }, apply);
+        performance.mark("realtime-upsert-end");
+        performance.measure("realtime-upsert", "realtime-upsert-start", "realtime-upsert-end");
+        console.log(`Realtime upsert took ${performance.getEntriesByName("realtime-upsert", "measure")[0].duration}ms`);
+        performance.clearMarks();
+        performance.clearMeasures();
+    }
+
+    private upsertResolvedRealtimeData(update: ResolvedRealtimeData, apply: boolean) {
         let memoryOffset = this.routingInstance.exports.get_stoptime_update_memory();
         let dataView = new DataView(this.routingInstance.exports.memory.buffer, memoryOffset, RAPTOR_STOPTIME_UPDATE_SIZE);
-        dataView.setUint32(0, updates.diva, true);
-        dataView.setUint16(4, updates.linie, true);
-        dataView.setUint8(6, updates.direction);
-        let date = getStartOfDayVienna(updates.timeReal[0]);
+        dataView.setUint32(0, update.realtimeIdentifier.value, true);
+        dataView.setUint16(4, update.routeClass, true);
+        dataView.setUint8(6, update.headsignVariant);
+        let date = getStartOfDayVienna(update.times[0]);
         dataView.setUint8(7, date.dayOfWeek);
         dataView.setUint32(8, date.unixTime / 1000, true);
-        dataView.setUint8(12, updates.apply ? 1 : 0);
-        let numUpdates = Math.min(updates.timeReal.length, RAPTOR_MAX_STOPTIME_UPDATES);
+        dataView.setUint8(12, apply ? 1 : 0);
+        let numUpdates = Math.min(update.times.length, RAPTOR_MAX_STOPTIME_UPDATES);
         dataView.setUint8(13, numUpdates);
         for (let i = 0; i < numUpdates; i++) {
-            dataView.setUint32(16 + i * 4, (+updates.timeReal[i] - date.unixTime) / 1000, true);
+            dataView.setUint32(16 + i * 4, (+update.times[i] - date.unixTime) / 1000, true);
         }
         this.routingInstance.exports.process_realtime();
         let res = this.getRealtimeUpdateResult();

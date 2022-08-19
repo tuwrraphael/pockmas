@@ -2,8 +2,8 @@ import fs from "fs";
 import path from "path";
 import { GtfsStop, readStops } from "./read-stops";
 import { groupByEquality } from "./groupBy";
-import { GtfsRouteMap, readRoutes } from "./read-routes";
 import { RealtimeRouteBytes, RealtimeRouteIndexBytes, RouteBytes } from "./structures";
+import { RouteClassIndex } from "./create-routes";
 
 let divaregex = /1::at:(43|49):(\d+):/;
 let oebbregex = /0::81(\d+)/;
@@ -26,6 +26,12 @@ type RealtimeIdentifierRoute = {
     stopOffset: number;
 };
 
+export interface StopRealtimeInfo {
+    [stopId: number]: {
+        realtimeIdentifier: RealtimeIdentifier;
+    }
+}
+
 function getRealtimeIdentifier(stop: GtfsStop) {
     let match = divaregex.exec(stop.stopId);
     if (match) {
@@ -44,43 +50,8 @@ function getRealtimeIdentifier(stop: GtfsStop) {
     return null;
 }
 
-type RouteIdMap = {
-    id: number;
-    tripRoutes: string[];
-    direction: number;
-    headsign: string;
-}[];
-
 function onlyUnique<T>(value: T, index: number, self: T[]) {
     return self.indexOf(value) === index;
-}
-
-function createRouteClasses(routes: GtfsRouteMap, routeIdMap: RouteIdMap) {
-    let c = groupByEquality(routeIdMap, r => {
-        let originalRoute = routes[r.tripRoutes[0]];
-        return originalRoute.routeShortName;
-    }, (a, b) => a == b);
-
-    let classes: { routeShortName: string; headsignVariants: string[] }[] = [];
-    let index: { [routeId: number]: { routeClass: number, headsignVariant: number } } = {};
-
-    for (let routeShortName of Array.from(c.keys()).sort()) {
-        let routes = c.get(routeShortName)!;
-        let routeClass = {
-            routeShortName: routeShortName,
-            headsignVariants: routes.map(r => r.headsign).filter(onlyUnique).sort()
-        };
-        classes.push(routeClass);
-        for (let route of routes) {
-            index[route.id] = {
-                routeClass: classes.length - 1,
-                headsignVariant: routeClass.headsignVariants.indexOf(route.headsign)
-            }
-        }
-    }
-    return {
-        index, classes
-    };
 }
 
 export async function createRealtime(gtfsPath: string, rtPath: string, outputPath: string) {
@@ -93,8 +64,6 @@ export async function createRealtime(gtfsPath: string, rtPath: string, outputPat
     let stopsWithRtIdentifier = stops.filter(stop => stop.realtimeIdentifier !== null);
     let groupedByRtIdentifier = groupByEquality(stopsWithRtIdentifier, s => s.realtimeIdentifier!, (a, b) => a.type == b.type && a.value == b.value);
 
-    const routes = await readRoutes(gtfsPath);
-    const routeIdMap: RouteIdMap = JSON.parse(await fs.promises.readFile(path.join(outputPath, "routeIdMap.json"), "utf8"));
     const stopServingRoutes = await fs.promises.readFile(path.join(outputPath, "stop_serving_routes.bin.bmp"));
     const preprocessedRoutes = await fs.promises.readFile(path.join(outputPath, "routes.bin.bmp"));
     const routeStops = await fs.promises.readFile(path.join(outputPath, "route_stops.bin.bmp"));
@@ -106,7 +75,7 @@ export async function createRealtime(gtfsPath: string, rtPath: string, outputPat
     let routeStopsView = new DataView(routeStops.buffer);
     const realtimeRouteMap: Map<RealtimeIdentifier, RealtimeIdentifierRoute[]> = new Map();
 
-    let routeClasses = createRouteClasses(routes, routeIdMap);
+    let routeClassesIndex: RouteClassIndex = JSON.parse(await fs.promises.readFile(path.join(outputPath, "route-classes-index.json"), "utf8"));
 
     for (let rtIdentifier of groupedByRtIdentifier.keys()) {
         let rtIdentifierStops = groupedByRtIdentifier.get(rtIdentifier)!;
@@ -130,11 +99,7 @@ export async function createRealtime(gtfsPath: string, rtPath: string, outputPat
                 if (stopOffset === null) {
                     throw new Error(`Stop ${stop.idx} not found in route ${routeId}`);
                 }
-                let originalRouteMapping = routeIdMap.find(r => r.id == routeId);
-                if (!originalRouteMapping) {
-                    throw new Error(`Original route mapping for ${routeId} not found`);
-                }
-                let routeClass = routeClasses.index[routeId];
+                let routeClass = routeClassesIndex[routeId];
                 rtIdentifierRoutes.push({
                     routeId: routeId,
                     headsignVariant: routeClass.headsignVariant,
@@ -161,7 +126,7 @@ export async function createRealtime(gtfsPath: string, rtPath: string, outputPat
         return a.value - b.value;
     })
     for (let i = 0; i < realTimeRouteIdentifiers.length; i++) {
-        let realtimeRouteIdentifier = realTimeRouteIdentifiers[0];
+        let realtimeRouteIdentifier = realTimeRouteIdentifiers[i];
         let realtimeRoutes = realtimeRouteMap.get(realtimeRouteIdentifier)!;
         realtimeRouteLookupView.setUint32(i * RealtimeRouteIndexBytes, realtimeRouteIdentifier.value, true);
         realtimeRouteLookupView.setUint32(i * RealtimeRouteIndexBytes + 4, realtimeRouteIndex, true);
@@ -175,7 +140,28 @@ export async function createRealtime(gtfsPath: string, rtPath: string, outputPat
             realtimeRouteIndex++;
         }
     }
-    await fs.promises.writeFile(path.join(outputPath, "stops.json"), JSON.stringify(stops.map(s => [s.name, ...(s.realtimeIdentifier ? [s.realtimeIdentifier.type, s.realtimeIdentifier.value] : [])])));
+
+    let realtimeRouteIdentifiers = Array.from(realtimeRouteMap.keys());
+    let stopRealtimeInfo: StopRealtimeInfo = {};
+    for (let s of stops) {
+        if (s.realtimeIdentifier != null) {
+            let key = realtimeRouteIdentifiers.find(r => r.value == s.realtimeIdentifier!.value && r.type == s.realtimeIdentifier!.type)!;
+            let rtRoutes = realtimeRouteMap.get(key)!;
+            stopRealtimeInfo[s.idx] = {
+                realtimeIdentifier: s.realtimeIdentifier
+            }
+        }
+    }
+
+    let routeClassesByRealtimeIdentifier: [realtimeIdentifierType: number, realTimeIdentifier: number, ...routeClasses: number[]][] = [];
+    for (let rtIdentifier of realtimeRouteMap.keys()) {
+        let rtRoutes = realtimeRouteMap.get(rtIdentifier)!;
+        let routeClasses = rtRoutes.map(r => r.routeClass);
+        routeClassesByRealtimeIdentifier.push([rtIdentifier.type, rtIdentifier.value, ...routeClasses.filter(onlyUnique)]);
+    }
+
+    await fs.promises.writeFile(path.join(outputPath, "stops-realtime-info.json"), JSON.stringify(stopRealtimeInfo));
+    await fs.promises.writeFile(path.join(outputPath, "route-classes-by-realtime-identifier.json"), JSON.stringify(routeClassesByRealtimeIdentifier));
     await fs.promises.writeFile(path.join(outputPath, "realtime_route_index.bin.bmp"), Buffer.from(realtimeRouteLookup));
     await fs.promises.writeFile(path.join(outputPath, "realtime_routes.bin.bmp"), Buffer.from(realtimeRoutes));
 }

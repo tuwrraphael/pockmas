@@ -1,4 +1,4 @@
-export interface MonitorResponse {
+export interface WienerLinienMonitorResponse {
     data: {
         monitors: {
             locationStop: {
@@ -9,6 +9,8 @@ export interface MonitorResponse {
             lines: {
                 richtungsId: string,
                 lineId: number,
+                name: string,
+                towards: string,
                 departures: {
                     departure: {
                         departureTime: {

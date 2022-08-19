@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { StopTimeBytes, RouteBytes, TransferBytes, StopBytes, CalendarBytes, RouteStopBytes, StopServingRouteBytes, TripCalendarBytes, realtimeRouteIndexBytes, realtimeRouteBytes, CalendarExceptionBytes } from "./structures";
+import { StopTimeBytes, RouteBytes, TransferBytes, StopBytes, CalendarBytes, RouteStopBytes, StopServingRouteBytes, TripCalendarBytes, CalendarExceptionBytes, RealtimeRouteIndexBytes, RealtimeRouteBytes } from "./structures";
 
 
 const files = [
@@ -10,8 +10,8 @@ const files = [
     { file: "stops.bin.bmp", structSize: StopBytes },
     { file: "calendar.bin.bmp", structSize: CalendarBytes },
     { file: "calendar_exceptions.bin.bmp", structSize: CalendarExceptionBytes },
-    { file: "diva_index.bin.bmp", structSize: realtimeRouteIndexBytes },
-    { file: "diva_routes.bin.bmp", structSize: realtimeRouteBytes },
+    { file: "realtime_route_index.bin.bmp", structSize: RealtimeRouteIndexBytes },
+    { file: "realtime_routes.bin.bmp", structSize: RealtimeRouteBytes },
     { file: "route_stops.bin.bmp", structSize: RouteStopBytes },
     { file: "stop_serving_routes.bin.bmp", structSize: StopServingRouteBytes },
     { file: "trip_calendars.bin.bmp", structSize: TripCalendarBytes }

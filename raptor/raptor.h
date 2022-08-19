@@ -106,9 +106,9 @@ extern "C"
 
 #ifndef WASM_BUILD
 
-	diva_index_t *get_diva_index_memory(uint32_t number_of_divas);
+	realtime_route_index_t *get_realtime_route_index_memory(uint32_t number_of_realtime_route_identifiers);
 
-	diva_route_t *get_diva_routes_memory(uint32_t number_of_diva_routes);
+	realtime_route_t *get_realtime_routes_memory(uint32_t number_of_realtime_routes);
 
 	stop_time_t *get_stoptimes_memory(uint32_t number_of_stoptimes);
 
@@ -134,7 +134,7 @@ extern "C"
 
 	__attribute__((export_name("raptor_allocate"))) void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, uint32_t number_of_transfers,
 																		  uint16_t number_of_stops, uint16_t number_of_calendars, uint32_t number_of_calendar_exceptions,
-																		  uint32_t number_of_divas, uint32_t number_of_diva_routes, uint32_t number_of_route_stops,
+																		  uint32_t number_of_realtime_route_identifiers, uint32_t number_of_realtime_routes, uint32_t number_of_route_stops,
 																		  uint32_t number_of_stop_routes, uint32_t number_of_trip_calendars);
 
 	__attribute__((export_name("get_request_memory"))) request_t *get_request_memory();

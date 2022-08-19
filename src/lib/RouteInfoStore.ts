@@ -1,14 +1,29 @@
+import { RealtimeIdentifier } from "./RealtimeIdentifier";
 import { Route } from "./Route";
+import { RouteClass } from "./RouteClass";
 import { Stop } from "./Stop";
 
 export class RouteInfoStore {
-    constructor(private routeNames: [string, string, number, string | null][],
-        private stops: [string, number][]) {
+    constructor(private routes: [routeClass: number, headsignVariant: number][],
+        private routeClasses: {
+            routeShortName: string;
+            headsignVariants: string[],
+            routeType: number;
+            routeColor?: string;
+        }[],
+        private routeClassesByRealtimeIdentifier: [realtimeIdentiferType: number, realtimeIdentifier: number, ...routeClasses: number[]][],
+        private stops: [name: string, realtimeIdentifierType?: number, realtimeIdentifier?: number][]) {
 
     }
 
-    getDiva(stopId: number) {
-        return this.stops[stopId][1];
+    getRealtimeIdentifier(stopId: number): RealtimeIdentifier {
+        if (this.stops[stopId].length < 1) {
+            return null;
+        }
+        return {
+            type: this.stops[stopId][1],
+            value: this.stops[stopId][2]
+        };
     }
 
     getStop(stopId: number): Stop {
@@ -22,14 +37,33 @@ export class RouteInfoStore {
     }
 
     getRoute(routeId: number): Route {
-        if (routeId > this.routeNames.length) {
+        if (routeId > this.routes.length) {
             throw new Error(`Invalid route id ${routeId}`);
         }
+        let route = this.routes[routeId];
+        let routeClass = this.routeClasses[route[0]];
+        let color = "";
+        if (routeClass.routeColor) {
+            color = routeClass.routeColor;
+        } else if (routeClass.routeType == 0) {
+            color = "c4121a";
+        }
         return {
-            name: this.routeNames[routeId][0],
+            name: this.routeClasses[route[0]].routeShortName,
             id: routeId,
-            color: this.routeNames[routeId].length > 3 ? this.routeNames[routeId][3] : (this.routeNames[routeId][2] == 0 ? "c4121a" : ""),
-            headsign: this.routeNames[routeId][1]
+            color: color,
+            headsign: routeClass.headsignVariants[route[1]]
         };
+    }
+
+    getRouteClassesFotRealtimeIdentifier(realtimeIdentifier: RealtimeIdentifier): RouteClass[] {
+        let realtimeIdentifierType = realtimeIdentifier.type;
+        let realtimeIdentifierValue = realtimeIdentifier.value;
+        let routeClasses = this.routeClassesByRealtimeIdentifier.find(r => r[0] == realtimeIdentifierType && r[1] == realtimeIdentifierValue).slice(2);
+        return routeClasses.map(id => ({
+            routeShortName: this.routeClasses[id].routeShortName,
+            headsignVariants: this.routeClasses[id].headsignVariants,
+            id: id
+        }));
     }
 }

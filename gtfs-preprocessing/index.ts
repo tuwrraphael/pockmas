@@ -12,6 +12,8 @@ import { concatResults } from "./concat-results";
 import path from "path";
 import fs from "fs";
 import { createCalendar } from "./create-calendar";
+import { createRoutes } from "./create-routes";
+import { createStops } from "./create-stops";
 
 let pathToGtfsTidyExecutable = env.GTFSTIDY_EXECUTABLE || "gtfstidy";
 
@@ -24,7 +26,9 @@ let steps = [
     "search-index",
     "transfers",
     "gtfs",
+    "routes",
     "realtime",
+    "stops",
     "calendar",
     "concat",
 ];
@@ -71,9 +75,17 @@ async function doSteps() {
                 console.log("Preprocessing GTFS");
                 await preprocessGtfs(gtfsDir, destDir);
                 break;
+            case "routes":
+                console.log("Creating routes");
+                await createRoutes(gtfsDir, destDir);
+                break;
             case "realtime":
                 console.log("Preprocessing realtime index");
                 await createRealtime(gtfsDir, rtDir, destDir);
+                break;
+            case "stops":
+                console.log("Creating stops");
+                await createStops(gtfsDir, destDir);
                 break;
             case "calendar":
                 console.log("Preprocessing service calendar");
