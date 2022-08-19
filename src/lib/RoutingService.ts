@@ -130,19 +130,30 @@ export class RoutingService {
                 value: parseInt(monitor.locationStop.properties.name)
             };
             for (let line of monitor.lines) {
-                let timeReal = line.departures.departure
-                    .filter(d => null != d.departureTime.timeReal)
-                    .map(d => new Date(d.departureTime.timeReal));
-                if (timeReal.length > 0) {
-                    let realtimeData: RealtimeData = {
-                        realtimeIdentifier: identifier,
-                        routeShortName: line.name,
-                        headsign: line.towards,
-                        times: timeReal
-                    };
-                    result.push(realtimeData);
-                } else {
-                    console.log(`No realtime data in monitor line`, line);
+                let byLineAndHeadsign: Map<string, Map<string, Date[]>> = new Map();
+                for (let departure of line.departures.departure) {
+                    if (departure.departureTime?.timeReal || departure.departureTime?.timePlanned) {
+                        let byHeadsign: Map<string, Date[]> = byLineAndHeadsign.get(departure.vehicle?.name || line.name) || new Map();
+                        let departureTime = departure.departureTime.timeReal ? new Date(departure.departureTime.timeReal) : new Date(departure.departureTime.timePlanned);
+                        let departureTimes = byHeadsign.get(departure.vehicle?.towards || line.towards) || [];
+                        departureTimes.push(departureTime);
+                        byHeadsign.set(departure.vehicle?.towards || line.towards, departureTimes);
+                        byLineAndHeadsign.set(departure.vehicle?.name || line.name, byHeadsign);
+                    } else {
+                        console.log(`no departure time in departure`, departure);
+                    }
+                }
+                for (let [routeShortName, byHeadsign] of byLineAndHeadsign) {
+                    for (let [headsign, departureTimes] of byHeadsign) {
+                        let realtimeData: RealtimeData = {
+                            realtimeIdentifier: identifier,
+                            routeShortName: routeShortName,
+                            headsign: headsign,
+                            times: departureTimes
+                        };
+
+                        result.push(realtimeData);
+                    }
                 }
             }
         }

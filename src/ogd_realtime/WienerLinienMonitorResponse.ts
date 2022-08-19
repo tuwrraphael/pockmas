@@ -16,6 +16,10 @@ export interface WienerLinienMonitorResponse {
                         departureTime: {
                             timeReal?: string,
                             timePlanned?: string
+                        },
+                        vehicle?: {
+                            name: string;
+                            towards: string;
                         }
                     }[];
                 }
