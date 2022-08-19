@@ -1,41 +1,100 @@
 import fs from "fs";
 import path from "path";
 import { GtfsStop, readStops } from "./read-stops";
-import { groupBy } from "./groupBy";
-import { readLinien } from "./read-linien";
-import { readRoutes } from "./read-routes";
-import { DivaIndexBytes, DivaRouteBytes, RouteBytes } from "./structures";
+import { groupByEquality } from "./groupBy";
+import { GtfsRouteMap, readRoutes } from "./read-routes";
+import { RealtimeRouteBytes, RealtimeRouteIndexBytes, RouteBytes } from "./structures";
 
 let divaregex = /1::at:(43|49):(\d+):/;
+let oebbregex = /0::81(\d+)/;
 const divabase = 60200000;
 
-function getDiva(stop: GtfsStop) {
-    const match = divaregex.exec(stop.stopId);
+const enum RealtimeIdentifierType {
+    WienerLinien = 0,
+    OEBB = 1
+};
+
+type RealtimeIdentifier = {
+    type: RealtimeIdentifierType;
+    value: number;
+}
+
+type RealtimeIdentifierRoute = {
+    routeId: number;
+    routeClass: number;
+    headsignVariant: number;
+    stopOffset: number;
+};
+
+function getRealtimeIdentifier(stop: GtfsStop) {
+    let match = divaregex.exec(stop.stopId);
     if (match) {
-        return parseInt(match[2]) + divabase;
+        return {
+            type: RealtimeIdentifierType.WienerLinien,
+            value: parseInt(match[2]) + divabase
+        };
+    }
+    match = oebbregex.exec(stop.stopId);
+    if (match) {
+        return {
+            type: RealtimeIdentifierType.OEBB,
+            value: parseInt(match[1])
+        };
     }
     return null;
 }
 
+type RouteIdMap = {
+    id: number;
+    tripRoutes: string[];
+    direction: number;
+    headsign: string;
+}[];
+
+function onlyUnique<T>(value: T, index: number, self: T[]) {
+    return self.indexOf(value) === index;
+}
+
+function createRouteClasses(routes: GtfsRouteMap, routeIdMap: RouteIdMap) {
+    let c = groupByEquality(routeIdMap, r => {
+        let originalRoute = routes[r.tripRoutes[0]];
+        return originalRoute.routeShortName;
+    }, (a, b) => a == b);
+
+    let classes: { routeShortName: string; headsignVariants: string[] }[] = [];
+    let index: { [routeId: number]: { routeClass: number, headsignVariant: number } } = {};
+
+    for (let routeShortName of Array.from(c.keys()).sort()) {
+        let routes = c.get(routeShortName)!;
+        let routeClass = {
+            routeShortName: routeShortName,
+            headsignVariants: routes.map(r => r.headsign).filter(onlyUnique).sort()
+        };
+        classes.push(routeClass);
+        for (let route of routes) {
+            index[route.id] = {
+                routeClass: classes.length - 1,
+                headsignVariant: routeClass.headsignVariants.indexOf(route.headsign)
+            }
+        }
+    }
+    return {
+        index, classes
+    };
+}
 
 export async function createRealtime(gtfsPath: string, rtPath: string, outputPath: string) {
     let s = await readStops(gtfsPath);
     let stops = s.map((stop, idx) => ({
         ...stop,
-        diva: getDiva(stop),
+        realtimeIdentifier: getRealtimeIdentifier(stop),
         idx: idx,
     }));
-    let stopsWithDiva = stops.filter(stop => stop.diva !== null);
-    const groupedByDiva = Object.entries(groupBy(stopsWithDiva, "diva")).map(([diva, stops]) => ({ diva: parseInt(diva), stops })).sort((a, b) => a.diva - b.diva);
-
-    const linien = await readLinien(rtPath);
+    let stopsWithRtIdentifier = stops.filter(stop => stop.realtimeIdentifier !== null);
+    let groupedByRtIdentifier = groupByEquality(stopsWithRtIdentifier, s => s.realtimeIdentifier!, (a, b) => a.type == b.type && a.value == b.value);
 
     const routes = await readRoutes(gtfsPath);
-    const routeIdMap: {
-        id: number;
-        trips: string[];
-        direction: number;
-    }[] = JSON.parse(await fs.promises.readFile(path.join(outputPath, "routeIdMap.json"), "utf8"));
+    const routeIdMap: RouteIdMap = JSON.parse(await fs.promises.readFile(path.join(outputPath, "routeIdMap.json"), "utf8"));
     const stopServingRoutes = await fs.promises.readFile(path.join(outputPath, "stop_serving_routes.bin.bmp"));
     const preprocessedRoutes = await fs.promises.readFile(path.join(outputPath, "routes.bin.bmp"));
     const routeStops = await fs.promises.readFile(path.join(outputPath, "route_stops.bin.bmp"));
@@ -45,19 +104,15 @@ export async function createRealtime(gtfsPath: string, rtPath: string, outputPat
     let stopServingRoutesView = new DataView(stopServingRoutes.buffer);
     let preprocessedRoutesView = new DataView(preprocessedRoutes.buffer);
     let routeStopsView = new DataView(routeStops.buffer);
-    const divaRoutes: {
-        [diva: number]: {
-            routeId: number;
-            linie: number;
-            direction: number;
-            stopOffset: number;
-        }[]
-    } = {};
-    for (let group of groupedByDiva) {
-        let diva = group.diva;
-        let divastops = group.stops;
-        divaRoutes[diva] = [];
-        for (let stop of divastops) {
+    const realtimeRouteMap: Map<RealtimeIdentifier, RealtimeIdentifierRoute[]> = new Map();
+
+    let routeClasses = createRouteClasses(routes, routeIdMap);
+
+    for (let rtIdentifier of groupedByRtIdentifier.keys()) {
+        let rtIdentifierStops = groupedByRtIdentifier.get(rtIdentifier)!;
+
+        let rtIdentifierRoutes: RealtimeIdentifierRoute[] = [];
+        for (let stop of rtIdentifierStops) {
             let stopServingRoutesIndex = stopIndexView.getUint32(stop.idx * 12, true);
             let stopServingRoutesCount = stopIndexView.getUint16(stop.idx * 12 + 8, true);
             for (let i = 0; i < stopServingRoutesCount; i++) {
@@ -79,44 +134,48 @@ export async function createRealtime(gtfsPath: string, rtPath: string, outputPat
                 if (!originalRouteMapping) {
                     throw new Error(`Original route mapping for ${routeId} not found`);
                 }
-                let route = routes[originalRouteMapping.trips[0]];
-                let linie = linien.find(l => l.text == route.routeShortName);
-                if (linie) {
-                    divaRoutes[diva].push({
-                        routeId: routeId,
-                        linie: linie.id,
-                        direction: originalRouteMapping.direction,
-                        stopOffset: stopOffset
-                    });
-                }
+                let routeClass = routeClasses.index[routeId];
+                rtIdentifierRoutes.push({
+                    routeId: routeId,
+                    headsignVariant: routeClass.headsignVariant,
+                    routeClass: routeClass.routeClass,
+                    stopOffset: stopOffset
+                });
+
             }
         }
-        divaRoutes[diva].sort((a, b) => a.linie - b.linie);
+
+        rtIdentifierRoutes.sort((a, b) => a.routeId - b.routeId);
+        realtimeRouteMap.set(rtIdentifier, rtIdentifierRoutes);
     }
-    let divas = Object.entries(divaRoutes)
-        .map(([diva, routes]) => ({
-            diva, routes
-        }))
-        .filter(({ diva, routes }) => routes.length > 0).map(({ diva, routes }) => parseInt(diva)).sort((a, b) => a - b);
-    const divaLookup = new Uint8Array(divas.length * DivaIndexBytes);
-    const divaLookupView = new DataView(divaLookup.buffer);
-    const divaRoutesLookup = new Uint8Array(Object.values(divaRoutes).reduce((acc, routes) => acc + routes.length, 0) * DivaRouteBytes);
-    const divaRoutesLookupView = new DataView(divaRoutesLookup.buffer);
-    let divaRoutesIndex = 0;
-    for (let i = 0; i < divas.length; i++) {
-        let diva = divas[i];
-        divaLookupView.setUint32(i * DivaIndexBytes, diva, true);
-        divaLookupView.setUint32(i * DivaIndexBytes + 4, divaRoutesIndex, true);
-        divaLookupView.setUint16(i * DivaIndexBytes + 8, divaRoutes[diva].length, true);
-        for (let route of divaRoutes[diva]) {
-            divaRoutesLookupView.setUint16(divaRoutesIndex * DivaRouteBytes, route.linie, true);
-            divaRoutesLookupView.setUint16(divaRoutesIndex * DivaRouteBytes + 2, route.direction, true);
-            divaRoutesLookupView.setUint16(divaRoutesIndex * DivaRouteBytes + 4, route.routeId, true);
-            divaRoutesLookupView.setUint16(divaRoutesIndex * DivaRouteBytes + 6, route.stopOffset, true);
-            divaRoutesIndex++;
+    const realtimeRouteLookup = new Uint8Array(Array.from(realtimeRouteMap.keys()).length * RealtimeRouteIndexBytes);
+    const realtimeRouteLookupView = new DataView(realtimeRouteLookup.buffer);
+    const realtimeRoutes = new Uint8Array(Array.from(realtimeRouteMap.values()).reduce((acc, routes) => acc + routes.length, 0) * RealtimeRouteBytes);
+    const realtimeRoutesView = new DataView(realtimeRoutes.buffer);
+    let realtimeRouteIndex = 0;
+    let realTimeRouteIdentifiers = Array.from(realtimeRouteMap.keys()).sort((a, b) => {
+        let byType = a.type - b.type;
+        if (byType != 0) {
+            return byType;
+        }
+        return a.value - b.value;
+    })
+    for (let i = 0; i < realTimeRouteIdentifiers.length; i++) {
+        let realtimeRouteIdentifier = realTimeRouteIdentifiers[0];
+        let realtimeRoutes = realtimeRouteMap.get(realtimeRouteIdentifier)!;
+        realtimeRouteLookupView.setUint32(i * RealtimeRouteIndexBytes, realtimeRouteIdentifier.value, true);
+        realtimeRouteLookupView.setUint32(i * RealtimeRouteIndexBytes + 4, realtimeRouteIndex, true);
+        realtimeRouteLookupView.setUint16(i * RealtimeRouteIndexBytes + 8, realtimeRoutes.length, true);
+        realtimeRouteLookupView.setUint16(i * RealtimeRouteIndexBytes + 10, realtimeRouteIdentifier.type, true);
+        for (let route of realtimeRoutes) {
+            realtimeRoutesView.setUint16(realtimeRouteIndex * RealtimeRouteBytes, route.routeClass, true);
+            realtimeRoutesView.setUint16(realtimeRouteIndex * RealtimeRouteBytes + 2, route.headsignVariant, true);
+            realtimeRoutesView.setUint16(realtimeRouteIndex * RealtimeRouteBytes + 4, route.routeId, true);
+            realtimeRoutesView.setUint16(realtimeRouteIndex * RealtimeRouteBytes + 6, route.stopOffset, true);
+            realtimeRouteIndex++;
         }
     }
-    await fs.promises.writeFile(path.join(outputPath, "stops.json"), JSON.stringify(stops.map(s => [s.name, ...(s.diva ? [s.diva] : [])])));
-    await fs.promises.writeFile(path.join(outputPath, "diva_index.bin.bmp"), Buffer.from(divaLookup));
-    await fs.promises.writeFile(path.join(outputPath, "diva_routes.bin.bmp"), Buffer.from(divaRoutesLookup));
+    await fs.promises.writeFile(path.join(outputPath, "stops.json"), JSON.stringify(stops.map(s => [s.name, ...(s.realtimeIdentifier ? [s.realtimeIdentifier.type, s.realtimeIdentifier.value] : [])])));
+    await fs.promises.writeFile(path.join(outputPath, "realtime_route_index.bin.bmp"), Buffer.from(realtimeRouteLookup));
+    await fs.promises.writeFile(path.join(outputPath, "realtime_routes.bin.bmp"), Buffer.from(realtimeRoutes));
 }

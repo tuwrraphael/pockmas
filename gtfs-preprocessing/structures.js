@@ -5,11 +5,11 @@ function padTo4Bytes(size) {
     return size + (4 - (size % 4));
 }
 
-let divaIndexBytes = 4 + 4 + 2;
-exports.DivaIndexBytes = padTo4Bytes(divaIndexBytes);
+let realtimeRouteIndexBytes = 4 + 4 + 2 + 2;
+exports.RealtimeRouteIndexBytes = padTo4Bytes(realtimeRouteIndexBytes);
 
-let divaRouteBytes = 2 + 2 + 2 + 2;
-exports.DivaRouteBytes = padTo4Bytes(divaRouteBytes);
+let realtimeRouteBytes = 2 + 2 + 2 + 2;
+exports.RealtimeRouteBytes = padTo4Bytes(realtimeRouteBytes);
 
 let calendarBytes = padTo4Bytes(4 + 4 + 4 + 2 + 1);
 exports.CalendarBytes = calendarBytes;

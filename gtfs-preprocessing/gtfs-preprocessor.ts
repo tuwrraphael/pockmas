@@ -160,8 +160,9 @@ export async function preprocessGtfs(gtfsPath: string, outputPath: string) {
     let routeStops = routeBucketsOrdered.map((trips) => trips[0].stopTimes.map(s => s.stopId));
     await fs.promises.writeFile(path.join(outputPath, "routeIdMap.json"), JSON.stringify(routeBucketsOrdered.map((trips, idx) => ({
         id: idx,
-        trips: trips.map(t => t.routeId),
-        direction: trips[0].directionId
+        tripRoutes: trips.map(t => t.routeId),
+        direction: trips[0].directionId,
+        headsign: trips[0].tripHeadsign
     }))));
     console.log("Writing routes");
     let stoptimesOutput = await fs.promises.open(path.join(outputPath, "stoptimes.bin.bmp"), "w");

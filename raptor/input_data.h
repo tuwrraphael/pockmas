@@ -79,19 +79,19 @@ typedef struct
 
 typedef struct
 {
-    uint32_t diva;
-    uint32_t diva_routes_index;
-    uint16_t diva_routes_count;
-    uint16_t padding;
-} diva_index_t;
+    uint32_t realtime_route_identifier;
+    uint32_t realtime_routes_index;
+    uint16_t realtime_routes_count;
+    uint16_t realtime_route_identifier_type;
+} realtime_route_index_t;
 
 typedef struct
 {
-    uint16_t linie_id;
-    uint16_t direction;
+    uint16_t route_class;
+    uint16_t headsign_variant;
     route_id_t route_id;
     uint16_t stop_offset;
-} diva_route_t;
+} realtime_route_t;
 
 typedef struct
 {
@@ -111,9 +111,9 @@ typedef struct
     calendar_t *calendars;
     uint16_t calendar_count;
     trip_calendar_t *trip_calendars;
-    diva_index_t *diva_index;
-    uint16_t diva_count;
-    diva_route_t *diva_routes;
+    realtime_route_index_t *realtime_route_index;
+    uint16_t realtime_route_count;
+    realtime_route_t *realtime_routes;
     int16_t *realtime_offsets;
     real_time_index_t *realtime_index;
     calendar_exception_t *calendar_exceptions;
