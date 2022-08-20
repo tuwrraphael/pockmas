@@ -1,7 +1,8 @@
 import { RaptorExports } from "../../raptor/wasm-exports";
-import { WienerLinienMonitorResponse } from "../ogd_realtime/WienerLinienMonitorResponse";
+import { WienerLinienMonitorResponse } from "../realtime-api/WienerLinienMonitorResponse";
+import { OebbMonitorResponse } from "../realtime-api/OebbMonitorResponse";
 import { Departure } from "./Departure";
-import { getStartOfDayVienna } from "./getStartOfDayVienna";
+import { TimezoneUtility } from "./TimezoneUtility";
 import { Itinerary } from "./Itinerary";
 import { Leg } from "./Leg";
 import { RealtimeData } from "./RealtimeData";
@@ -52,6 +53,8 @@ const DEPARTURE_RESULTS_SIZE = MAX_DEPARTURE_RESULTS * DEPARTURE_RESULT_SIZE + 4
 
 export class RoutingService {
     private mappedRealtimeData: { [routeId: number]: Set<number> } = {};
+    private timezoneUtility = new TimezoneUtility("Europe/Vienna");
+
     constructor(private routingInstance: WebAssemblyInstance<RaptorExports>,
         private routeInfoStore: RouteInfoStore) {
 
@@ -85,7 +88,7 @@ export class RoutingService {
         view.setUint8(0, 0);
         view.setUint8(1, Math.min(RAPTOR_MAX_REQUEST_STATIONS, r.departureStops.length));
         view.setUint8(2, 1);
-        let startOfDayVienna = getStartOfDayVienna(r.departureStops[0].departureTime);
+        let startOfDayVienna = this.timezoneUtility.getStartOfDay(r.departureStops[0].departureTime);
         view.setUint8(3, startOfDayVienna.dayOfWeek);
         for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, r.departureStops.length); i++) {
             view.setUint16(4 + i * 2, r.departureStops[i].stopId, true);
@@ -160,9 +163,76 @@ export class RoutingService {
         return result;
     }
 
+    private parseOebbDate(date: string, time: string): Date | null {
+        const dateRegex = /^(\d{2})\.(\d{2})\.(\d{4})$/;
+        const timeRegex = /^(\d{2}):(\d{2})$/;
+        if (!date || !time || !dateRegex.test(date) || !timeRegex.test(time)) {
+            console.log(`unexpected oebb date or time: "${date}" "${time}"`);
+            return null;
+        }
+        let dateParts = date.split(".");
+        let timeParts = time.split(":");
+        return this.timezoneUtility.getDateInTimezone(+dateParts[2], +dateParts[1], +dateParts[0], +timeParts[0], +timeParts[1], 0);
+    }
+
+    private async *getRealtimeForOebb(evaIds: number[]): AsyncGenerator<RealtimeData> {
+        for (let evaId of evaIds) {
+            let res = await fetch(`https://realtime-api.grapp.workers.dev/bin/stboard.exe/dn?L=vs_scotty.vs_liveticker&evaId=${evaId}&boardType=dep&productsFilter=1011111111011&additionalTime=0&disableEquivs=yes&maxJourneys=20&outputMode=tickerDataOnly&start=yes&selectDate=today`);
+            let data: OebbMonitorResponse = await res.json();
+            let identifier: RealtimeIdentifier = {
+                type: RealtimeIdentifierType.OEBB,
+                value: evaId
+            };
+            let byLineAndHeadsign: Map<string, Map<string, Date[]>> = new Map();
+            for (let journey of data.journey) {
+                if (!journey.pr) {
+                    console.log(`no journey.pr in journey`, journey);
+                    continue;
+                }
+                if (!journey.st) {
+                    console.log(`no journey.st in journey`, journey);
+                    continue;
+                }
+                if (journey.rt && journey.rt.status == "Ausfall") {
+                    console.log(`Ausfall not supported yet`, journey);
+                    continue;
+                }
+                let realtime: Date = null;
+                if (journey.rt) {
+                    realtime = this.parseOebbDate(journey.rt.dld, journey.rt.dlt);
+                } else {
+                    realtime = this.parseOebbDate(journey.da, journey.ti);
+                }
+                if (null != realtime) {
+                    let byHeadsign: Map<string, Date[]> = byLineAndHeadsign.get(journey.pr) || new Map();
+                    let departureTimes = byHeadsign.get(journey.st) || [];
+                    departureTimes.push(realtime);
+                    byHeadsign.set(journey.st, departureTimes);
+                    byLineAndHeadsign.set(journey.pr, byHeadsign);
+                } else {
+                    console.log(`no departure time in journey`, journey);
+                }
+            }
+            for (let [routeShortName, byHeadsign] of byLineAndHeadsign) {
+                for (let [headsign, departureTimes] of byHeadsign) {
+                    let realtimeData: RealtimeData = {
+                        realtimeIdentifier: identifier,
+                        routeShortName: routeShortName,
+                        headsign: headsign,
+                        times: departureTimes
+                    };
+                    yield realtimeData;
+                }
+            }
+        }
+    }
+
     async updateRealtimeForStops(realtimeIdentifiers: RealtimeIdentifier[]) {
         let data = await this.getRealtimeForWienerLinien(realtimeIdentifiers.filter(v => v.type == RealtimeIdentifierType.WienerLinien).map(i => i.value));
         for (let realtimeData of data) {
+            this.upsertRealtimeData(realtimeData, true);
+        }
+        for await (let realtimeData of this.getRealtimeForOebb(realtimeIdentifiers.filter(v => v.type == RealtimeIdentifierType.OEBB).map(i => i.value))) {
             this.upsertRealtimeData(realtimeData, true);
         }
     }
@@ -244,15 +314,20 @@ export class RoutingService {
     upsertRealtimeData(realtimeData: RealtimeData, apply: boolean) {
         performance.mark("realtime-upsert-start");
         let routeClasses = this.routeInfoStore.getRouteClassesFotRealtimeIdentifier(realtimeData.realtimeIdentifier);
-        let bestRouteClassMatch = findBestMatch(realtimeData.routeClassName.trim().toLowerCase(), routeClasses.map(rc => rc.routeClassName.toLowerCase()));
-        let bestRouteClass = routeClasses[bestRouteClassMatch.bestMatchIndex];
-        let match = realtimeData.headsign.replace(/^Wien /, "").trim().toLowerCase();
-        let variants = bestRouteClass.headsignVariants.map(h => h.replace(/^Wien /, "").toLowerCase());
-        let bestHeadsignVariantMatch = findBestMatch(match, variants);
+        let routeShortNameCleaned = realtimeData.routeShortName.replace(/\s/g, "").toLowerCase();
+        let routeClassesCleaned = routeClasses.map(c => c.routeShortName.replace(/\s/g, "").toLowerCase());
+        let matchingRouteClass = routeClasses[routeClassesCleaned.findIndex(c => c == routeShortNameCleaned)];
+        if (!matchingRouteClass) {
+            console.log(`no matching route class for ${realtimeData.routeShortName}`);
+            return;
+        }
+        let headsignCleaned = realtimeData.headsign.replace(/^Wien /, "").trim().toLowerCase();
+        let headsignVariantsCleaned = matchingRouteClass.headsignVariants.map(h => h.replace(/^Wien /, "").toLowerCase());
+        let bestHeadsignVariantMatch = findBestMatch(headsignCleaned, headsignVariantsCleaned);
         this.upsertResolvedRealtimeData({
             headsignVariant: bestHeadsignVariantMatch.bestMatchIndex,
             realtimeIdentifier: realtimeData.realtimeIdentifier,
-            routeClass: bestRouteClass.id,
+            routeClass: matchingRouteClass.id,
             times: realtimeData.times
         }, apply);
         performance.mark("realtime-upsert-end");
@@ -268,7 +343,7 @@ export class RoutingService {
         dataView.setUint32(0, update.realtimeIdentifier.value, true);
         dataView.setUint16(4, update.routeClass, true);
         dataView.setUint8(6, update.headsignVariant);
-        let date = getStartOfDayVienna(update.times[0]);
+        let date = this.timezoneUtility.getStartOfDay(update.times[0]);
         dataView.setUint8(7, date.dayOfWeek);
         dataView.setUint32(8, date.unixTime / 1000, true);
         dataView.setUint8(12, apply ? 1 : 0);
