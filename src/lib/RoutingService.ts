@@ -213,11 +213,11 @@ export class RoutingService {
                     console.log(`no departure time in journey`, journey);
                 }
             }
-            for (let [routeShortName, byHeadsign] of byLineAndHeadsign) {
+            for (let [routeClassName, byHeadsign] of byLineAndHeadsign) {
                 for (let [headsign, departureTimes] of byHeadsign) {
                     let realtimeData: RealtimeData = {
                         realtimeIdentifier: identifier,
-                        routeShortName: routeShortName,
+                        routeClassName: routeClassName,
                         headsign: headsign,
                         times: departureTimes
                     };
@@ -314,11 +314,11 @@ export class RoutingService {
     upsertRealtimeData(realtimeData: RealtimeData, apply: boolean) {
         performance.mark("realtime-upsert-start");
         let routeClasses = this.routeInfoStore.getRouteClassesFotRealtimeIdentifier(realtimeData.realtimeIdentifier);
-        let routeShortNameCleaned = realtimeData.routeShortName.replace(/\s/g, "").toLowerCase();
-        let routeClassesCleaned = routeClasses.map(c => c.routeShortName.replace(/\s/g, "").toLowerCase());
+        let routeShortNameCleaned = realtimeData.routeClassName.replace(/\s/g, "").toLowerCase();
+        let routeClassesCleaned = routeClasses.map(c => c.routeClassName.replace(/\s/g, "").toLowerCase());
         let matchingRouteClass = routeClasses[routeClassesCleaned.findIndex(c => c == routeShortNameCleaned)];
         if (!matchingRouteClass) {
-            console.log(`no matching route class for ${realtimeData.routeShortName}`);
+            console.log(`no matching route class for ${realtimeData.routeClassName}`);
             return;
         }
         let headsignCleaned = realtimeData.headsign.replace(/^Wien /, "").trim().toLowerCase();
@@ -349,6 +349,7 @@ export class RoutingService {
         dataView.setUint8(12, apply ? 1 : 0);
         let numUpdates = Math.min(update.times.length, RAPTOR_MAX_STOPTIME_UPDATES);
         dataView.setUint8(13, numUpdates);
+        dataView.setUint16(14, update.realtimeIdentifier.type, true);
         for (let i = 0; i < numUpdates; i++) {
             dataView.setUint32(16 + i * 4, (+update.times[i] - date.unixTime) / 1000, true);
         }
