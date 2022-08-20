@@ -5,8 +5,8 @@ import { groupByEquality } from "./groupBy";
 import { RealtimeRouteBytes, RealtimeRouteIndexBytes, RouteBytes } from "./structures";
 import { RouteClassIndex } from "./create-routes";
 
-let divaregex = /1::at:(43|49):(\d+):/;
-let oebbregex = /0::81(\d+)/;
+let divaregex = /1#at:(43|49):(\d+):/;
+let oebbregex = /0#81(\d+)/;
 const divabase = 60200000;
 
 const enum RealtimeIdentifierType {
@@ -44,7 +44,7 @@ function getRealtimeIdentifier(stop: GtfsStop) {
     if (match) {
         return {
             type: RealtimeIdentifierType.OEBB,
-            value: parseInt(match[1])
+            value: parseInt("81"+match[1])
         };
     }
     return null;
