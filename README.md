@@ -28,7 +28,7 @@ Lizenz: Creative Commons Namensnennung 4.0 International
 * Range query
 * allow footpath as first leg 
 * ✅ S-Bahnen
-* S-Bahnen Echtzeit Routing
+* ✅ S-Bahnen Echtzeit Routing
 * ✅ Echtzeit-Routing
 * Anzeige der Route
 * personalisiertes Sortieren der Suchergebnisse

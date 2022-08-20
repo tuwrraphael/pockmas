@@ -1,8 +1,6 @@
 import { populateTimeZones } from "timezone-support/dist/lookup-convert";
 import * as tzd from "timezone-support/dist/data-2012-2022";
-import { getStartOfDayVienna } from "./getStartOfDayVienna";
 import { RouteUrlEncoder } from "./RouteUrlEncoder";
-import { Leg } from "./Leg";
 import { LegType } from "./LegType";
 
 describe("RouteUrlService", () => {
