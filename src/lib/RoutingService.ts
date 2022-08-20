@@ -143,11 +143,11 @@ export class RoutingService {
                         console.log(`no departure time in departure`, departure);
                     }
                 }
-                for (let [routeShortName, byHeadsign] of byLineAndHeadsign) {
+                for (let [routeClassName, byHeadsign] of byLineAndHeadsign) {
                     for (let [headsign, departureTimes] of byHeadsign) {
                         let realtimeData: RealtimeData = {
                             realtimeIdentifier: identifier,
-                            routeShortName: routeShortName,
+                            routeClassName: routeClassName,
                             headsign: headsign,
                             times: departureTimes
                         };
@@ -244,7 +244,7 @@ export class RoutingService {
     upsertRealtimeData(realtimeData: RealtimeData, apply: boolean) {
         performance.mark("realtime-upsert-start");
         let routeClasses = this.routeInfoStore.getRouteClassesFotRealtimeIdentifier(realtimeData.realtimeIdentifier);
-        let bestRouteClassMatch = findBestMatch(realtimeData.routeShortName.trim().toLowerCase(), routeClasses.map(rc => rc.routeShortName.toLowerCase()));
+        let bestRouteClassMatch = findBestMatch(realtimeData.routeClassName.trim().toLowerCase(), routeClasses.map(rc => rc.routeClassName.toLowerCase()));
         let bestRouteClass = routeClasses[bestRouteClassMatch.bestMatchIndex];
         let match = realtimeData.headsign.replace(/^Wien /, "").trim().toLowerCase();
         let variants = bestRouteClass.headsignVariants.map(h => h.replace(/^Wien /, "").toLowerCase());

@@ -2,7 +2,7 @@ import { RealtimeIdentifier } from "./RealtimeIdentifier";
 
 export class RealtimeData {
     realtimeIdentifier: RealtimeIdentifier;
-    routeShortName: string;
+    routeClassName: string;
     headsign: string;
     times: Date[];
 }

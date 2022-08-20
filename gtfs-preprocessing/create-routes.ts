@@ -10,7 +10,7 @@ function onlyUnique<T>(value: T, index: number, self: T[]) {
 }
 
 export type RouteClass = {
-    routeShortName: string;
+    routeClassName: string;
     headsignVariants: string[];
     routeColor?: string;
     routeType: number;
@@ -18,33 +18,30 @@ export type RouteClass = {
 export type RouteClassIndex = { [routeId: number]: { routeClass: number, headsignVariant: number } };
 
 function createRouteClasses(routes: GtfsRouteMap, routeIdMap: RouteIdMap) {
-    let c = groupByEquality(routeIdMap, r => {
-        let originalRoute = routes[r.tripRoutes[0]];
-        return originalRoute.routeShortName;
-    }, (a, b) => a == b);
+    let c = groupByEquality(routeIdMap, r => r.routeName, (a, b) => a == b);
 
     let classes: RouteClass[] = [];
     let index: RouteClassIndex = {};
 
-    for (let routeShortName of Array.from(c.keys()).sort()) {
-        let _routes = c.get(routeShortName)!;
-        if (_routes.map(r => routes[_routes[0].tripRoutes[0]].routeColor).filter(onlyUnique).length > 1) {
-            throw new Error("Multiple route colors for route " + routeShortName);
+    for (let routeName of Array.from(c.keys()).sort()) {
+        let routeGroup = c.get(routeName)!;
+        if (routeGroup.map(r => routes[routeGroup[0].tripRoutes[0]].routeColor).filter(onlyUnique).length > 1) {
+            throw new Error("Multiple route colors for route " + routeName);
         }
-        if (_routes.map(r => routes[_routes[0].tripRoutes[0]].routeType).filter(onlyUnique).length > 1) {
-            throw new Error("Multiple route types for route " + routeShortName);
+        if (routeGroup.map(r => routes[routeGroup[0].tripRoutes[0]].routeType).filter(onlyUnique).length > 1) {
+            throw new Error("Multiple route types for route " + routeName);
         }
         let routeClass: RouteClass = {
-            routeShortName: routeShortName,
-            headsignVariants: _routes.map(r => r.headsign).filter(onlyUnique).sort(),
-            routeType: routes[_routes[0].tripRoutes[0]].routeType
+            routeClassName: routeName,
+            headsignVariants: routeGroup.map(r => r.headsign).filter(onlyUnique).sort(),
+            routeType: routes[routeGroup[0].tripRoutes[0]].routeType
         };
-        let routeColor = routes[_routes[0].tripRoutes[0]].routeColor;
+        let routeColor = routes[routeGroup[0].tripRoutes[0]].routeColor;
         if (routeColor) {
             routeClass.routeColor = routeColor;
         }
         classes.push(routeClass);
-        for (let route of _routes) {
+        for (let route of routeGroup) {
             index[route.id] = {
                 routeClass: classes.length - 1,
                 headsignVariant: routeClass.headsignVariants.indexOf(route.headsign)

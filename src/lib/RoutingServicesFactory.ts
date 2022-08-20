@@ -29,7 +29,7 @@ export class RoutingServicesFactory {
         let routesTask = fetch(new URL("../../preprocessing-dist/routes.json", import.meta.url).toString()).then(res => (res.json()) as Promise<[number, number][]>);
         let stopsTask = fetch(new URL("../../preprocessing-dist/stops.json", import.meta.url).toString()).then(res => res.json() as Promise<[string, number, number][]>);
         let routeClassesTask = fetch(new URL("../../preprocessing-dist/route-classes.json", import.meta.url).toString()).then(res => res.json() as Promise<{
-            routeShortName: string;
+            routeClassName: string;
             headsignVariants: string[];
             routeType: number;
             routeColor?: string;

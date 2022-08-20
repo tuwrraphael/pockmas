@@ -6,7 +6,7 @@ import { Stop } from "./Stop";
 export class RouteInfoStore {
     constructor(private routes: [routeClass: number, headsignVariant: number][],
         private routeClasses: {
-            routeShortName: string;
+            routeClassName: string;
             headsignVariants: string[],
             routeType: number;
             routeColor?: string;
@@ -49,7 +49,7 @@ export class RouteInfoStore {
             color = "c4121a";
         }
         return {
-            name: this.routeClasses[route[0]].routeShortName,
+            name: this.routeClasses[route[0]].routeClassName,
             id: routeId,
             color: color,
             headsign: routeClass.headsignVariants[route[1]]
@@ -61,7 +61,7 @@ export class RouteInfoStore {
         let realtimeIdentifierValue = realtimeIdentifier.value;
         let routeClasses = this.routeClassesByRealtimeIdentifier.find(r => r[0] == realtimeIdentifierType && r[1] == realtimeIdentifierValue).slice(2);
         return routeClasses.map(id => ({
-            routeShortName: this.routeClasses[id].routeShortName,
+            routeClassName: this.routeClasses[id].routeClassName,
             headsignVariants: this.routeClasses[id].headsignVariants,
             id: id
         }));

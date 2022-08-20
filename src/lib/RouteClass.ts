@@ -1,5 +1,5 @@
 export interface RouteClass {
     id:number;
-    routeShortName: string;
+    routeClassName: string;
     headsignVariants: string[];
 }

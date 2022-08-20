@@ -25,7 +25,7 @@ describe("realtime", () => {
                 type: RealtimeIdentifierType.WienerLinien,
                 value: 60200627
             },
-            routeShortName: "22A",
+            routeClassName: "22A",
             headsign: "Aspernstraße",
             times: [
                 new Date("2022-10-29T18:29:02.000+0200")
@@ -44,7 +44,7 @@ describe("realtime", () => {
                 type: RealtimeIdentifierType.WienerLinien,
                 value: 60201031
             },
-            routeShortName: "25",
+            routeClassName: "25",
             headsign: "Oberdorfstraße",
             times: [
                 new Date("2022-11-25T16:55:33.000+0100"),
@@ -70,7 +70,7 @@ describe("realtime", () => {
                 type: RealtimeIdentifierType.WienerLinien,
                 value: 60200627
             },
-            routeShortName: "U1",
+            routeClassName: "U1",
             headsign: "OBERLAA          ",
             times: [
                 new Date("2022-11-27T14:06:55.000+0100"),
@@ -84,7 +84,7 @@ describe("realtime", () => {
                 type: RealtimeIdentifierType.WienerLinien,
                 value: 60200627
             },
-            routeShortName: "U1",
+            routeClassName: "U1",
             headsign: "Alaudagasse",
             times: [
                 new Date("2022-11-27T14:12:55.000+0100")
@@ -112,7 +112,7 @@ describe("realtime", () => {
                     type: RealtimeIdentifierType.WienerLinien,
                     value: 60200238
                 },
-                routeShortName: "26A",
+                routeClassName: "26A",
                 times: [
                     v.d
                 ]
@@ -132,7 +132,7 @@ describe("realtime", () => {
                 type: RealtimeIdentifierType.WienerLinien,
                 value: 60201039
             },
-            routeShortName: "77A",
+            routeClassName: "77A",
             times: [
                 new Date("2022-11-11T15:03:46.000+0100"),
                 new Date("2022-11-11T15:13:11.000+0100"),
@@ -164,7 +164,7 @@ describe("realtime", () => {
                     type: RealtimeIdentifierType.WienerLinien,
                     value: 60200627
                 },
-                routeShortName: "N26",
+                routeClassName: "N26",
                 times: [
                     v.d
                 ]
@@ -202,7 +202,7 @@ describe("realtime", () => {
                 type: RealtimeIdentifierType.WienerLinien,
                 value: 60200299
             },
-            routeShortName: "26A",
+            routeClassName: "26A",
             times: [
                 new Date("2022-10-28T18:30:33.000+0200"),
                 new Date("2022-10-28T18:37:29.000+0200"),
@@ -242,7 +242,7 @@ describe("realtime", () => {
                 type: RealtimeIdentifierType.WienerLinien,
                 value: 60201031
             },
-            routeShortName: "26A",
+            routeClassName: "26A",
             times: [
                 new Date("2022-11-09T09:41:33.000+0100")
             ]

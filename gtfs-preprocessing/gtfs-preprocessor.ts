@@ -24,6 +24,7 @@ interface GtfsTrip {
         stopSequence: number,
         stopId: number
     }[];
+    tripShortName?: string;
 }
 
 type GtfsTripMap = { [tripId: string]: GtfsTrip };
@@ -32,6 +33,7 @@ export type RouteIdMap = {
     id: number;
     tripRoutes: string[];
     direction: number;
+    routeName: string;
     headsign: string;
 }[];
 
@@ -49,6 +51,7 @@ async function readTrips(gtfsPath: string) {
                     serviceId: data.service_id,
                     directionId: parseInt(data.direction_id),
                     tripHeadsign: data.trip_headsign,
+                    tripShortName: data.trip_short_name,
                     stopTimes: []
                 };
             })
@@ -84,7 +87,7 @@ type RouteBucket = GtfsTrip[];
 function sortTripsIntoRouteBuckets(trips: GtfsTripMap, routes: GtfsRouteMap) {
 
     let routeBuckets: RouteBucket[] = [];
-    let indexByRouteShortName: { [routeShortName: string]: RouteBucket[] } = {};
+    let indexByRouteName: { [routeName: string]: RouteBucket[] } = {};
     let tripList = Object.values(trips).sort((tripA, tripB) => tripA.stopTimes[0].departureTime - tripB.stopTimes[0].departureTime);
 
     function tripFits(bucket: RouteBucket, tNew: GtfsTrip) {
@@ -93,7 +96,7 @@ function sortTripsIntoRouteBuckets(trips: GtfsTripMap, routes: GtfsRouteMap) {
         if (tBucket.tripHeadsign !== tNew.tripHeadsign) {
             return false;
         }
-        if (tBucket.stopTimes.length !== tNew.stopTimes.length || tBucket.directionId !== tNew.directionId) {
+        if (tBucket.stopTimes.length !== tNew.stopTimes.length) {
             return false;
         }
         for (let i = 0; i < tBucket.stopTimes.length; i++) {
@@ -112,17 +115,23 @@ function sortTripsIntoRouteBuckets(trips: GtfsTripMap, routes: GtfsRouteMap) {
     }
 
     function findBucket(t: GtfsTrip) {
-        let routeShortName = routes[t.routeId].routeShortName;
-        let candidates = (indexByRouteShortName[routeShortName] || [])
+        let routeName = t.tripShortName || routes[t.routeId].routeShortName;
+        let candidates = (indexByRouteName[routeName] || [])
             .filter(b => tripFits(b, t));
         let bucket: RouteBucket;
         if (!candidates.length) {
             bucket = [];
-            indexByRouteShortName[routeShortName] = indexByRouteShortName[routeShortName] || [];
-            indexByRouteShortName[routeShortName].push(bucket);
+            indexByRouteName[routeName] = indexByRouteName[routeName] || [];
+            indexByRouteName[routeName].push(bucket);
             routeBuckets.push(bucket);
         } else {
-            bucket = candidates.sort((a, b) => a[0].stopTimes[0].departureTime - b[0].stopTimes[0].departureTime)[0];
+            bucket = candidates.sort((a, b) => {
+                let byDepartureTime = a[0].stopTimes[0].departureTime - b[0].stopTimes[0].departureTime;
+                if (byDepartureTime !== 0) {
+                    return byDepartureTime;
+                }
+                return a[0].tripId.localeCompare(b[0].tripId);
+            })[0];
         }
         return bucket;
     }
@@ -135,11 +144,16 @@ function sortTripsIntoRouteBuckets(trips: GtfsTripMap, routes: GtfsRouteMap) {
 }
 
 function validateRouteBuckets(routesWithNames: GtfsRouteMap, routeBucketsOrdered: RouteBucket[]) {
+
+    function getRouteDescription(trip: GtfsTrip) {
+        return `${trip.tripShortName || routesWithNames[trip.routeId].routeShortName} ${trip.tripHeadsign}`;
+    }
+
     for (let trips of routeBucketsOrdered) {
-        let route = routesWithNames[trips[0].routeId];
+        let routeDescription = getRouteDescription(trips[0]);
         if (trips.some(t => {
-            let r = routesWithNames[t.routeId];
-            return r.routeShortName !== route.routeShortName || r.routeType !== route.routeType;
+            let trip2RouteDescription = getRouteDescription(t);
+            return trip2RouteDescription !== routeDescription;
         })) {
             throw new Error("Route description of trips doesn't match");
         }
@@ -188,7 +202,8 @@ export async function preprocessGtfs(gtfsPath: string, outputPath: string) {
         id: idx,
         tripRoutes: trips.map(t => t.routeId),
         direction: trips[0].directionId,
-        headsign: trips[0].tripHeadsign
+        headsign: trips[0].tripHeadsign,
+        routeName: trips[0].tripShortName || routesWithNames[trips[0].routeId].routeShortName
     }));
     await fs.promises.writeFile(path.join(outputPath, "routeIdMap.json"), JSON.stringify(routeIdMap));
     console.log("Writing routes");
