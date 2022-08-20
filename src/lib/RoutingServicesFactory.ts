@@ -26,10 +26,17 @@ export class RoutingServicesFactory {
     }
 
     private async createRouteInfoStore() {
-        let routeNamesTask = fetch(new URL("../../preprocessing-dist/routes.json", import.meta.url).toString()).then(res => (res.json()) as Promise<[string, string, number, string | null][]>);
-        let stopNamesTask = fetch(new URL("../../preprocessing-dist/stops.json", import.meta.url).toString()).then(res => res.json() as Promise<[string, number][]>);
-        let [routeNames, stopNames] = await Promise.all([routeNamesTask, stopNamesTask]);
-        return new RouteInfoStore(routeNames, stopNames);
+        let routesTask = fetch(new URL("../../preprocessing-dist/routes.json", import.meta.url).toString()).then(res => (res.json()) as Promise<[number, number][]>);
+        let stopsTask = fetch(new URL("../../preprocessing-dist/stops.json", import.meta.url).toString()).then(res => res.json() as Promise<[string, number, number][]>);
+        let routeClassesTask = fetch(new URL("../../preprocessing-dist/route-classes.json", import.meta.url).toString()).then(res => res.json() as Promise<{
+            routeShortName: string;
+            headsignVariants: string[];
+            routeType: number;
+            routeColor?: string;
+        }[]>);
+        let routeClassesByRealtimeIdentifierTask = fetch(new URL("../../preprocessing-dist/route-classes-by-realtime-identifier.json", import.meta.url).toString()).then(res => res.json() as Promise<[type: number, value: number, ...routeClasses: number[]][]>);
+        let [routes, stops, routeClasses, routeClassesByRealtimeIdentifier] = await Promise.all([routesTask, stopsTask, routeClassesTask, routeClassesByRealtimeIdentifierTask]);
+        return new RouteInfoStore(routes, routeClasses, routeClassesByRealtimeIdentifier, stops);
     }
 
     private async createRoutingInstance() {

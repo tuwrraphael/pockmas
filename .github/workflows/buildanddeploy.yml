@@ -1,7 +1,7 @@
 name: Build and Deploy
 
 env:
-  DATA_FORMAT_VERSION : '10'
+  DATA_FORMAT_VERSION : '11'
   NODE_VERSION: 16.x
   GTFSTIDY_EXECUTABLE: ~/go/bin/gtfstidy
 
@@ -12,7 +12,7 @@ on:
 jobs:
   routingdata:
     name: Preprocess routing data
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js
@@ -43,7 +43,7 @@ jobs:
         run: sudo apt-get install -y osmium-tool
         if: steps.cache-routing.outputs.cache-hit != 'true' && steps.cache-map.outputs.cache-hit != 'true'
       - name: Install gtfstidy
-        run: go get github.com/patrickbr/gtfstidy
+        run: go install github.com/patrickbr/gtfstidy@latest
         if: steps.cache-routing.outputs.cache-hit != 'true'
       - name: Check dependencies
         run: npm run check-dependencies
@@ -105,15 +105,15 @@ jobs:
       working-directory: ./raptor
       run: make
       env:
-        LD: wasm-ld-10
-        CC: clang-10
+        LD: wasm-ld-12
+        CC: clang-12
         MODE: PRODUCTION
     - name: Build stopsearch wasm module
       working-directory: ./stopsearch
       run: make
       env:
-        LD: wasm-ld-10
-        CC: clang-10
+        LD: wasm-ld-12
+        CC: clang-12
         MODE: PRODUCTION
     - name: Use Node.js
       uses: actions/setup-node@v1

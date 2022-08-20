@@ -16,14 +16,14 @@ typedef struct
 
 typedef struct
 {
-    uint32_t diva;
-    uint16_t linie;
-    uint8_t direction;
+    uint32_t realtime_route_identifier;
+    uint16_t route_class;
+    uint8_t headsign_variant;
     uint8_t weekday;
     datetime_t date;
     boolean_t apply;
     uint8_t num_updates;
-    uint16_t padding;
+    uint16_t realtime_route_identifier_type;
     timeofday_t time_real[MAX_STOPTIME_UPDATES];
     stoptime_update_result results[MAX_STOPTIME_UPDATES];
     uint8_t num_matches[MAX_STOPTIME_UPDATES];

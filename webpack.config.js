@@ -10,7 +10,7 @@ const fs = require("fs");
 const path = require('path');
 
 
-const allowedChars = /[^a-zA-Z0-9/]|-/g;
+const allowedChars = /[^a-zA-Z0-9/-]/g;
 function getRevision() {
     const rev = fs.readFileSync('.git/HEAD').toString();
     if (rev.indexOf(':') === -1) {
