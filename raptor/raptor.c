@@ -311,6 +311,11 @@ departure_results_t *get_departures()
 	while (departure_results.num_results < MAX_DEPARTURE_RESULTS && !res.end)
 	{
 		route_t *route = &input_data.routes[res.current.route_id];
+		boolean_t is_last_stop = res.current.stop_offset == route->stop_count - 1;
+		if (is_last_stop) {
+			res = schedule_scan_advance(&input_data, state);
+			continue;
+		}
 		stop_id_t stop_id = input_data.route_stops[route->stop_idx + res.current.stop_offset].stop_id;
 		departure_results.results[departure_results.num_results].delay = res.current.departure.delay;
 		departure_results.results[departure_results.num_results].stop_id = stop_id;
