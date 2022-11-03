@@ -1,5 +1,6 @@
 @use "../../utils.scss";
-.departure-display{
+
+.departure-display {
     &__departure {
         display: grid;
         column-gap: 0.2em;
@@ -8,15 +9,26 @@
         grid-template-rows: auto auto;
         margin-bottom: 0.2em;
     }
-    &__departure-direction {
+
+    &__departure-stop-display {
         grid-column: 3 / 3;
         grid-row: 2 / 2;
         font-size: 0.8em;
     }
+
+    &__departure-stop-img {
+        position: relative;
+        overflow: hidden;
+        height: 1.2em;
+        padding-right: 0.2em;
+        top: 0.21em;
+    }
+
     &__departure-time {
         font-size: 1.2em;
         line-height: 1em;
     }
+
     &__planned-time {
         grid-column: 1 / 1;
         grid-row: 2 / 2;
