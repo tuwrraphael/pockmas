@@ -47,10 +47,10 @@ describe("realtime", () => {
             routeClassName: "25",
             headsign: "Oberdorfstraße",
             times: [
-                new Date("2022-11-25T16:55:33.000+0100"),
-                new Date("2022-11-25T16:55:43.000+0100"),
-                new Date("2022-11-25T16:58:58.000+0100"),
-                new Date("2022-11-25T17:05:00.000+0100")
+                new Date("2022-11-25T16:56:33.000+0100"),
+                new Date("2022-11-25T16:56:43.000+0100"),
+                new Date("2022-11-25T16:59:58.000+0100"),
+                new Date("2022-11-25T17:07:00.000+0100")
             ],
         }, false);
         let result = routingInstance.getRealtimeUpdateResult();
@@ -73,7 +73,7 @@ describe("realtime", () => {
             routeClassName: "U1",
             headsign: "OBERLAA          ",
             times: [
-                new Date("2022-11-27T14:06:55.000+0100"),
+                new Date("2022-11-27T14:05:55.000+0100"),
             ],
         }, false);
         let result = routingInstance.getRealtimeUpdateResult();
@@ -87,7 +87,7 @@ describe("realtime", () => {
             routeClassName: "U1",
             headsign: "Alaudagasse",
             times: [
-                new Date("2022-11-27T14:12:55.000+0100")
+                new Date("2022-11-27T14:11:55.000+0100")
             ],
         }, false);
         result = routingInstance.getRealtimeUpdateResult();

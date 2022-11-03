@@ -25,10 +25,10 @@ describe("RoutingService", () => {
 
             let departureTime = new Date(getUnixTime({
                 year: 2022,
-                month: 10,
-                day: 17,
+                month: 11,
+                day: 21,
                 hours: 23,
-                minutes: 53,
+                minutes: 52,
                 seconds: 0,
             }, vienna));
 
@@ -41,19 +41,19 @@ describe("RoutingService", () => {
                     departureTime
                 }))
             });
-            // console.log(result.map(r => `${r.route.name } ${r.route.headsign } ${r.plannedDeparture }`).join("\n"));
+            console.log(result.map(r => `${r.route.name } ${r.route.headsign } ${r.plannedDeparture }`).join("\n"));
 
             let u1directionOberlaaAlaudaGasse = result.filter(r => r.route.name == "U1" && (r.route.headsign == "Wien Oberlaa" || r.route.headsign == "Wien Alaudagasse"));
             expect(u1directionOberlaaAlaudaGasse.length).toBe(3);
-            expect(u1directionOberlaaAlaudaGasse[0].plannedDeparture).toEqual(new Date("2022-10-17T23:54:00.000+0200"));
-            expect(u1directionOberlaaAlaudaGasse[1].plannedDeparture).toEqual(new Date("2022-10-18T00:01:00.000+0200"));
-            expect(u1directionOberlaaAlaudaGasse[2].plannedDeparture).toEqual(new Date("2022-10-18T00:07:00.000+0200"));
+            expect(u1directionOberlaaAlaudaGasse[0].plannedDeparture).toEqual(new Date("2022-11-21T23:52:00.000+0100"));
+            expect(u1directionOberlaaAlaudaGasse[1].plannedDeparture).toEqual(new Date("2022-11-22T00:02:00.000+0100"));
+            expect(u1directionOberlaaAlaudaGasse[2].plannedDeparture).toEqual(new Date("2022-11-22T00:12:00.000+0100"));
             // expect(u1directionOberlaaAlaudaGasse[3].plannedDeparture).toEqual(new Date("2022-10-18T00:14:00.000+0200"));
 
             let u1directionLeopoldau = result.filter(r => r.route.name == "U1" && r.route.headsign == "Wien Leopoldau");
             expect(u1directionLeopoldau.length).toBe(2);
-            expect(u1directionLeopoldau[0].plannedDeparture).toEqual(new Date("2022-10-17T23:53:00.000+0200"));
-            expect(u1directionLeopoldau[1].plannedDeparture).toEqual(new Date("2022-10-18T00:00:00.000+0200"));
+            expect(u1directionLeopoldau[0].plannedDeparture).toEqual(new Date("2022-11-21T23:55:00.000+0100"));
+            expect(u1directionLeopoldau[1].plannedDeparture).toEqual(new Date("2022-11-22T00:05:00.000+0100"));
             // expect(u1directionLeopoldau[2].plannedDeparture).toEqual(new Date("2022-10-18T00:08:00.000+0200"));
             // expect(u1directionLeopoldau[3].plannedDeparture).toEqual(new Date("2022-10-18T00:14:00.000+0200"));
 
