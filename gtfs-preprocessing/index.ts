@@ -40,6 +40,9 @@ if (!fs.existsSync(destDir)) {
     fs.mkdirSync(destDir);
 }
 const gtfsDir = path.join(__dirname, "../gtfs");
+if (!fs.existsSync(gtfsDir)) {
+    fs.mkdirSync(gtfsDir);
+}
 const gtfsWienerLinienDir = path.join(__dirname, "../gtfs-wienerlinien");
 const gtfsOebbDir = path.join(__dirname, "../gtfs-oebb");
 const rtDir = path.join(__dirname, "../");
