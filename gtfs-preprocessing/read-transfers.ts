@@ -5,7 +5,12 @@ import path from "path";
 import { GtfsStop } from "./read-stops";
 
 export async function enhanceWithTransfers(stops: GtfsStop[], gtfsPath: string) {
-    const stopsStream = fs.createReadStream(path.join(gtfsPath, "transfers.txt"));
+    let transfersFile = path.join(gtfsPath, "transfers.txt");
+    if (!fs.existsSync(transfersFile)) {
+        console.log("No transfers file found to enhance transfers with.");
+        return;
+    }
+    const stopsStream = fs.createReadStream(transfersFile);
     return new Promise<void>(resolve => {
         stopsStream
             .pipe(stripBom())
