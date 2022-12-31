@@ -1,4 +1,4 @@
-import { findTimeZone, getUnixTime, getZonedTime } from "timezone-support/dist/lookup-convert";
+import { findTimeZone, getUnixTime, getZonedTime } from "timezone-support/lookup-convert";
 
 export class TimezoneUtility {
 

@@ -1,6 +1,6 @@
 import { RouteInfoStore } from "./RouteInfoStore";
 import { RoutingService } from "./RoutingService";
-import { populateTimeZones } from "timezone-support/dist/lookup-convert";
+import { populateTimeZones } from "timezone-support/lookup-convert";
 import { RaptorExports } from "../../raptor/wasm-exports";
 import { copyToWasmMemory } from "../utils/copyToWasmMemory";
 import { RouteDetailsService } from "./RouteDetailsService";
@@ -18,9 +18,10 @@ export class RoutingServicesFactory {
     private realtimeLookupServicePromise: Promise<RealtimeLookupService>;
     private stopGroupStorePromise: Promise<StopGroupStore>;
 
-    private populateTimeZones() {
+    private async populateTimeZones() {
         if (this.timezonesPromise == null) {
-            this.timezonesPromise = import("timezone-support/dist/data-2012-2022").then(d => populateTimeZones(d));
+            const { default: defaultFunc } = await import("timezone-support/data-1970-2038");
+            populateTimeZones(defaultFunc);
         }
         return this.timezonesPromise;
     }

@@ -1,6 +1,6 @@
 // import { RoutingService } from "../src/lib/RoutingService";
-import { findTimeZone, getUnixTime, populateTimeZones } from "timezone-support/dist/lookup-convert";
-import * as tzd from "timezone-support/dist/data-2012-2022";
+import { findTimeZone, getUnixTime, populateTimeZones } from "timezone-support/lookup-convert";
+import tzd from "timezone-support/data-1970-2038";
 // import { LegType } from "../src/lib/LegType";
 // import { RoutingServicesFactory } from "../src/lib/RoutingServicesFactory";
 
@@ -24,7 +24,7 @@ describe("RoutingService", () => {
         it("offers departures", () => {
 
             let departureTime = new Date(getUnixTime({
-                year: 2022,
+                year: 2023,
                 month: 11,
                 day: 21,
                 hours: 23,
@@ -44,16 +44,16 @@ describe("RoutingService", () => {
             console.log(result.map(r => `${r.route.name } ${r.route.headsign } ${r.plannedDeparture }`).join("\n"));
 
             let u1directionOberlaaAlaudaGasse = result.filter(r => r.route.name == "U1" && (r.route.headsign == "Wien Oberlaa" || r.route.headsign == "Wien Alaudagasse"));
-            expect(u1directionOberlaaAlaudaGasse.length).toBe(3);
-            expect(u1directionOberlaaAlaudaGasse[0].plannedDeparture).toEqual(new Date("2022-11-21T23:52:00.000+0100"));
-            expect(u1directionOberlaaAlaudaGasse[1].plannedDeparture).toEqual(new Date("2022-11-22T00:02:00.000+0100"));
-            expect(u1directionOberlaaAlaudaGasse[2].plannedDeparture).toEqual(new Date("2022-11-22T00:12:00.000+0100"));
+            expect(u1directionOberlaaAlaudaGasse.length).toBe(2);
+            expect(u1directionOberlaaAlaudaGasse[0].plannedDeparture).toEqual(new Date("2023-11-21T23:54:00.000+0100"));
+            expect(u1directionOberlaaAlaudaGasse[1].plannedDeparture).toEqual(new Date("2023-11-22T00:01:00.000+0100"));
+            // expect(u1directionOberlaaAlaudaGasse[2].plannedDeparture).toEqual(new Date("2023-11-22T00:12:00.000+0100"));
             // expect(u1directionOberlaaAlaudaGasse[3].plannedDeparture).toEqual(new Date("2022-10-18T00:14:00.000+0200"));
 
             let u1directionLeopoldau = result.filter(r => r.route.name == "U1" && r.route.headsign == "Wien Leopoldau");
             expect(u1directionLeopoldau.length).toBe(2);
-            expect(u1directionLeopoldau[0].plannedDeparture).toEqual(new Date("2022-11-21T23:55:00.000+0100"));
-            expect(u1directionLeopoldau[1].plannedDeparture).toEqual(new Date("2022-11-22T00:05:00.000+0100"));
+            expect(u1directionLeopoldau[0].plannedDeparture).toEqual(new Date("2023-11-21T23:53:00.000+0100"));
+            expect(u1directionLeopoldau[1].plannedDeparture).toEqual(new Date("2023-11-22T00:00:00.000+0100"));
             // expect(u1directionLeopoldau[2].plannedDeparture).toEqual(new Date("2022-10-18T00:08:00.000+0200"));
             // expect(u1directionLeopoldau[3].plannedDeparture).toEqual(new Date("2022-10-18T00:14:00.000+0200"));
 

@@ -1,5 +1,5 @@
-import { populateTimeZones } from "timezone-support/dist/lookup-convert";
-import * as tzd from "timezone-support/dist/data-2012-2022";
+import { populateTimeZones } from "timezone-support/lookup-convert";
+import tzd from "timezone-support/data-1970-2038";
 import { TimezoneUtility } from "./TimezoneUtility";
 
 describe("getStartOfDayVienna", () => {
