@@ -308,13 +308,13 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-timezone-support v2.0.2 - Ferdinand Prantl
+timezone-support v3.1.0 - Ferdinand Prantl
 https://github.com/prantlf/timezone-support.git
 --------------------------------------------------------------------------------
 
 MIT License
 
-Copyright (c) 2018-2019 Ferdinand Prantl
+Copyright (c) 2018-2022 Ferdinand Prantl
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -336,13 +336,13 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-ts-loader v9.3.1 - John Reilly <johnny_reilly@hotmail.com> (https://blog.johnnyreilly.com)
+ts-loader v9.4.2 - John Reilly <johnny_reilly@hotmail.com> (https://blog.johnnyreilly.com)
 https://github.com/TypeStrong/ts-loader.git
 --------------------------------------------------------------------------------
 
 The MIT License (MIT)
 
-Copyright (c) 2015 TypeStrong
+Copyright (c) 2015-present TypeStrong
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
