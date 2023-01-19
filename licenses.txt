@@ -3,7 +3,7 @@ Do Not Translate or Localize
 
 
 --------------------------------------------------------------------------------
-babel-loader v8.2.5 - Luis Couto <hello@luiscouto.pt>
+babel-loader v9.1.0 - Luis Couto <hello@luiscouto.pt>
 https://github.com/babel/babel-loader.git
 --------------------------------------------------------------------------------
 
@@ -32,7 +32,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-core-js v3.24.1
+core-js v3.27.1 - Denis Pushkarev
 https://github.com/zloirock/core-js.git
 --------------------------------------------------------------------------------
 
@@ -58,7 +58,7 @@ THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-css-loader v6.7.1 - Tobias Koppers @sokra
+css-loader v6.7.3 - Tobias Koppers @sokra
 webpack-contrib/css-loader
 --------------------------------------------------------------------------------
 
@@ -85,7 +85,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-html-loader v4.1.0 - Tobias Koppers @sokra
+html-loader v4.2.0 - Tobias Koppers @sokra
 webpack-contrib/html-loader
 --------------------------------------------------------------------------------
 
@@ -139,7 +139,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-js-base64 v3.7.2 - Dan Kogai
+js-base64 v3.7.3 - Dan Kogai
 git+https://github.com/dankogai/js-base64.git
 --------------------------------------------------------------------------------
 
@@ -173,7 +173,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 --------------------------------------------------------------------------------
-mini-css-extract-plugin v2.6.1 - Tobias Koppers @sokra
+mini-css-extract-plugin v2.7.2 - Tobias Koppers @sokra
 webpack-contrib/mini-css-extract-plugin
 --------------------------------------------------------------------------------
 
@@ -200,7 +200,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-postcss-loader v7.0.1 - Andrey Sitnik <andrey@sitnik.ru>
+postcss-loader v7.0.2 - Andrey Sitnik <andrey@sitnik.ru>
 webpack-contrib/postcss-loader
 --------------------------------------------------------------------------------
 
@@ -254,7 +254,7 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-sass-loader v13.0.2 - J. Tangelder
+sass-loader v13.2.0 - J. Tangelder
 webpack-contrib/sass-loader
 --------------------------------------------------------------------------------
 
