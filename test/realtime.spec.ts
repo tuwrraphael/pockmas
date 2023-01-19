@@ -19,46 +19,46 @@ describe("realtime", () => {
         stopgroupIndex = await (await fetch(new URL("../preprocessing-dist/stopgroup-index.json", import.meta.url).toString())).json();
     });
 
-    
-//     it("updates realtime for S80 Erzherzog Karl Straße", () => {
-//         routingInstance.upsertRealtimeData({
-//             realtimeIdentifier: {
-//                 type: RealtimeIdentifierType.OEBB,
-//                 value: 8100756
-//             },
-//             routeClassName: "S 80",
-//             headsign: "Wien Aspern Nord Bahnhof",
-//             times: [
-//                 new Date("2022-08-21T17:09:00.000+0200"), // 46 = 16:12:00 +57 = 17:09
-//                 new Date("2022-08-21T17:24:00.000+0200"), // 48 = 16:42:00 +42 = 17:24
-//                 new Date("2022-08-21T17:39:00.000+0200"), // +27 = 18:06
-//                 new Date("2022-08-21T17:54:00.000+0200"), // +12 = 18:06
-//                 new Date("2022-08-21T18:09:00.000+0200"), // -3 = 18:06
-//                 // new Date("2022-08-21T18:24:00.000+0200"),
-//                 // new Date("2022-08-21T18:39:00.000+0200"),
-//                 // new Date("2022-08-21T18:54:00.000+0200"),
-//                 // new Date("2022-08-21T19:09:00.000+0200")
-//             ],
 
-//         }, true);
+    //     it("updates realtime for S80 Erzherzog Karl Straße", () => {
+    //         routingInstance.upsertRealtimeData({
+    //             realtimeIdentifier: {
+    //                 type: RealtimeIdentifierType.OEBB,
+    //                 value: 8100756
+    //             },
+    //             routeClassName: "S 80",
+    //             headsign: "Wien Aspern Nord Bahnhof",
+    //             times: [
+    //                 new Date("2022-08-21T17:09:00.000+0200"), // 46 = 16:12:00 +57 = 17:09
+    //                 new Date("2022-08-21T17:24:00.000+0200"), // 48 = 16:42:00 +42 = 17:24
+    //                 new Date("2022-08-21T17:39:00.000+0200"), // +27 = 18:06
+    //                 new Date("2022-08-21T17:54:00.000+0200"), // +12 = 18:06
+    //                 new Date("2022-08-21T18:09:00.000+0200"), // -3 = 18:06
+    //                 // new Date("2022-08-21T18:24:00.000+0200"),
+    //                 // new Date("2022-08-21T18:39:00.000+0200"),
+    //                 // new Date("2022-08-21T18:54:00.000+0200"),
+    //                 // new Date("2022-08-21T19:09:00.000+0200")
+    //             ],
+
+    //         }, true);
 
 
-        
-//     let result = routingInstance.getRealtimeUpdateResult();
-//     console.log(result.map(r => `${r.routeId}:${r.route} ${r.trip} ${r.realtimeOffset / 60}`).join("\n"));
 
-//     let departureResult = routingInstance.getDepartures({
-//         departureStops: [{
-//             stopId: 36,
-//             departureTime: new Date("2022-08-21T17:00:00.000+0200")
-//         }]
-//     }).filter(s => s.route.headsign == "Wien Aspern Nord Bahnhof");
-// console.log(departureResult.map(s => `${s.plannedDeparture} ${s.route.id}:${s.tripId} ${s.route.headsign}`).join("\n"));
+    //     let result = routingInstance.getRealtimeUpdateResult();
+    //     console.log(result.map(r => `${r.routeId}:${r.route} ${r.trip} ${r.realtimeOffset / 60}`).join("\n"));
 
-//     expect(result.length).toBe(1);
-//     expect(result[0].route).toBe("S 80");
-//     expect(result[0].realtimeOffset).toBe(2);
-// });
+    //     let departureResult = routingInstance.getDepartures({
+    //         departureStops: [{
+    //             stopId: 36,
+    //             departureTime: new Date("2022-08-21T17:00:00.000+0200")
+    //         }]
+    //     }).filter(s => s.route.headsign == "Wien Aspern Nord Bahnhof");
+    // console.log(departureResult.map(s => `${s.plannedDeparture} ${s.route.id}:${s.tripId} ${s.route.headsign}`).join("\n"));
+
+    //     expect(result.length).toBe(1);
+    //     expect(result[0].route).toBe("S 80");
+    //     expect(result[0].realtimeOffset).toBe(2);
+    // });
 
 
     it("updates realtime for 22A Kagran", () => {
@@ -81,26 +81,40 @@ describe("realtime", () => {
     });
 
     it("updates realtime for 25 if its very late", () => {
+        let realtimes = [
+            513, // 8:33
+            163, // 2:43
+            -2,
+            0
+        ];
+        let day = "2023-11-21T"; // tuesday
+        let planTimes = [
+            "16:49",
+            "16:56",
+            "17:02",
+            "17:09",
+        ];
+        let times = [
+            new Date(+new Date(`${day}${planTimes[0]}:00.000+0100`) + realtimes[0] * 1000),
+            new Date(+new Date(`${day}${planTimes[1]}:00.000+0100`) + realtimes[1] * 1000),
+            new Date(+new Date(`${day}${planTimes[2]}:00.000+0100`) + realtimes[2] * 1000),
+            new Date(+new Date(`${day}${planTimes[3]}:00.000+0100`) + realtimes[3] * 1000)
+        ];
         routingInstance.upsertRealtimeData({
             realtimeIdentifier: {
                 type: RealtimeIdentifierType.WienerLinien,
-                value: 60201031
+                value: 60201031 // Polgarstaße
             },
             routeClassName: "25",
             headsign: "Oberdorfstraße",
-            times: [
-                new Date("2023-11-21T16:56:33.000+0100"),
-                new Date("2023-11-21T16:56:43.000+0100"),
-                new Date("2023-11-21T16:59:58.000+0100"),
-                new Date("2023-11-21T17:07:00.000+0100")
-            ],
+            times: times,
         }, false);
         let result = routingInstance.getRealtimeUpdateResult();
 
-        expect(result[0].realtimeOffset).toBe(513);
-        expect(result[1].realtimeOffset).toBe(163);
-        expect(result[2].realtimeOffset).toBe(-2);
-        expect(result[3].realtimeOffset).toBe(0);
+        expect(result[0].realtimeOffset).toBe(realtimes[0]);
+        expect(result[1].realtimeOffset).toBe(realtimes[1]);
+        expect(result[2].realtimeOffset).toBe(realtimes[2]);
+        expect(result[3].realtimeOffset).toBe(realtimes[3]);
         for (let r of result) {
             expect(r.route).toBe("25");
         }
@@ -269,7 +283,7 @@ describe("realtime", () => {
             month: 11,
             day: 9,
             hours: 9,
-            minutes: 36,
+            minutes: 39,
             seconds: 0,
         }, vienna));
 
@@ -278,18 +292,22 @@ describe("realtime", () => {
             arrivalStop: stopgroupIndex.find(n => n.name == "Kagran").stopIds[0],
             departureTimes: new Array(departureStops.length).fill(departureTime)
         };
+        let delay =  60 + 33;
+        let planTime = "09:39";
+        let day = "2023-11-09T";// donnerstag
         routingInstance.upsertRealtimeData({
             headsign: "Kagran",
             realtimeIdentifier: {
                 type: RealtimeIdentifierType.WienerLinien,
-                value: 60201031
+                value: 60201031 // Polgarstraße
             },
             routeClassName: "26A",
             times: [
-                new Date("2023-11-09T09:41:33.000+0100")
+                new Date(+new Date(`${day}${planTime}:00.000+0100`) + delay * 1000)
             ]
         }, true);
         let result = routingInstance.route(request);
-        expect(result[0].legs[0].delay).toEqual(2 * 60 + 33);
+        expect(result[0].legs[0].route.name).toBe("26A");
+        expect(result[0].legs[0].delay).toEqual(delay);
     });
 });
