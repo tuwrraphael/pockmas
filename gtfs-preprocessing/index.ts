@@ -3,7 +3,7 @@ import { preprocessGtfs } from "./gtfs-preprocessor";
 import { env } from "process";
 import { downloadOebbGtfs } from "./download-oebb";
 import { downloadWienerlinienGtfs } from "./download-wienerlinien";
-import { fixTimeZones } from "./fix-timezones";
+import { fixGtfs } from "./fix-gtfs";
 import { gtfsTidy } from "./gtfstidy";
 import { getStopPopularity } from "./stop-popularity.js";
 import { getTransfers } from "./transfers";
@@ -20,7 +20,7 @@ let pathToGtfsTidyExecutable = env.GTFSTIDY_EXECUTABLE || "gtfstidy";
 let steps = [
     "download-oebb",
     "download-wienerlinien",
-    "fix-timezones",
+    "fix-gtfs",
     "gtfstidy",
     "stop-popularity",
     "search-index",
@@ -56,8 +56,9 @@ async function doSteps() {
             case "download-wienerlinien":
                 await downloadWienerlinienGtfs(gtfsWienerLinienDir);
                 break;
-            case "fix-timezones":
-                await fixTimeZones(gtfsOebbDir);
+            case "fix-gtfs":
+                await fixGtfs(gtfsOebbDir);
+                await fixGtfs(gtfsWienerLinienDir);
                 break;
             case "gtfstidy":
                 await gtfsTidy(pathToGtfsTidyExecutable, [gtfsOebbDir, gtfsWienerLinienDir], gtfsDir);
