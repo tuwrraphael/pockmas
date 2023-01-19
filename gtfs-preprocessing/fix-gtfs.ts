@@ -4,18 +4,18 @@ import csv from "csv-parser";
 import csvWriteStream from "csv-write-stream";
 import stripBom from "strip-bom-stream";
 
-async function readAgencies(gtfsPath: string) {
-    const routesStream = fs.createReadStream(path.join(gtfsPath, "agency.txt"));
+async function readAny(gtfsPath: string, file: string) {
+    const routesStream = fs.createReadStream(path.join(gtfsPath, file));
     return new Promise<any>(resolve => {
-        let agencies: any = [];
+        let res: any = [];
         routesStream
             .pipe(stripBom())
             .pipe(csv())
             .on("data", (data) => {
-                agencies.push(data);
+                res.push(data);
             })
             .on('end', () => {
-                resolve(agencies);
+                resolve(res);
             });
     });
 }
@@ -29,32 +29,58 @@ function fixTimeZones(agencies: any[]) {
     }
 }
 
-function fixAgencyUrl(agencies: any[]) {
+function ensureAgencyUrl(agencies: any[]) {
     let hasAgencyUrls = agencies.some(a => a.hasOwnProperty("agency_url"));
     if (!hasAgencyUrls) {
         return;
     }
+    let num = 0;
     for (let a of agencies) {
         if (!a.agency_url) {
             a.agency_url = "https://pockmas.kesal.at";
+            num++;
         }
+    }
+    if (num > 0) {
+        console.log(`Fixed ${num} agencies without agency_url`);
     }
 }
 
-function writeAgencies(gtfsPath: string, agencies: any[]) {
-    const writeStream = fs.createWriteStream(path.join(gtfsPath, "agency.txt"));
-    const headers: string[] = Array.from(agencies.reduce((prev, cur) => new Set<string>([...prev, ...Object.keys(cur)]), new Set<string>()));
+function writeGtfs(gtfsPath: string, file: string, data: any[]) {
+    const writeStream = fs.createWriteStream(path.join(gtfsPath, file));
+    const headers: string[] = Array.from(data.reduce((prev, cur) => new Set<string>([...prev, ...Object.keys(cur)]), new Set<string>()));
     const writer = csvWriteStream({ headers: headers });
     writer.pipe(writeStream);
-    for (let a of agencies) {
+    for (let a of data) {
         writer.write(a);
     }
     writer.end();
 }
 
+function ensureRouteAgency(routes: any) {
+    let num = 0;
+    let mostUsed: string | null = null;
+    for (let a of routes) {
+        if (!a.agency_id) {
+            if (!mostUsed) {
+                mostUsed = Object.entries(routes.reduce((prev: any, cur: any) => ({ ...prev, [cur.agency_id]: (prev[cur.agency_id] || 0) + 1 }), {}))
+                    .sort(([, r1], [, r2]) => <number>r2 - <number>r1)[0][0];
+            }
+            a.agency_id = mostUsed;
+            num++;
+        }
+    }
+    if (num > 0) {
+        console.log(`Fixed ${num} routes without agency_id to ${mostUsed}`);
+    }
+}
+
 export async function fixGtfs(gtfsDir: string) {
-    let agencies = await readAgencies(gtfsDir);
+    let agencies = await readAny(gtfsDir, "agency.txt");
     fixTimeZones(agencies);
-    fixAgencyUrl(agencies);
-    writeAgencies(gtfsDir, agencies);
+    ensureAgencyUrl(agencies);
+    writeGtfs(gtfsDir, "agency.txt", agencies);
+    let routes = await (readAny(gtfsDir, "routes.txt"));
+    ensureRouteAgency(routes);
+    writeGtfs(gtfsDir, "routes.txt", routes);
 }
