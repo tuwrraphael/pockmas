@@ -8,8 +8,14 @@ import { RouteResultsList } from "../RouteResultsList/RouteResultsList";
 import { DepartureResultsList } from "../DepartureResultsList/DepartureResultsList";
 import { AppRouter } from "../../app-router";
 
+enum DisplayMode {
+    Departures,
+    Routes
+}
+
 export class RouteResults extends HTMLElement {
     private rendered = false;
+    private displayMode : DisplayMode = null;
     private store: Store;
     private appRouter: AppRouter;
     private abortController: AbortController;
@@ -68,17 +74,22 @@ export class RouteResults extends HTMLElement {
         this.tabTitleAbfahrten.href = `s?dsg=${this.departureStopGroupId}`;
         this.tabTitleRouten.style.display = this.hasRouten ? "" : "none";
         this.header.style.display = this.hasAbfahrten || this.hasRouten ? "" : "none";
-        if (displayRouten && null == this.routeResultsList) {
+
+        
+
+        if (displayRouten && this.displayMode != DisplayMode.Routes) {
+            this.displayMode = DisplayMode.Routes;
             this.routeResultsList = new (await import("../RouteResultsList/RouteResultsList")).RouteResultsList;
             this.querySelector(".button-pane").insertAdjacentElement("beforebegin", this.routeResultsList);
-        } else if (!displayRouten && null != this.routeResultsList) {
+        } else if (!displayRouten && this.routeResultsList != null) {
             this.routeResultsList.remove();
             this.routeResultsList = null;
         }
-        if (!displayRouten && null == this.departureResultsList) {
+        if (!displayRouten && this.displayMode != DisplayMode.Departures) {
+            this.displayMode = DisplayMode.Departures;
             this.departureResultsList = new (await import("../DepartureResultsList/DepartureResultsList")).DepartureResultsList;
             this.querySelector(".button-pane").insertAdjacentElement("beforebegin", this.departureResultsList);
-        } else if (displayRouten && null != this.departureResultsList) {
+        } else if (displayRouten && this.departureResultsList != null) {
             this.departureResultsList.remove();
             this.departureResultsList = null;
         }

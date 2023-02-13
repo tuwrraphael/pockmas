@@ -205,14 +205,19 @@ async function route() {
 async function routeDetailsOpened(itineraryIdUrlEncoded: string) {
     let routeDetailsService = await routingServicesFactory.getRouteDetailsService();
     let stopGroupStore = await routingServicesFactory.getStopGroupStore();
-    let itinerary = routeDetailsService.getRouteByUrl(itineraryIdUrlEncoded);
-    updateState(() => ({
-        routeDetail: { itineraryUrlEncoded: itineraryIdUrlEncoded, itinerary: itinerary },
-        selectedStopgroups: {
-            departure: stopGroupStore.findByStopId(itinerary.legs[0].departureStop.stopId),
-            arrival: stopGroupStore.findByStopId(itinerary.legs[itinerary.legs.length - 1].arrivalStop.stopId)
-        }
-    }));
+
+    let realtimeLookupService = await routingServicesFactory.getRealtimeLookupService();
+    realtimeLookupService.performWithRealtimeLoopkup(async () => {
+        let itinerary = routeDetailsService.getRouteByUrl(itineraryIdUrlEncoded);
+        updateState(() => ({
+            routeDetail: { itineraryUrlEncoded: itineraryIdUrlEncoded, itinerary: itinerary },
+            selectedStopgroups: {
+                departure: stopGroupStore.findByStopId(itinerary.legs[0].departureStop.stopId),
+                arrival: stopGroupStore.findByStopId(itinerary.legs[itinerary.legs.length - 1].arrivalStop.stopId)
+            }
+        }));
+        return itinerary.legs.reduce((stopIds, r) => [...stopIds, r.departureStop.stopId], []);
+    });
 }
 
 async function handleMessage(msg: Actions) {

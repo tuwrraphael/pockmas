@@ -7,23 +7,29 @@ import { RouteDetailsService } from "./RouteDetailsService";
 import { RouteUrlEncoder } from "./RouteUrlEncoder";
 import { RealtimeLookupService } from "./RealtimeLookupService";
 import { StopGroupStore } from "./StopGroupStore";
+import { TimezoneUtility } from "./TimezoneUtility";
 
 export class RoutingServicesFactory {
     private routingServicePromise: Promise<RoutingService>;
     private routeInfoStorePromise: Promise<RouteInfoStore>;
-    private timezonesPromise: Promise<void>;
+    private timezoneUtilityPromise: Promise<TimezoneUtility>;
     private routingInstancePromise: Promise<WebAssemblyInstance<RaptorExports>>;
     private routeDetailsServicePromise: Promise<RouteDetailsService>;
     private readonly dataVersion = new URL("../../preprocessing-dist/raptor_data.bin.bmp", import.meta.url).toString().split("/").pop().replace(".bmp", "");
     private realtimeLookupServicePromise: Promise<RealtimeLookupService>;
     private stopGroupStorePromise: Promise<StopGroupStore>;
 
-    private async populateTimeZones() {
-        if (this.timezonesPromise == null) {
-            const { default: defaultFunc } = await import("timezone-support/data-1970-2038");
-            populateTimeZones(defaultFunc);
+    private async createTimezoneUtility() {
+        const { default: defaultFunc } = await import("timezone-support/data-1970-2038");
+        populateTimeZones(defaultFunc);
+        return new TimezoneUtility("Europe/Vienna");
+    }
+
+    private async getTimezoneUtility() {
+        if (this.timezoneUtilityPromise == null) {
+            this.timezoneUtilityPromise = this.createTimezoneUtility();
         }
-        return this.timezonesPromise;
+        return this.timezoneUtilityPromise;
     }
 
     private async createRouteInfoStore() {
@@ -65,8 +71,8 @@ export class RoutingServicesFactory {
     }
 
     private async createRoutingService() {
-        let [routingInstance, routeInfoStore] = await Promise.all([this.getRoutingInstance(), this.getRouteInfoStore(), this.populateTimeZones()])
-        return new RoutingService(routingInstance, routeInfoStore);
+        let [routingInstance, routeInfoStore, timezoneUtility] = await Promise.all([this.getRoutingInstance(), this.getRouteInfoStore(), this.getTimezoneUtility()])
+        return new RoutingService(routingInstance, routeInfoStore, timezoneUtility);
     }
 
     async getRoutingService() {
@@ -77,8 +83,8 @@ export class RoutingServicesFactory {
     }
 
     private async createRouteDetailsService() {
-        let routeInfoStore = await this.getRouteInfoStore();
-        return new RouteDetailsService(new RouteUrlEncoder(this.dataVersion), routeInfoStore);
+        let [routingInstance, routeInfoStore, timezoneUtility, routingService] = await Promise.all([this.getRoutingInstance(), this.getRouteInfoStore(), this.getTimezoneUtility(), this.getRoutingService()])
+        return new RouteDetailsService(new RouteUrlEncoder(this.dataVersion), routeInfoStore, routingInstance, routingService, timezoneUtility);
     }
 
     async getRouteDetailsService() {

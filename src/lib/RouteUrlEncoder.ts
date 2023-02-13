@@ -4,7 +4,7 @@ import { Stop } from "./Stop";
 
 const UrlVersion = 1;
 
-interface DecodedItinerary {
+export interface DecodedItinerary {
     departureTime: Date;
     version: number;
     legs: {

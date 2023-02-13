@@ -53,11 +53,29 @@ const DEPARTURE_RESULTS_SIZE = MAX_DEPARTURE_RESULTS * DEPARTURE_RESULT_SIZE + 4
 
 export class RoutingService {
     private mappedRealtimeData: { [routeId: number]: Set<number> } = {};
-    private timezoneUtility = new TimezoneUtility("Europe/Vienna");
 
     constructor(private routingInstance: WebAssemblyInstance<RaptorExports>,
-        private routeInfoStore: RouteInfoStore) {
+        private routeInfoStore: RouteInfoStore,
+        private timezoneUtility: TimezoneUtility) {
 
+    }
+
+    hasRealtime(routeId: number, trip: number) {
+        return this.mappedRealtimeData[routeId]?.has(trip) || false;
+    }
+
+    private mapToDeparture(view: DataView, offset: number) {
+        let route = this.routeInfoStore.getRoute(view.getUint16(offset, true));
+        let tripId = view.getUint32(offset + 4, true);
+        let departure: Departure = {
+            route: route,
+            stop: this.routeInfoStore.getStop(view.getUint16(offset + 2, true)),
+            tripId: tripId,
+            plannedDeparture: new Date(view.getUint32(offset + 8, true) * 1000),
+            delay: view.getInt16(offset + 12, true),
+            isRealtime: this.hasRealtime(route.id, tripId)
+        };
+        return departure;
     }
 
     getDepartures(r: { departureStops: { stopId: number, departureTime: Date }[] }): Departure[] {
@@ -67,16 +85,7 @@ export class RoutingService {
         let numResults = view.getUint32(0, true);
         let departures: Departure[] = [];
         for (let i = 0; i < numResults; i++) {
-            let route = this.routeInfoStore.getRoute(view.getUint16(4 + i * DEPARTURE_RESULT_SIZE, true));
-            let tripId = view.getUint32(8 + i * DEPARTURE_RESULT_SIZE, true);
-            let departure: Departure = {
-                route: route,
-                stop: this.routeInfoStore.getStop(view.getUint16(6 + i * DEPARTURE_RESULT_SIZE, true)),
-                tripId: tripId,
-                plannedDeparture: new Date(view.getUint32(12 + i * DEPARTURE_RESULT_SIZE, true) * 1000),
-                delay: view.getInt16(16 + i * DEPARTURE_RESULT_SIZE, true),
-                isRealtime: this.mappedRealtimeData[route.id]?.has(tripId) || false
-            };
+            let departure = this.mapToDeparture(view, 4 + i * DEPARTURE_RESULT_SIZE);
             departures.push(departure);
         }
         return departures;
@@ -259,7 +268,7 @@ export class RoutingService {
             let routeId = view.getUint16(16, true);
             leg.route = this.routeInfoStore.getRoute(routeId);
             leg.tripId = view.getUint32(20, true);
-            leg.isRealtime = this.mappedRealtimeData[leg.route.id]?.has(leg.tripId) || false;
+            leg.isRealtime = this.hasRealtime(leg.route.id, leg.tripId);
         }
         return leg;
     }

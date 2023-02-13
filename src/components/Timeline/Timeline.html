@@ -1,1 +1,15 @@
-<slot name="timeline-elements"></slot>
+<div id="timeline-content">
+    <div id="timeline-element-grid">
+        <div id="timeline1-box">
+            <slot name="timeline1"></slot>
+        </div>
+        <div id="timeline-placeholder">
+        </div>
+        <div id="timeline2-box">
+            <slot name="timeline2"></slot>
+        </div>
+    </div>
+    <svg xmlns="http://www.w3.org/2000/svg">
+        <path id="timeline-path" d="M 0 0" stroke="#000" stroke-width="3" />
+    </svg>
+</div>

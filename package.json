@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",
+    "@babel/plugin-syntax-import-assertions": "^7.20.0",
     "@babel/preset-env": "^7.16.4",
     "@types/csv-write-stream": "^2.0.0",
     "@types/jasmine": "^4.0.3",
