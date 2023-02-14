@@ -9,7 +9,7 @@ templateNode.innerHTML = template;
 
 const svgXmlNs = "http://www.w3.org/2000/svg";
 
-const maxPixelPerMs = 20 / (1 * 60 * 1000);
+// const maxPixelPerMs = 20 / (1 * 60 * 1000);
 
 function median(values: number[]) {
     values.sort((a, b) => a - b);
@@ -203,14 +203,14 @@ export class Timeline extends HTMLElement {
         for (let i = 1; i < elements.length; i++) {
             let timediff = +elements[i].time - +elements[i - 1].time;
             let size = elements[i - 1].clientHeight;
-            pixelPerMs = Math.min(maxPixelPerMs, Math.max(size / timediff, pixelPerMs));
+            pixelPerMs = Math.max(size / timediff, pixelPerMs);
         }
         let times = this.timeLineElements.map(t => +t.time).sort((a, b) => a - b);
         let overallSize = (times[times.length - 1] - times[0]) * pixelPerMs;
         const minHeight = window.innerHeight * 0.7;
         const maxHeight = window.innerHeight * 1.4;
         if (overallSize < minHeight) {
-            pixelPerMs = Math.min(maxPixelPerMs, minHeight / overallSize * pixelPerMs);
+            pixelPerMs = minHeight / overallSize * pixelPerMs;
         } else if (overallSize > maxHeight) {
             pixelPerMs = maxHeight / overallSize * pixelPerMs;
         }
