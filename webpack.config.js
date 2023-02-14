@@ -40,17 +40,15 @@ module.exports = (env, argv) => {
                     "corejs": "3.8"
                 },
             ],
+        ],
+        "plugins": [
+            "@babel/plugin-syntax-import-assertions"
         ]
     };
 
     const cacheName = production ? getRevision() : "development";
 
     let scssRules = [
-        {
-            loader: "css-loader", options: {
-
-            }
-        },
         { loader: "postcss-loader", options: {} },
         {
             loader: "sass-loader", options: {
@@ -61,11 +59,8 @@ module.exports = (env, argv) => {
             }
         }
     ];
-    if (production) {
-        scssRules.unshift(MiniCssExtractPlugin.loader)
-    } else {
-        scssRules.unshift("style-loader")
-    }
+
+    let cssLoader = production ? MiniCssExtractPlugin.loader : "style-loader";
 
     return {
         target: production ? "browserslist" : "web",
@@ -106,7 +101,32 @@ module.exports = (env, argv) => {
                 },
                 {
                     test: /\.s[ac]ss$/i,
-                    use: scssRules
+                    oneOf: [
+                        {
+                            assert: {
+                                type: "css"
+                            },
+                            rules: [
+                                {
+                                    loader: "css-loader",
+                                    options: {
+                                        exportType: "string",
+                                    }
+                                },
+                                ...scssRules
+                            ]
+                        }, {
+                            use: [
+                                cssLoader,
+                                {
+                                    loader: "css-loader", options: {
+
+                                    }
+                                },
+                                ...scssRules
+                            ]
+                        }
+                    ]
                 },
                 {
                     test: /\.wasm/,

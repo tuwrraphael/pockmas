@@ -94,6 +94,15 @@ typedef struct
 	datetime_t date;
 } request_t;
 
+typedef struct 
+{
+	datetime_t planned_departure;
+	datetime_t planned_arrival;
+	int16_t delay;
+	uint16_t padding;
+} stoptime_lookup_result_t;
+
+
 typedef uint8_t marking_t;
 
 #define MARKED (1)
@@ -146,6 +155,10 @@ extern "C"
 	__attribute__((export_name("process_realtime"))) void process_realtime();
 
 	__attribute__((export_name("get_departures"))) departure_results_t *get_departures();
+
+	__attribute__((export_name("get_stoptime"))) stoptime_lookup_result_t *get_stoptime(route_id_t route_id, stop_id_t stop_id, uint32_t trip, datetime_t date);
+
+	__attribute__((export_name("get_transfer_time"))) uint16_t get_transfer_time(stop_id_t stop_from, stop_id_t stop_to);
 
 #ifdef __cplusplus
 }

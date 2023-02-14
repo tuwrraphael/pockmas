@@ -12,3 +12,8 @@ interface WebAssemblyInstantiatedSource<TExports extends WebAssembly.Exports> ex
 interface WebAssemblyInstance<TExports extends WebAssembly.Exports> extends WebAssembly.Instance {
     exports: TExports
 }
+
+declare module "*.scss" {
+    const content: string;
+    export default content;
+}

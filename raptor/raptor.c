@@ -9,6 +9,7 @@ static input_data_t input_data;
 static results_t *results = NULL;
 static request_t *request = NULL;
 static departure_results_t departure_results;
+static stoptime_lookup_result_t stoptime_lookup_result;
 
 void *raptor_allocate(uint32_t number_of_stoptimes, uint16_t number_of_routes, uint32_t number_of_transfers,
 					  uint16_t number_of_stops, uint16_t number_of_calendars, uint32_t number_of_calendar_exceptions,
@@ -312,7 +313,8 @@ departure_results_t *get_departures()
 	{
 		route_t *route = &input_data.routes[res.current.route_id];
 		boolean_t is_last_stop = res.current.stop_offset == route->stop_count - 1;
-		if (is_last_stop) {
+		if (is_last_stop)
+		{
 			res = schedule_scan_advance(&input_data, state);
 			continue;
 		}
@@ -327,6 +329,30 @@ departure_results_t *get_departures()
 	}
 	reset_to_savepoint();
 	return &departure_results;
+}
+
+stoptime_lookup_result_t *get_stoptime(route_id_t route_id, stop_id_t stop_id, uint32_t trip, datetime_t date)
+{
+	route_t *route = &input_data.routes[route_id];
+	uint32_t stop_index = stop_index_in_route(route, stop_id);
+	stop_time_t *stop_time = &input_data.stop_times[route->stop_time_idx + (trip * route->stop_count) + stop_index];
+	stoptime_lookup_result.planned_departure = date + stop_time->departure_time;
+	stoptime_lookup_result.planned_arrival = date + stop_time->arrival_time;
+	stoptime_lookup_result.delay = input_data.realtime_offsets[input_data.realtime_index[route_id].realtime_index + trip];
+	return &stoptime_lookup_result;
+}
+
+uint16_t get_transfer_time(stop_id_t stop_from_id, stop_id_t stop_to_id)
+{
+	stop_t *stop = &input_data.stops[stop_from_id];
+	for (uint32_t transferIndex = stop->transfers_idx; transferIndex < stop->transfers_idx + stop->transfers_count; transferIndex++)
+	{
+		transfer_t *transfer = &input_data.transfers[transferIndex];
+		if (transfer->to == stop_to_id) {
+			return transfer->walking_time;
+		}
+	}
+	return 0;
 }
 
 results_t *raptor()

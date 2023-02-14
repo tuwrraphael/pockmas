@@ -1,9 +1,9 @@
 export class ArrayToElementRenderer<T, E extends Element, K>{
     private keyToElement: Map<K, E>;
     private elementToKey: WeakMap<E, K>;
-    
+
     constructor(private listElement: HTMLElement,
-        private keySelector: (x: T) => K,
+        private keySelector: (x: T, index: number) => K,
         private createElement: (x: T) => E) {
         this.keyToElement = new Map<K, E>();
         this.elementToKey = new WeakMap<E, K>();
@@ -11,14 +11,14 @@ export class ArrayToElementRenderer<T, E extends Element, K>{
 
     update(list: T[], updateElement: (x: E, data: T) => void) {
         let keyCache = new Map<T, K>();
-        let getKey = (d: T) => keyCache.get(d) || (() => {
-            let key = this.keySelector(d);
+        let getKey = (d: T, index: number) => keyCache.get(d) || (() => {
+            let key = this.keySelector(d, index);
             keyCache.set(d, key);
             return key;
         })();
         for (let x of Array.from(this.listElement.children)) {
             let el: E = <E>x;
-            let data = list.find(i => this.elementToKey.get(el) == getKey(i));
+            let data = list.find((i, index) => this.elementToKey.get(el) == getKey(i, index));
             if (data) {
                 updateElement(<E>el, data);
             }
@@ -28,8 +28,9 @@ export class ArrayToElementRenderer<T, E extends Element, K>{
         }
         let before: Element = null;
         let nextKeyToElement = new Map<K, E>();
-        for (let t of list) {
-            let key = getKey(t);
+        for (let i = 0; i < list.length; i++) {
+            let t = list[i];
+            let key = getKey(t, i);
             let childElement: E = this.keyToElement.get(key);
             if (!childElement) {
                 childElement = this.createElement(t);
