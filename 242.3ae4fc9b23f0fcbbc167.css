@@ -1,0 +1,9 @@
+
+leg-display{display:block;margin:.5em 0}
+
+.departure-display__departure{display:grid;-moz-column-gap:.2em;column-gap:.2em;align-items:center;grid-template-columns:3.3em 2.5em 1fr;grid-template-rows:auto auto;margin-bottom:.2em}.departure-display__departure-stop-display{grid-column:3/3;grid-row:2/2;font-size:.8em}.departure-display__departure-stop-img{position:relative;overflow:hidden;height:1.2em;padding-right:.2em;top:.21em}.departure-display__departure-time{font-size:1.2em;line-height:1em}.departure-display__planned-time{grid-column:1/1;grid-row:2/2;font-size:.8em}
+transit-display{display:inline-flex;height:1.2em;align-items:center;background-color:#032960;color:#fff;padding:.1em .3em;border-radius:.2em}.transit-display__route{white-space:nowrap}.transit-display__route--long{font-size:.7em}
+
+timeline-element{display:block;position:absolute;top:0}
+
+/*# sourceMappingURL=242.3ae4fc9b23f0fcbbc167.css.map*/
