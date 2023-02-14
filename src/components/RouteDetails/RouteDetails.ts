@@ -2,7 +2,6 @@ import { State } from "../../state/State";
 import { Store } from "../../state/Store";
 import template from "./RouteDetails.html";
 import "./RouteDetails.scss";
-import "../RouteProgressBar/RouteProgressBar";
 import { ArrayToElementRenderer } from "../../utils/ArrayToElementRenderer";
 import { Leg } from "../../lib/Leg";
 import { LegDisplay } from "../LegDisplay/LegDisplay";
@@ -50,11 +49,6 @@ export class RouteDetails extends HTMLElement {
             let legDisplay : LegDisplay = <LegDisplay>e.children[0];
             legDisplay.update(leg);
         });
-        // let text = "";
-        // for (let l of s.routeDetail.itinerary.legs) {
-        //     text += `<div>${l.departureStop.stopName} - ${l.arrivalStop.stopName}</div>`;
-        // }
-        // this.innerHTML = text;
     }
 
     private update(s: State, c: (keyof State)[]): void {
