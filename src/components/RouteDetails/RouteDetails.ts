@@ -11,6 +11,7 @@ import { Timeline } from "../Timeline/Timeline";
 import { WalkingLegDisplay } from "../LegDisplay/WalkingLegDisplay";
 import { TransitLegDisplay } from "../LegDisplay/TransitLegDisplay";
 import { TimelineGoalElement } from "../TimelineGoalElement/TimelineGoalElement";
+import { TimelineCurrentTimeElement } from "../TimelineCurrentTimeElement/TimelineCurrentTimeElement";
 
 export class RouteDetails extends HTMLElement {
     private rendered = false;
@@ -101,6 +102,14 @@ export class RouteDetails extends HTMLElement {
 
                 t.setAttribute("time", (new Date(lastLeg.arrivalTime.getTime() + lastLeg.delay * 1000)).toISOString());
                 t.setAttribute("slot", "timeline2");
+            });
+        currentChild = this.updateTimelineElementAndReturnNext(currentChild,
+            t => t.children[0] instanceof TimelineCurrentTimeElement ? t.children[0] : null,
+            () => new TimelineCurrentTimeElement(),
+            (t, e) => {
+                t.setAttribute("time", (new Date()).toISOString());
+                // t.setAttribute("move-to", (new Date(lastLeg.arrivalTime.getTime() + lastLeg.delay * 1000).toISOString()));
+                t.setAttribute("slot", "timeline1");
             });
         while (currentChild != null) {
             let next = <TimelineElement>currentChild.nextElementSibling;

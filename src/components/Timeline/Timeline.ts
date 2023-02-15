@@ -18,20 +18,278 @@ function median(values: number[]) {
     return (values[half - 1] + values[half]) / 2.0;
 }
 
+class TimelineElementsController {
+
+    private controllerMap: Map<TimelineElement, TimelineElementController> = new Map();
+    private elementsBySlot: Map<string, TimelineElement[]> = new Map();
+    timelineHeight: number;
+
+    constructor(private svg: SVGElement, private resizeObserver: ResizeObserver) {
+
+    }
+
+    private add(e: TimelineElement) {
+        let ctrl = new TimelineElementController(e);
+        this.resizeObserver.observe(ctrl.timlineElement);
+        this.svg.appendChild(ctrl.connection);
+        this.controllerMap.set(e, ctrl);
+        return ctrl;
+    }
+
+    private remove(e: TimelineElement) {
+        this.resizeObserver.unobserve(e);
+        let ctrl = this.controllerMap.get(e);
+        this.svg.removeChild(ctrl.connection);
+        this.controllerMap.delete(e);
+    }
+
+    elementsChange(newElements: TimelineElement[]) {
+        for (let e of this.controllerMap.keys()) {
+            if (newElements.indexOf(e) < 0) {
+                this.remove(e);
+            }
+        }
+        this.elementsBySlot = new Map();
+        for (let e of newElements) {
+            let ctrl = this.controllerMap.get(e);
+            if (!ctrl) {
+                ctrl = this.add(e);
+            }
+            let slot = e.getAttribute("slot");
+            let slotList: TimelineElement[];
+            if (!(slotList = this.elementsBySlot.get(slot))) {
+                slotList = [];
+                this.elementsBySlot.set(slot, slotList);
+            } else {
+                let prev = this.controllerMap.get(slotList[slotList.length - 1]);
+                ctrl.previous = this.controllerMap.get(slotList[slotList.length - 1]);
+                prev.next = ctrl;
+            }
+            slotList.push(e);
+        }
+    }
+
+    layoutSlot(timelineSlot: string, offsetTime: number, pixelPerMs: number) {
+        let timelineElements = this.elementsBySlot.get(timelineSlot) || [];
+        for (let e of timelineElements) {
+            let ctrl = this.controllerMap.get(e);
+            ctrl.layout(offsetTime, pixelPerMs);
+        }
+    }
+
+    allControllers() {
+        return Array.from(this.controllerMap.values());
+    }
+
+    layoutTimeline(pixelPerMs: number) {
+        let startCtrls = Array.from(this.elementsBySlot.values()).map(slot => this.controllerMap.get(slot[0]));
+        if (startCtrls.length == 0) {
+            this.timelineHeight = 0;
+            return;
+        }
+        let offset = startCtrls.map(c => +c.timlineElement.time).sort((a, b) => a - b)[0];
+        for (let slot of this.elementsBySlot.keys()) {
+            this.layoutSlot(slot, offset, pixelPerMs);
+        }
+        let boxOffset = -startCtrls.sort((a, b) => a.boxStartPositionY - b.boxStartPositionY)[0].boxStartPositionY;
+        let all = this.allControllers();
+        for (let ctrl of all) {
+            ctrl.moveAll(boxOffset);
+        }
+        // let timelineOffset = median(all.map(e => e.connectionHeight()));
+        // for (let ctrl of all) {
+        //     ctrl.moveTimeline(timelineOffset);
+        // }
+        let endCtrls = Array.from(this.elementsBySlot.values()).map(slot => this.controllerMap.get(slot[slot.length - 1]));
+        this.timelineHeight = endCtrls.sort((a, b) => b.boxStartPositionY - a.boxStartPositionY)[0].boxEndPositionY;
+    }
+
+    render(linePositionX: number) {
+        for (let ctrl of this.allControllers()) {
+            ctrl.render(linePositionX);
+        }
+    }
+}
+
+class TimelineElementController {
+    connection: SVGPathElement;
+
+    private _timePositionY: number;
+    private _boxStartPositionY: number;
+    private _boxEndPositionY: number;
+    private _connectionPositionY: number;
+    private _rendered = false;
+
+    previous: TimelineElementController;
+    next: TimelineElementController;
+
+    private currentShortAnimation: {
+        animation: Animation,
+        targetY: number;
+    };
+    private moveToBoxAnimation: Animation;
+    private moveToConnectionAnimation: Animation;
+    private moveTo: {
+        boxTargetStartPositionY: number;
+        timeTargetPositionY: number;
+        speedPxPerMs: number;
+    }
+
+    get boxStartPositionY() {
+        return this._boxStartPositionY;
+    }
+
+    get boxEndPositionY() {
+        return this._boxEndPositionY;
+    }
+
+    connectionHeight() {
+        return this._connectionPositionY - this._timePositionY;
+    }
+
+    constructor(public timlineElement: TimelineElement) {
+        this.connection = document.createElementNS(svgXmlNs, "path");
+        this.connection.classList.add("connection");
+    }
+
+    layout(offsetTime: number, pixelPerMs: number) {
+        let connectionOffset = this.timlineElement.clientHeight / 2;
+        let timeOffset = +this.timlineElement.time - offsetTime;
+        this._timePositionY = timeOffset * pixelPerMs;
+        this._boxStartPositionY = this._timePositionY - connectionOffset;
+        this._boxEndPositionY = this._boxStartPositionY + this.timlineElement.clientHeight;
+        this._connectionPositionY = this._boxStartPositionY + connectionOffset;
+        this.moveTo = this.timlineElement.moveTo ? {
+            timeTargetPositionY: (+this.timlineElement.moveTo - offsetTime) * pixelPerMs,
+            boxTargetStartPositionY: (+this.timlineElement.moveTo - offsetTime) * pixelPerMs - connectionOffset,
+            speedPxPerMs: pixelPerMs
+        } : null;
+
+        if (this.previous) {
+            let overlap = this.previous._boxEndPositionY - this._boxStartPositionY;
+            if (overlap > 0) {
+                this.previous.moveBox(-overlap / 2);
+                this.moveBox(overlap / 2);
+            }
+        }
+    }
+
+    private moveBox(amount: number) {
+        this._boxEndPositionY += amount;
+        this._boxStartPositionY += amount;
+        this._connectionPositionY += amount;
+        if (this.moveTo) {
+            this.moveTo.boxTargetStartPositionY += amount;
+        }
+        if (amount < 0 && this.previous) {
+            let overlap = this.previous._boxEndPositionY - this._boxStartPositionY;
+            if (overlap > 0) {
+                this.previous.moveBox(-overlap);
+            }
+        }
+    }
+
+    moveAll(amount: number) {
+        this._boxStartPositionY += amount;
+        this._boxEndPositionY += amount;
+        this._timePositionY += amount;
+        this._connectionPositionY += amount;
+        if (this.moveTo) {
+            this.moveTo.boxTargetStartPositionY += amount;
+            this.moveTo.timeTargetPositionY += amount;
+        }
+    }
+
+    moveTimeline(amount: number) {
+        this._timePositionY += amount;
+    }
+
+    private createArc(startpoint: DOMPoint, endpoint: DOMPoint) {
+        let midx = startpoint.x + (endpoint.x - startpoint.x) / 2;
+        return `M ${startpoint.x} ${startpoint.y} C ${midx} ${startpoint.y} ${midx} ${endpoint.y} ${endpoint.x} ${endpoint.y}`;
+    }
+
+    cancelMoveAnimations() {
+        if (this.moveToBoxAnimation) {
+            this.moveToBoxAnimation.cancel();
+            this.moveToBoxAnimation = null;
+        }
+        if (this.moveToConnectionAnimation) {
+            this.moveToConnectionAnimation.cancel();
+            this.moveToConnectionAnimation = null;
+        }
+    }
+
+    private currentYPos() {
+        return this.timlineElement.getBoundingClientRect().top - this.timlineElement.parentElement.getBoundingClientRect().top;
+    }
+
+    render(linePositionX: number) {
+        this.cancelMoveAnimations();
+        if (this._rendered) {
+            let from = this.currentYPos();
+            if (Math.abs(from - this._boxStartPositionY) > 1) {
+                if (null != this.currentShortAnimation && this.currentShortAnimation.targetY != this._boxStartPositionY) {
+                    this.currentShortAnimation.animation.cancel();
+                    console.log("canceled");
+                }
+                this.currentShortAnimation = {
+                    animation: this.timlineElement.animate([{
+                        transform: `translateY(${from}px)`
+                    },
+                    {
+                        transform: `translateY(${this._boxStartPositionY}px)`
+                    }], { duration: 200 }), targetY: this._boxStartPositionY
+                };
+                this.currentShortAnimation.animation.addEventListener("finish", () => {
+                    this.currentShortAnimation = null;
+                });
+            }
+        }
+        this.timlineElement.style.transform = `translateY(${this._boxStartPositionY}px)`;
+        let startX = linePositionX < this.timlineElement.offsetLeft ?
+            this.timlineElement.offsetLeft : this.timlineElement.offsetLeft + this.timlineElement.clientWidth;
+        let startpoint = new DOMPoint(startX, this._connectionPositionY);
+
+        let endpoint = new DOMPoint(linePositionX, this._timePositionY);
+
+        this.connection.setAttribute("d", this.createArc(startpoint, endpoint));
+        this._rendered = true;
+        (this.currentShortAnimation?.animation?.finished || Promise.resolve()).then(() => {
+            this.playMoveAnimation();
+        });
+    }
+
+    private playMoveAnimation() {
+        if (this.moveTo) {
+            let from = this.currentYPos();
+            this.moveToBoxAnimation = this.timlineElement.animate([{
+                transform: `translateY(${this._boxStartPositionY}px)`
+            },
+            {
+                transform: `translateY(${this.moveTo.boxTargetStartPositionY}px)`
+            }], { duration: 1 / this.moveTo.speedPxPerMs * Math.abs((this._boxStartPositionY - this.moveTo.boxTargetStartPositionY)) });
+            this.moveToBoxAnimation.finished.then(() => {
+                this.moveToBoxAnimation = null;
+            });
+        }
+    }
+}
+
 export class Timeline extends HTMLElement {
     onTimechange() {
         this.triggerLayout("timechange");
     }
     private abortController: AbortController;
-    private timeLineElements: TimelineElement[] = [];
     private resizeObserver = new ResizeObserver(() => this.resizeCallback());
     private timelinePath: SVGPathElement;
     private timelineContent: HTMLDivElement;
     private timeline1Box: HTMLDivElement;
     private timelinePlaceholder: HTMLDivElement;
-    private arrows: Map<TimelineElement, SVGPathElement> = new Map();
     private svg: SVGElement;
     private layoutTriggered = false;
+    private elementsCtrl: TimelineElementsController;
+    // private _rendered : boolean;
 
     constructor() {
         super();
@@ -43,6 +301,8 @@ export class Timeline extends HTMLElement {
         this.svg = this.shadowRoot.querySelector("svg");
         this.timeline1Box = this.shadowRoot.querySelector("#timeline1-box");
         this.timelinePlaceholder = this.shadowRoot.querySelector("#timeline-placeholder");
+
+        this.elementsCtrl = new TimelineElementsController(this.svg, this.resizeObserver);
     }
 
     connectedCallback() {
@@ -60,31 +320,8 @@ export class Timeline extends HTMLElement {
         this.resizeObserver.unobserve(this.timeline1Box);
     }
 
-    private createArrow(): SVGPathElement {
-        let p: SVGPathElement = document.createElementNS(svgXmlNs, "path");
-        p.classList.add("connection");
-        this.svg.appendChild(p);
-        return p;
-
-    }
-
     private slotchangeCallback() {
-        let newElements: TimelineElement[] = Array.from(this.querySelectorAll("timeline-element"));
-        for (let e of this.timeLineElements) {
-            if (newElements.indexOf(e) < 0) {
-                this.resizeObserver.unobserve(e);
-                let arrow = this.arrows.get(e);
-                this.svg.removeChild(arrow);
-                this.arrows.delete(e);
-            }
-        }
-        for (let e of newElements) {
-            if (this.timeLineElements.indexOf(e) < 0) {
-                this.resizeObserver.observe(e);
-                this.arrows.set(e, this.createArrow());
-            }
-        }
-        this.timeLineElements = newElements;
+        this.elementsCtrl.elementsChange(Array.from(this.querySelectorAll("timeline-element")));
         this.triggerLayout("slotchange");
     }
 
@@ -92,10 +329,7 @@ export class Timeline extends HTMLElement {
         this.triggerLayout("resize");
     }
 
-    private createArc(startpoint: { x: number, y: number }, endpoint: { x: number, y: number }) {
-        let midx = startpoint.x + (endpoint.x - startpoint.x) / 2;
-        return `M ${startpoint.x} ${startpoint.y} C ${midx} ${startpoint.y} ${midx} ${endpoint.y} ${endpoint.x} ${endpoint.y}`;
-    }
+
 
     private triggerLayout(reason: string) {
         if (this.layoutTriggered) {
@@ -110,94 +344,27 @@ export class Timeline extends HTMLElement {
 
     private layout() {
         this.layoutTriggered = false;
-        if (this.timeLineElements.length == 0) {
-            this.timelineContent.style.height = `0px`;
-            return;
-        }
-        // this.timeLineElements = this.timeLineElements.sort((a, b) => (+a.time - +b.time));
-        let scale = this.getTimelineScale(this.timeLineElements);
-        console.log("ppm", scale.scale * 60 * 1000);
+        let pixelPerMs = this.getTimelineScale();
+        this.elementsCtrl.layoutTimeline(pixelPerMs)
+
+        console.log("ppm", pixelPerMs * 60 * 1000);
         const linePositionX = this.timelinePlaceholder.offsetLeft + this.timelinePlaceholder.clientWidth / 2;
-        // let beforeEnd = 0;
+        this.elementsCtrl.render(linePositionX);
 
-        let boxYStartPositions: number[] = [];
-        let boxYEndPositions: number[] = [];
-        let timeYPositions: number[] = [];
-
-        let arrowYStart: number[] = [];
-
-        for (let e of this.timeLineElements) {
-            let arrowOffset = e.clientHeight / 2;
-            let timeOffset = +e.time - +this.timeLineElements[0].time;
-            let timePositionY = timeOffset * scale.scale;
-            timeYPositions.push(timePositionY);
-            let boxPositionY = timePositionY - arrowOffset;
-            let diff = boxPositionY - boxYEndPositions[boxYEndPositions.length - 1];
-
-            if (diff < 0) {
-                boxPositionY -= diff / 2;
-                let diff2 = diff / 2;
-                for (let i = boxYStartPositions.length - 1; i >= 0; i--) {
-                    boxYStartPositions[i] += diff2;
-                    boxYEndPositions[i] += diff2;
-                    arrowYStart[i] += diff2;
-                    if (i > 0) {
-                        diff2 = boxYStartPositions[i] - boxYEndPositions[i - 1];
-                    }
-                    if (diff2 > 0) {
-                        break;
-                    }
-                }
-            }
-            boxYStartPositions.push(boxPositionY);
-            boxYEndPositions.push(boxPositionY + e.clientHeight);
-            arrowYStart.push(boxPositionY + arrowOffset);
+        this.timelineContent.style.height = `${this.elementsCtrl.timelineHeight}px`;
+        if (this.elementsCtrl.timelineHeight > 0) { // no initial animation, TODO handle better
+            this.timelinePath.setAttribute("d", `M ${linePositionX} ${0} L ${linePositionX} ${this.elementsCtrl.timelineHeight}`);
         }
-        let boxYZero = boxYStartPositions[0];
-        boxYStartPositions = boxYStartPositions.map(b => b - boxYZero);
-        arrowYStart = arrowYStart.map(b => b - boxYZero);
-        timeYPositions = timeYPositions.map(b => b - boxYZero);
-
-        let timelineOffset = median(timeYPositions.map((cur, idx) => arrowYStart[idx] - cur));
-
-        for (let i = 0; i < this.timeLineElements.length; i++) {
-            let e = this.timeLineElements[i];
-            e.style.transform = `translateY(${boxYStartPositions[i]}px)`;
-            // TODO
-            if (e.style.transition == "") {
-                requestAnimationFrame(() => {
-                    e.style.transition = "0.2s linear";
-                })
-            }
-
-            let arrow = this.arrows.get(e);
-            let startpoint = {
-                x: e.offsetLeft,
-                y: arrowYStart[i]
-            };
-            let endpoint = {
-                x: linePositionX,
-                y: timeYPositions[i] + timelineOffset
-            };
-            arrow.setAttribute("d", this.createArc(startpoint, endpoint));
-        }
-        this.timelineContent.style.height = `${boxYEndPositions[boxYEndPositions.length - 1] - boxYZero}px`;
-        this.timelinePath.setAttribute("d", `M ${linePositionX} ${0} L ${linePositionX} ${boxYEndPositions[boxYEndPositions.length - 1] - boxYZero}`);
     }
 
-    private getTimelineScale(elements: TimelineElement[]) {
-        const maxPixelPerMin = 2* parseFloat(getComputedStyle(this).fontSize);
+    private getTimelineScale(): number {
+        let elements = Array.from(this.elementsCtrl.allControllers()).map(e => e.timlineElement);
+        const maxPixelPerMin = 2 * parseFloat(getComputedStyle(this).fontSize);
         const maxPixelPerMs = maxPixelPerMin / (1 * 60 * 1000);
         if (elements.length < 1) {
-            return {
-                size: 0,
-                scale: 1
-            };
+            return 1;
         } else if (elements.length == 1) {
-            return {
-                size: elements[0].clientHeight,
-                scale: 1
-            };
+            return 1;
         }
         let pixelPerMs = 0;
         for (let i = 1; i < elements.length; i++) {
@@ -209,7 +376,7 @@ export class Timeline extends HTMLElement {
                 pixelPerMs = Math.max(size / timediff, pixelPerMs);
             }
         }
-        let times = this.timeLineElements.map(t => +t.time).sort((a, b) => a - b);
+        let times = elements.map(t => +t.time).sort((a, b) => a - b);
         let overallSize = (times[times.length - 1] - times[0]) * pixelPerMs;
         const minHeight = window.innerHeight * 0.65;
         const maxHeight = window.innerHeight * 1.4;
@@ -221,9 +388,7 @@ export class Timeline extends HTMLElement {
             }
             pixelPerMs = Math.min(maxPixelPerMs, pixelPerMs);
         }
-        return {
-            scale: pixelPerMs,
-        };
+        return pixelPerMs;
     }
 }
 

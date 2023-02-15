@@ -11,7 +11,6 @@ import { RealtimeIdentifierType } from "./RealtimeIdentifierType";
 import { ResolvedRealtimeData } from "./ResolvedRealtimeData";
 import { RouteInfoStore } from "./RouteInfoStore";
 import { findBestMatch } from "string-similarity";
-import { testmonitorresponse } from "../monitorresponse";
 
 export interface RouteRequest {
     departureStops: number[];
