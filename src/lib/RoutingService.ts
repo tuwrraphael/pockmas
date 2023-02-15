@@ -11,6 +11,7 @@ import { RealtimeIdentifierType } from "./RealtimeIdentifierType";
 import { ResolvedRealtimeData } from "./ResolvedRealtimeData";
 import { RouteInfoStore } from "./RouteInfoStore";
 import { findBestMatch } from "string-similarity";
+import { testmonitorresponse } from "../monitorresponse";
 
 export interface RouteRequest {
     departureStops: number[];
@@ -321,7 +322,7 @@ export class RoutingService {
     }
 
     upsertRealtimeData(realtimeData: RealtimeData, apply: boolean) {
-        performance.mark("realtime-upsert-start");
+        // performance.mark("realtime-upsert-start");
         let routeClasses = this.routeInfoStore.getRouteClassesFotRealtimeIdentifier(realtimeData.realtimeIdentifier);
         let routeShortNameCleaned = realtimeData.routeClassName.replace(/\s/g, "").toLowerCase();
         let routeClassesCleaned = routeClasses.map(c => c.routeClassName.replace(/\s/g, "").toLowerCase());
@@ -339,11 +340,11 @@ export class RoutingService {
             routeClass: matchingRouteClass.id,
             times: realtimeData.times
         }, apply);
-        performance.mark("realtime-upsert-end");
-        performance.measure("realtime-upsert", "realtime-upsert-start", "realtime-upsert-end");
-        console.log(`Realtime upsert took ${performance.getEntriesByName("realtime-upsert", "measure")[0].duration}ms`);
-        performance.clearMarks();
-        performance.clearMeasures();
+        // performance.mark("realtime-upsert-end");
+        // performance.measure("realtime-upsert", "realtime-upsert-start", "realtime-upsert-end");
+        // console.log(`Realtime upsert took ${performance.getEntriesByName("realtime-upsert", "measure")[0].duration}ms`);
+        // performance.clearMarks();
+        // performance.clearMeasures();
     }
 
     private upsertResolvedRealtimeData(update: ResolvedRealtimeData, apply: boolean) {

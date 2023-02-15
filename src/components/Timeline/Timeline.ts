@@ -9,8 +9,6 @@ templateNode.innerHTML = template;
 
 const svgXmlNs = "http://www.w3.org/2000/svg";
 
-// const maxPixelPerMs = 20 / (1 * 60 * 1000);
-
 function median(values: number[]) {
     values.sort((a, b) => a - b);
     let half = Math.floor(values.length / 2);
@@ -118,7 +116,7 @@ export class Timeline extends HTMLElement {
         }
         // this.timeLineElements = this.timeLineElements.sort((a, b) => (+a.time - +b.time));
         let scale = this.getTimelineScale(this.timeLineElements);
-        console.log(scale);
+        console.log("ppm", scale.scale * 60 * 1000);
         const linePositionX = this.timelinePlaceholder.offsetLeft + this.timelinePlaceholder.clientWidth / 2;
         // let beforeEnd = 0;
 
@@ -188,6 +186,8 @@ export class Timeline extends HTMLElement {
     }
 
     private getTimelineScale(elements: TimelineElement[]) {
+        const maxPixelPerMin = 2* parseFloat(getComputedStyle(this).fontSize);
+        const maxPixelPerMs = maxPixelPerMin / (1 * 60 * 1000);
         if (elements.length < 1) {
             return {
                 size: 0,
@@ -203,16 +203,23 @@ export class Timeline extends HTMLElement {
         for (let i = 1; i < elements.length; i++) {
             let timediff = +elements[i].time - +elements[i - 1].time;
             let size = elements[i - 1].clientHeight;
-            pixelPerMs = Math.max(size / timediff, pixelPerMs);
+            if (timediff == 0) {
+                pixelPerMs = maxPixelPerMs;
+            } else {
+                pixelPerMs = Math.max(size / timediff, pixelPerMs);
+            }
         }
         let times = this.timeLineElements.map(t => +t.time).sort((a, b) => a - b);
         let overallSize = (times[times.length - 1] - times[0]) * pixelPerMs;
-        const minHeight = window.innerHeight * 0.7;
+        const minHeight = window.innerHeight * 0.65;
         const maxHeight = window.innerHeight * 1.4;
         if (overallSize < minHeight) {
             pixelPerMs = minHeight / overallSize * pixelPerMs;
-        } else if (overallSize > maxHeight) {
-            pixelPerMs = maxHeight / overallSize * pixelPerMs;
+        } else {
+            if (overallSize > maxHeight) {
+                pixelPerMs = maxHeight / overallSize * pixelPerMs;
+            }
+            pixelPerMs = Math.min(maxPixelPerMs, pixelPerMs);
         }
         return {
             scale: pixelPerMs,
