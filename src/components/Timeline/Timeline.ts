@@ -255,9 +255,9 @@ class TimelineElementController {
 
         this.connection.setAttribute("d", this.createArc(startpoint, endpoint));
         this._rendered = true;
-        (this.currentShortAnimation?.animation?.finished || Promise.resolve()).then(() => {
-            this.playMoveAnimation();
-        });
+        // (this.currentShortAnimation?.animation?.finished || Promise.resolve()).then(() => {
+        //     this.playMoveAnimation();
+        // });
     }
 
     private playMoveAnimation() {

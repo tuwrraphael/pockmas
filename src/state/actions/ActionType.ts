@@ -6,5 +6,6 @@ export const enum ActionType {
     StopsSelected,
     SetDepartureTime,
     RouteDetailsOpened,
-    DisplayMoreDepartures
+    DisplayMoreDepartures,
+    RefreshRouteDetails
 }

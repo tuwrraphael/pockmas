@@ -12,12 +12,16 @@ import { WalkingLegDisplay } from "../LegDisplay/WalkingLegDisplay";
 import { TransitLegDisplay } from "../LegDisplay/TransitLegDisplay";
 import { TimelineGoalElement } from "../TimelineGoalElement/TimelineGoalElement";
 import { TimelineCurrentTimeElement } from "../TimelineCurrentTimeElement/TimelineCurrentTimeElement";
+import { RefreshRouteDetails } from "../../state/actions/RefreshRouteDetails";
+import { abortableEventListener } from "../../utils/abortableEventListener";
 
 export class RouteDetails extends HTMLElement {
     private rendered = false;
     private store: Store;
     private abortController: AbortController;
     private timeline: Timeline;
+    private refreshRegularly = false;
+    private refreshTimeout: any;
 
     constructor() {
         super();
@@ -34,6 +38,37 @@ export class RouteDetails extends HTMLElement {
         }
         this.store.subscribe((s, c) => this.update(s, c), this.abortController.signal);
         this.init(this.store.state);
+        this.initiateRefresh(false);
+        abortableEventListener(window, "focus", () => this.initiateRefresh(true), this.abortController.signal);
+        abortableEventListener(document, "focus", () => this.initiateRefresh(true), this.abortController.signal);
+        abortableEventListener(window, "blur", () => this.stopRefresh(), this.abortController.signal);
+        abortableEventListener(document, "blur", () => this.stopRefresh(), this.abortController.signal);
+    }
+
+    private initiateRefresh(immediate: boolean) {
+        if (!this.refreshRegularly) {
+            this.refreshRegularly = true;
+            this.refreshRouteDetails(immediate);
+        }
+    }
+    private stopRefresh() {
+        if (this.refreshRegularly) {
+            this.refreshRegularly = false;
+            clearTimeout(this.refreshTimeout);
+            this.refreshTimeout = null;
+        }
+    }
+
+    private refreshRouteDetails(immediate: boolean) {
+        if (immediate) {
+            this.store.postAction(new RefreshRouteDetails());
+        }
+        this.refreshTimeout = setTimeout(() => {
+            this.store.postAction(new RefreshRouteDetails());
+            if (this.refreshRegularly) {
+                this.refreshRouteDetails(false);
+            }
+        }, 5000);
     }
 
     private updateTimelineElementAndReturnNext<T extends Element>(current: TimelineElement,
@@ -130,6 +165,7 @@ export class RouteDetails extends HTMLElement {
 
     disconnectedCallback() {
         this.abortController.abort();
+        this.stopRefresh();
     }
 }
 

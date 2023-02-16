@@ -12,6 +12,7 @@ import { RouteUrlEncoder } from "../lib/RouteUrlEncoder";
 import { RoutingServicesFactory } from "../lib/RoutingServicesFactory";
 import { RouteDetailsOpened } from "./actions/RouteDetailsOpened";
 import { DisplayMoreDepartures } from "./actions/DisplayMoreDepartures";
+import { RefreshRouteDetails } from "./actions/RefreshRouteDetails";
 
 type Actions = InitializeStopSearch
     | DepartureStopTermChanged
@@ -20,7 +21,8 @@ type Actions = InitializeStopSearch
     | StopsSelected
     | SetDepartureTime
     | RouteDetailsOpened
-    | DisplayMoreDepartures;
+    | DisplayMoreDepartures
+    | RefreshRouteDetails;
 
 let stopSearchInstance: WebAssemblyInstance<StopSearchExports>;
 let _departureTime: Date = null;
@@ -202,7 +204,11 @@ async function route() {
     });
 }
 
-async function routeDetailsOpened(itineraryIdUrlEncoded: string) {
+async function refreshRouteDetails(itineraryIdUrlEncoded: string|null) {
+    itineraryIdUrlEncoded = itineraryIdUrlEncoded || state.routeDetail?.itineraryUrlEncoded;
+    if (!itineraryIdUrlEncoded) {
+        return;
+    }
     let routeDetailsService = await routingServicesFactory.getRouteDetailsService();
     let stopGroupStore = await routingServicesFactory.getStopGroupStore();
 
@@ -246,11 +252,15 @@ async function handleMessage(msg: Actions) {
             break;
         }
         case ActionType.RouteDetailsOpened: {
-            await routeDetailsOpened(msg.itineraryUrlEncoded);
+            await refreshRouteDetails(msg.itineraryUrlEncoded);
             break;
         }
         case ActionType.DisplayMoreDepartures: {
             await displayMoreDepartures();
+            break;
+        }
+        case ActionType.RefreshRouteDetails: {
+            await refreshRouteDetails(null);
             break;
         }
     }
