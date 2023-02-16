@@ -24,7 +24,7 @@ export class TimelineCurrentTimeElement extends HTMLElement {
     refreshTime() {
         this.flipTimeDisplay.setAttribute("time", `${new Date().getTime()}`);
         if (this.connected) {
-            // setTimeout(() => this.refreshTime(), 1000 * (60 - (new Date()).getSeconds()));
+            setTimeout(() => this.refreshTime(), 1000 * (60 - (new Date()).getSeconds()));
         }
     }
 
