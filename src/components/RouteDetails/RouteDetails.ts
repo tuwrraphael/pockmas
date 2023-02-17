@@ -110,6 +110,7 @@ export class RouteDetails extends HTMLElement {
 
                 t.setAttribute("time", (new Date(lastLeg.arrivalTime.getTime() + lastLeg.delay * 1000)).toISOString());
                 t.setAttribute("slot", "timeline2");
+                e.setLeg(lastLeg);
             });
         if (currentTime.getTime() <= lastLeg.arrivalTime.getTime() + 5 * 60 * 1000) {
             currentChild = this.updateTimelineElementAndReturnNext(currentChild,
