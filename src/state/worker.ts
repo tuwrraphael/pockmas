@@ -12,6 +12,7 @@ import { RoutingServicesFactory } from "../lib/RoutingServicesFactory";
 import { RouteDetailsOpened } from "./actions/RouteDetailsOpened";
 import { DisplayMoreDepartures } from "./actions/DisplayMoreDepartures";
 import { RefreshRouteDetails } from "./actions/RefreshRouteDetails";
+import { LegType } from "../lib/LegType";
 
 type Actions = InitializeStopSearch
     | DepartureStopTermChanged
@@ -202,7 +203,7 @@ async function route() {
     });
 }
 
-async function refreshRouteDetails(itineraryIdUrlEncoded: string|null) {
+async function refreshRouteDetails(itineraryIdUrlEncoded: string | null) {
     itineraryIdUrlEncoded = itineraryIdUrlEncoded || state.routeDetail?.itineraryUrlEncoded;
     if (!itineraryIdUrlEncoded) {
         return;
@@ -220,7 +221,7 @@ async function refreshRouteDetails(itineraryIdUrlEncoded: string|null) {
                 arrival: stopGroupStore.findByStopId(itinerary.legs[itinerary.legs.length - 1].arrivalStop.stopId)
             }
         }));
-        return itinerary.legs.reduce((stopIds, r) => [...stopIds, r.departureStop.stopId], []);
+        return itinerary.legs.filter(l => l.type == LegType.Transit).reduce((stopIds, r) => [...stopIds, r.departureStop.stopId, r.arrivalStop.stopId], []);
     });
 }
 
