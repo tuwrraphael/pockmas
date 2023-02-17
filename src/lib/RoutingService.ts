@@ -2,7 +2,7 @@ import { RaptorExports } from "../../raptor/wasm-exports";
 import { WienerLinienMonitorResponse } from "../realtime-api/WienerLinienMonitorResponse";
 import { OebbMonitorResponse } from "../realtime-api/OebbMonitorResponse";
 import { Departure } from "./Departure";
-import { TimezoneUtility } from "./TimezoneUtility";
+import { TimezoneUtility } from "./time/TimezoneUtility";
 import { Itinerary } from "./Itinerary";
 import { Leg } from "./Leg";
 import { RealtimeData } from "./RealtimeData";

@@ -331,13 +331,13 @@ departure_results_t *get_departures()
 	return &departure_results;
 }
 
-stoptime_lookup_result_t *get_stoptime(route_id_t route_id, stop_id_t stop_id, uint32_t trip, datetime_t date)
+stoptime_lookup_result_t *get_stoptime(route_id_t route_id, stop_id_t stop_id, uint32_t trip)
 {
 	route_t *route = &input_data.routes[route_id];
 	uint32_t stop_index = stop_index_in_route(route, stop_id);
 	stop_time_t *stop_time = &input_data.stop_times[route->stop_time_idx + (trip * route->stop_count) + stop_index];
-	stoptime_lookup_result.planned_departure = date + stop_time->departure_time;
-	stoptime_lookup_result.planned_arrival = date + stop_time->arrival_time;
+	stoptime_lookup_result.departure_time = stop_time->departure_time;
+	stoptime_lookup_result.arrival_time =stop_time->arrival_time;
 	stoptime_lookup_result.delay = input_data.realtime_offsets[input_data.realtime_index[route_id].realtime_index + trip];
 	return &stoptime_lookup_result;
 }

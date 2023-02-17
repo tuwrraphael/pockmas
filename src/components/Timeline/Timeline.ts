@@ -231,7 +231,7 @@ class TimelineElementController {
             if (Math.abs(from - this._boxStartPositionY) > 1) {
                 if (null != this.currentShortAnimation && this.currentShortAnimation.targetY != this._boxStartPositionY) {
                     this.currentShortAnimation.animation.cancel();
-                    console.log("canceled");
+                    console.log("timeline: canceled animation");
                 }
                 this.currentShortAnimation = {
                     animation: this.timlineElement.animate([{
@@ -386,7 +386,7 @@ export class Timeline extends HTMLElement {
             if (overallSize > maxHeight) {
                 pixelPerMs = maxHeight / overallSize * pixelPerMs;
             }
-            pixelPerMs = Math.min(maxPixelPerMs, pixelPerMs);
+            pixelPerMs = Math.min(Math.max(maxPixelPerMs, minHeight / overallSize * pixelPerMs), pixelPerMs);
         }
         return pixelPerMs;
     }

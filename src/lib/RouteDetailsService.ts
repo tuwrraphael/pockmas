@@ -5,7 +5,9 @@ import { LegType } from "./LegType";
 import { RouteInfoStore } from "./RouteInfoStore";
 import { DecodedItinerary, RouteUrlEncoder } from "./RouteUrlEncoder";
 import { RoutingService } from "./RoutingService";
-import { TimezoneUtility } from "./TimezoneUtility";
+import { TimezoneUtility } from "./time/TimezoneUtility";
+import { getDayOffset } from "./time/getDayOffset";
+import { addDays } from "./time/addDays";
 
 const STOPTIME_LOOKUP_RESULT_SIZE = 4 + //planned_departure
     4 + // planned_arrival
@@ -19,30 +21,44 @@ export class RouteDetailsService {
         private timezoneUtility: TimezoneUtility) {
     }
 
-    private getStoptime(routeId: number, stopId: number, trip: number, departureDate: Date) {
-        let offset = this.routingInstance.exports.get_stoptime(routeId, stopId, trip, this.timezoneUtility.getStartOfDay(departureDate).unixTime / 1000);
+    private getStoptime(routeId: number, stopId: number, trip: number) {
+        let offset = this.routingInstance.exports.get_stoptime(routeId, stopId, trip);
         let view = new DataView(this.routingInstance.exports.memory.buffer, offset, STOPTIME_LOOKUP_RESULT_SIZE);
         return {
-            plannedDeparture: new Date(view.getUint32(0, true) * 1000),
-            plannedArrival: new Date(view.getUint32(4, true) * 1000),
+            departureTime: view.getUint32(0, true),
+            arrivalTime: view.getUint32(4, true),
             delay: view.getInt16(8, true)
         };
     }
 
-    private reconstructLeg(l: DecodedItinerary["legs"][0], legDepartureTime: Date, legDelay : number) {
+    private reconstructTimes(stopTime: { departureStopDepartureTime: number, arrvialStopArrivalTime: number },
+        itineraryDepartureStartOfDay: { unixTime: number }, expectedDayOffset: number) {
+        let departureTime = new Date(itineraryDepartureStartOfDay.unixTime + stopTime.departureStopDepartureTime * 1000);
+        let dayOffset = getDayOffset(itineraryDepartureStartOfDay, departureTime);
+        return {
+            plannedDeparture: addDays(departureTime, expectedDayOffset - dayOffset),
+            plannedArrival: addDays(new Date(itineraryDepartureStartOfDay.unixTime + stopTime.arrvialStopArrivalTime * 1000), expectedDayOffset - dayOffset)
+        };
+    }
+
+    private reconstructLeg(l: DecodedItinerary["legs"][0], itineraryDepartureStartOfDay: { unixTime: number }, legDepartureTime: Date, legDelay: number) {
         switch (l.type) {
             case LegType.Transit: {
-                let departureStoptime = this.getStoptime(l.routeId, l.departureStopId, l.tripId, legDepartureTime);
-                let arrivalStoptime = this.getStoptime(l.routeId, l.arrivalStopId, l.tripId, legDepartureTime);
+                let departureStoptime = this.getStoptime(l.routeId, l.departureStopId, l.tripId);
+                let arrivalStoptime = this.getStoptime(l.routeId, l.arrivalStopId, l.tripId);
+                let times = this.reconstructTimes({
+                    departureStopDepartureTime: departureStoptime.departureTime,
+                    arrvialStopArrivalTime: arrivalStoptime.arrivalTime
+                }, itineraryDepartureStartOfDay, l.dayOffset);
                 return {
                     type: LegType.Transit,
                     departureStop: this.routeInfoStore.getStop(l.departureStopId),
                     arrivalStop: this.routeInfoStore.getStop(l.arrivalStopId),
                     route: this.routeInfoStore.getRoute(l.routeId),
-                    arrivalTime: arrivalStoptime.plannedArrival,
-                    plannedDeparture: departureStoptime.plannedDeparture,
+                    arrivalTime: times.plannedArrival,
+                    plannedDeparture: times.plannedDeparture,
                     delay: departureStoptime.delay,
-                    duration: +arrivalStoptime.plannedArrival - +departureStoptime.plannedDeparture,
+                    duration: +times.plannedArrival - +times.plannedDeparture,
                     isRealtime: this.routingService.hasRealtime(l.routeId, l.tripId),
                     tripId: l.tripId
                 };
@@ -69,9 +85,10 @@ export class RouteDetailsService {
         let decoded = this.routeUrlEncoder.decode(itineraryUrl);
         let legs: Leg[] = [];
         let legDepartureTime = decoded.departureTime;
+        let itineraryDepartureStartOfDay = this.timezoneUtility.getStartOfDay(decoded.departureTime);
         let legDelay = 0;
         for (let l of decoded.legs) {
-            let leg = this.reconstructLeg(l, legDepartureTime, legDelay);
+            let leg = this.reconstructLeg(l, itineraryDepartureStartOfDay, legDepartureTime, legDelay);
             legs.push(leg);
             legDepartureTime = leg.arrivalTime;
             legDelay = leg.delay;

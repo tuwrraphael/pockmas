@@ -2,6 +2,7 @@ import { populateTimeZones } from "timezone-support/lookup-convert";
 import tzd from "timezone-support/data-1970-2038";
 import { RouteUrlEncoder } from "./RouteUrlEncoder";
 import { LegType } from "./LegType";
+import { TimezoneUtility } from "./time/TimezoneUtility";
 
 describe("RouteUrlService", () => {
     beforeAll(() => {
@@ -10,7 +11,7 @@ describe("RouteUrlService", () => {
 
 
     it(`decodes/encodes journey`, () => {
-        let routeUrlService = new RouteUrlEncoder("abc");
+        let routeUrlService = new RouteUrlEncoder("abc", new TimezoneUtility("Europe/Vienna"));
 
         let encoded = routeUrlService.encode({
             legs: [{
@@ -31,7 +32,7 @@ describe("RouteUrlService", () => {
                 tripId: 615,
             }]
         })
-        expect(encoded).toBe("1AnQ70GEAAQACAAECAKUR3wNnAg!abc");
+        expect(encoded).toBe("2AnQ70GEAAQACAAECAKUR3wNnAgA!abc");
         let decoded = routeUrlService.decode(encoded);
         expect(decoded.version).toBe(1);
         expect(decoded.departureTime).toEqual(new Date(Date.UTC(2022, 0, 1, 11, 31, 0)));
@@ -49,10 +50,10 @@ describe("RouteUrlService", () => {
     });
 
     it(`decodes/encodes empty`, () => {
-        let routeUrlService = new RouteUrlEncoder("abc");
+        let routeUrlService = new RouteUrlEncoder("abc", new TimezoneUtility("Europe/Vienna"));
 
         let encoded = routeUrlService.encode({ legs: [] })
-        expect(encoded).toBe("1AAAAAAA!abc");
+        expect(encoded).toBe("2AAAAAAA!abc");
         let decoded = routeUrlService.decode(encoded);
         expect(decoded.version).toBe(1);
         expect(decoded.departureTime).toEqual(new Date(0));

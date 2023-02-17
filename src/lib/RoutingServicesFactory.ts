@@ -7,7 +7,7 @@ import { RouteDetailsService } from "./RouteDetailsService";
 import { RouteUrlEncoder } from "./RouteUrlEncoder";
 import { RealtimeLookupService } from "./RealtimeLookupService";
 import { StopGroupStore } from "./StopGroupStore";
-import { TimezoneUtility } from "./TimezoneUtility";
+import { TimezoneUtility } from "./time/TimezoneUtility";
 
 export class RoutingServicesFactory {
     private routingServicePromise: Promise<RoutingService>;
@@ -18,6 +18,7 @@ export class RoutingServicesFactory {
     private readonly dataVersion = new URL("../../preprocessing-dist/raptor_data.bin.bmp", import.meta.url).toString().split("/").pop().replace(".bmp", "");
     private realtimeLookupServicePromise: Promise<RealtimeLookupService>;
     private stopGroupStorePromise: Promise<StopGroupStore>;
+    private routeUrlEncoderPromise: Promise<RouteUrlEncoder>;
 
     private async createTimezoneUtility() {
         const { default: defaultFunc } = await import("timezone-support/data-1970-2038");
@@ -84,7 +85,7 @@ export class RoutingServicesFactory {
 
     private async createRouteDetailsService() {
         let [routingInstance, routeInfoStore, timezoneUtility, routingService] = await Promise.all([this.getRoutingInstance(), this.getRouteInfoStore(), this.getTimezoneUtility(), this.getRoutingService()])
-        return new RouteDetailsService(new RouteUrlEncoder(this.dataVersion), routeInfoStore, routingInstance, routingService, timezoneUtility);
+        return new RouteDetailsService(new RouteUrlEncoder(this.dataVersion, timezoneUtility), routeInfoStore, routingInstance, routingService, timezoneUtility);
     }
 
     async getRouteDetailsService() {
@@ -116,5 +117,17 @@ export class RoutingServicesFactory {
             this.stopGroupStorePromise = this.createStopGroupStore();
         }
         return this.stopGroupStorePromise;
+    }
+
+    private async createRouteUrlEncoder() {
+        let timezoneUtility = await this.getTimezoneUtility();
+        return new RouteUrlEncoder(this.dataVersion, timezoneUtility);
+    }
+
+    async getRouteUrlEncoder() {
+        if (this.routeUrlEncoderPromise == null) {
+            this.routeUrlEncoderPromise = this.createRouteUrlEncoder();
+        }
+        return this.routeUrlEncoderPromise;
     }
 }

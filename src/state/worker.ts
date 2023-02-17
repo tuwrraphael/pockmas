@@ -8,7 +8,6 @@ import { State } from "./State";
 import { StopsSelected } from "./actions/StopsSelected";
 import { copyToWasmMemory } from "../utils/copyToWasmMemory";
 import { SetDepartureTime } from "./actions/SetDepartureTime";
-import { RouteUrlEncoder } from "../lib/RouteUrlEncoder";
 import { RoutingServicesFactory } from "../lib/RoutingServicesFactory";
 import { RouteDetailsOpened } from "./actions/RouteDetailsOpened";
 import { DisplayMoreDepartures } from "./actions/DisplayMoreDepartures";
@@ -26,9 +25,6 @@ type Actions = InitializeStopSearch
 
 let stopSearchInstance: WebAssemblyInstance<StopSearchExports>;
 let _departureTime: Date = null;
-
-const dataVersion = new URL("../../preprocessing-dist/raptor_data.bin.bmp", import.meta.url).toString().split("/").pop().replace(".bmp", "");
-const routeUrlEncoder = new RouteUrlEncoder(dataVersion);
 
 const routingServicesFactory = new RoutingServicesFactory();
 
@@ -192,6 +188,8 @@ async function route() {
 
     let departureStops = stopGroupStore.getStopGroup(state.selectedStopgroups.departure.id).stopIds;
     let arrivalStop = stopGroupStore.getStopGroup(state.selectedStopgroups.arrival.id).stopIds[0];
+
+    let routeUrlEncoder = await routingServicesFactory.getRouteUrlEncoder();
 
     await realtimeLookupService.performWithRealtimeLoopkup(async () => {
         let results = routingService.route({

@@ -9,6 +9,6 @@ export interface RaptorExports extends WebAssembly.Exports {
     raptor: () => number;
     memory: WebAssembly.Memory;
     get_departures: () => number;
-    get_stoptime: (route_id: number, stop_id: number, trip: number, date: number) => number;
+    get_stoptime: (route_id: number, stop_id: number, trip: number) => number;
     get_transfer_time: (stop_from_id: number, stop_to_id: number) => number;
 }

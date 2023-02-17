@@ -13,19 +13,16 @@ import { TransitLegDisplay } from "../LegDisplay/TransitLegDisplay";
 import { TimelineGoalElement } from "../TimelineGoalElement/TimelineGoalElement";
 import { TimelineCurrentTimeElement } from "../TimelineCurrentTimeElement/TimelineCurrentTimeElement";
 import { RefreshRouteDetails } from "../../state/actions/RefreshRouteDetails";
-import { abortableEventListener } from "../../utils/abortableEventListener";
+import { FgInterval } from "../../utils/FgInterval";
 
 export class RouteDetails extends HTMLElement {
     private rendered = false;
     private store: Store;
     private abortController: AbortController;
     private timeline: Timeline;
-    private refreshRegularly = false;
-    private refreshTimeout: any;
 
     constructor() {
         super();
-
         this.store = Store.getInstance();
     }
 
@@ -38,37 +35,12 @@ export class RouteDetails extends HTMLElement {
         }
         this.store.subscribe((s, c) => this.update(s, c), this.abortController.signal);
         this.init(this.store.state);
-        this.initiateRefresh(false);
-        abortableEventListener(window, "focus", () => this.initiateRefresh(true), this.abortController.signal);
-        abortableEventListener(document, "focus", () => this.initiateRefresh(true), this.abortController.signal);
-        abortableEventListener(window, "blur", () => this.stopRefresh(), this.abortController.signal);
-        abortableEventListener(document, "blur", () => this.stopRefresh(), this.abortController.signal);
+        new FgInterval(() => this.refreshRouteDetails(), 5000, true, this.abortController.signal);
+
     }
 
-    private initiateRefresh(immediate: boolean) {
-        if (!this.refreshRegularly) {
-            this.refreshRegularly = true;
-            this.refreshRouteDetails(immediate);
-        }
-    }
-    private stopRefresh() {
-        if (this.refreshRegularly) {
-            this.refreshRegularly = false;
-            clearTimeout(this.refreshTimeout);
-            this.refreshTimeout = null;
-        }
-    }
-
-    private refreshRouteDetails(immediate: boolean) {
-        if (immediate) {
-            this.store.postAction(new RefreshRouteDetails());
-        }
-        this.refreshTimeout = setTimeout(() => {
-            this.store.postAction(new RefreshRouteDetails());
-            if (this.refreshRegularly) {
-                this.refreshRouteDetails(false);
-            }
-        }, 5000);
+    private refreshRouteDetails() {
+        this.store.postAction(new RefreshRouteDetails());
     }
 
     private updateTimelineElementAndReturnNext<T extends Element>(current: TimelineElement,
@@ -96,6 +68,7 @@ export class RouteDetails extends HTMLElement {
         if (!s?.routeDetail || !this.rendered) {
             return;
         }
+        let currentTime = new Date();
         let walkingLegs: Leg[] = [];
         let itinerary = s.routeDetail.itinerary;
         let currentChild: TimelineElement = <TimelineElement>this.timeline.children[0];
@@ -138,14 +111,17 @@ export class RouteDetails extends HTMLElement {
                 t.setAttribute("time", (new Date(lastLeg.arrivalTime.getTime() + lastLeg.delay * 1000)).toISOString());
                 t.setAttribute("slot", "timeline2");
             });
-        currentChild = this.updateTimelineElementAndReturnNext(currentChild,
-            t => t.children[0] instanceof TimelineCurrentTimeElement ? t.children[0] : null,
-            () => new TimelineCurrentTimeElement(),
-            (t, e) => {
-                t.setAttribute("time", (new Date()).toISOString());
-                // t.setAttribute("move-to", (new Date(lastLeg.arrivalTime.getTime() + lastLeg.delay * 1000).toISOString()));
-                t.setAttribute("slot", "timeline1");
-            });
+        if (currentTime.getTime() <= lastLeg.arrivalTime.getTime() + 5 * 60 * 1000) {
+            currentChild = this.updateTimelineElementAndReturnNext(currentChild,
+                t => t.children[0] instanceof TimelineCurrentTimeElement ? t.children[0] : null,
+                () => new TimelineCurrentTimeElement(),
+                (t, e) => {
+                    t.setAttribute("time", (currentTime).toISOString());
+                    // t.setAttribute("move-to", (new Date(lastLeg.arrivalTime.getTime() + lastLeg.delay * 1000).toISOString()));
+                    t.setAttribute("slot", "timeline1");
+                    e.setTime(currentTime);
+                });
+        }
         while (currentChild != null) {
             let next = <TimelineElement>currentChild.nextElementSibling;
             currentChild.remove();
@@ -165,7 +141,6 @@ export class RouteDetails extends HTMLElement {
 
     disconnectedCallback() {
         this.abortController.abort();
-        this.stopRefresh();
     }
 }
 
