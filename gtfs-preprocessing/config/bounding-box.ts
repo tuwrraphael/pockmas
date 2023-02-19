@@ -4,3 +4,4 @@ export const minLat = 47.782281;
 export const maxLat = 48.349861;
 
 export const gtfsTidyboundingBoxString = `${minLat},${minLong},${maxLat},${maxLong}`;
+export const osmiumBoundingBoxString = `${minLong},${minLat},${maxLong},${maxLat}`;

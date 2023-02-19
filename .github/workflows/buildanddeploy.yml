@@ -1,7 +1,7 @@
 name: Build and Deploy
 
 env:
-  DATA_FORMAT_VERSION : '13'
+  DATA_FORMAT_VERSION : '15'
   NODE_VERSION: 16.x
   GTFSTIDY_EXECUTABLE: ~/go/bin/gtfstidy
 
@@ -32,13 +32,17 @@ jobs:
         with:
           path: preprocessing-dist.tar.gz
           key: ${{ steps.getlastmodified.outputs.lastmodified }}-${{ env.DATA_FORMAT_VERSION }}-${{ github.ref }}
+      - name: Get bounding box
+        id: getboundingbox
+        run: |
+          echo "boundingbox=$(node gtfs-preprocessing/dist/get-osmium-boundingbox.js)" >> $GITHUB_OUTPUT
       - name: Cache map data
         if: steps.cache-routing.outputs.cache-hit != 'true'
         id: cache-map
         uses: actions/cache@v2
         with:
           path: ors/vienna.osm.pbf
-          key: map-data-vienna
+          key: ${{ steps.getboundingbox.outputs.boundingbox }}-map-data-vienna
       - name: Install osmium-tool
         run: sudo apt-get install -y osmium-tool
         if: steps.cache-routing.outputs.cache-hit != 'true' && steps.cache-map.outputs.cache-hit != 'true'
@@ -52,7 +56,7 @@ jobs:
         run: wget -q -O ors/austria-latest.osm.pbf https://download.geofabrik.de/europe/austria-latest.osm.pbf
         if: steps.cache-routing.outputs.cache-hit != 'true' && steps.cache-map.outputs.cache-hit != 'true'  
       - name: Extract vienna.osm.pbf
-        run: osmium extract --strategy complete_ways --bbox 16.038803,47.992856,16.564345,48.346969 ors/austria-latest.osm.pbf -o ors/vienna.osm.pbf
+        run: osmium extract --strategy complete_ways --bbox ${{ steps.getboundingbox.outputs.boundingbox }} ors/austria-latest.osm.pbf -o ors/vienna.osm.pbf
         if: steps.cache-routing.outputs.cache-hit != 'true' && steps.cache-map.outputs.cache-hit != 'true'
       - name: Start ORS
         if: steps.cache-routing.outputs.cache-hit != 'true'
