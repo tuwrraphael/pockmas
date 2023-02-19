@@ -36,13 +36,17 @@ jobs:
         id: getboundingbox
         run: |
           echo "boundingbox=$(node gtfs-preprocessing/dist/get-osmium-boundingbox.js)" >> $GITHUB_OUTPUT
+      - name: Get map cache key
+        id: getmapcachekey
+        run: |
+          echo "mapcachekey=$(node gtfs-preprocessing/dist/get-map-cachekey.js)" >> $GITHUB_OUTPUT
       - name: Cache map data
         if: steps.cache-routing.outputs.cache-hit != 'true'
         id: cache-map
         uses: actions/cache@v2
         with:
           path: ors/vienna.osm.pbf
-          key: ${{ steps.getboundingbox.outputs.boundingbox }}-map-data-vienna
+          key: ${{ steps.getmapcachekey.outputs.mapcachekey }}-map-data-vienna
       - name: Install osmium-tool
         run: sudo apt-get install -y osmium-tool
         if: steps.cache-routing.outputs.cache-hit != 'true' && steps.cache-map.outputs.cache-hit != 'true'
