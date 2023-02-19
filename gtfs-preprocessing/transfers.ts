@@ -18,7 +18,7 @@ export async function getTransfers(gtfsPath: string, outputPath: string, orsBase
     for (let i = 0; i < 8; i++) {
         try {
             let healthRes = await fetch(orsBaseUrl + "/v2/health");
-            let healthJson = await healthRes.json() as {status: string};
+            let healthJson = await healthRes.json() as { status: string };
             if (healthJson.status !== "ready") {
                 console.log(`status: ${healthJson.status}, wait 30s`);
                 await new Promise(resolve => setTimeout(resolve, 30000));
@@ -63,14 +63,30 @@ export async function getTransfers(gtfsPath: string, outputPath: string, orsBase
 
     let entries = Array.from(stopsMap.entries());
     console.log("Start processing");
+
+    let doneMap = new Map<GtfsStop, GtfsStop[]>();
+    for (let k of stopsMap.keys()) {
+        doneMap.set(k, []);
+    }
+
+    function getNextSlice(stop: GtfsStop) {
+        let stops = stopsMap.get(stop)!;
+        let done = doneMap.get(stop)!;
+        return stops.filter(s => !done.includes(s)).slice(0, 99);
+    }
+
+    function setDone(stop: GtfsStop, stopB: GtfsStop) {
+        doneMap.get(stop)!.push(stopB);
+        doneMap.get(stopB)!.push(stop);
+    }
+
     for (let a = 0; a < entries.length; a++) {
-        let [stop, stops] = entries[a];
+        let [stop] = entries[a];
         if (a % 100 == 0) {
             console.log(`processed ${Math.round(100 * a / entries.length)}%`);
         }
-        let stopsToCheck = stops.slice(0, 99);
-        stops = stops.slice(99);
-        while (stopsToCheck.length > 0) {
+        let nextSlice = getNextSlice(stop);
+        while (nextSlice.length > 0) {
             let res = await fetch(orsBaseUrl + "/v2/matrix/foot-walking", {
                 method: "POST",
                 headers: {
@@ -78,20 +94,21 @@ export async function getTransfers(gtfsPath: string, outputPath: string, orsBase
                     "Accept": "application/json"
                 },
                 body: JSON.stringify({
-                    locations: [[stop.lon, stop.lat], ...stopsToCheck.map(s => [s.lon, s.lat])],
+                    locations: [[stop.lon, stop.lat], ...nextSlice.map(s => [s.lon, s.lat])],
                     sources: [0]
                 }),
             });
             if (!res.ok) {
-                for (let stopB of stopsToCheck) {
+                for (let stopB of nextSlice) {
                     await unknownTransfersOutput.write(`HTTP 500: ${stop.stopId} - ${stopB.stopId}: ${stop.name} - ${stopB.name}\n`, null, "utf8");
+                    setDone(stop, stopB);
                 }
             }
             else {
-                let json = await res.json() as {durations: number[][]};
+                let json = await res.json() as { durations: number[][] };
                 let times = json.durations[0].slice(1);
-                for (let i = 0; i < stopsToCheck.length; i++) {
-                    let stopB = stopsToCheck[i];
+                for (let i = 0; i < nextSlice.length; i++) {
+                    let stopB = nextSlice[i];
                     let time = times[i];
                     if (time === null) {
                         await unknownTransfersOutput.write(`Null duration: ${stop.stopId} - ${stopB.stopId}: ${stop.name} - ${stopB.name}\n`, null, "utf8");
@@ -99,25 +116,28 @@ export async function getTransfers(gtfsPath: string, outputPath: string, orsBase
                     else {
                         if (time === 0) {
                             let distance = coordinateDistance(stop.lat, stop.lon, stopB.lat, stopB.lon);
-                            if (distance < (30/1000)) {
+                            if (distance < (30 / 1000)) {
                                 time = Math.round((distance * 1000) / (walkingSpeed / 3.6));
                             }
                         }
                         if (time < maxSeconds) {
                             await transfersOutput.write(`"${stop.stopId}","${stopB.stopId}","2",${Math.ceil(time)}\n`, null, "utf8");
                             await transfersOutput.write(`"${stopB.stopId}","${stop.stopId}","2",${Math.ceil(time)}\n`, null, "utf8");
-                            let stopBEntry = entries.find(e => e[0] == stopB)!;
-                            stopBEntry[1].splice(stopBEntry.indexOf(stop), 1);
                         }
                         if (time === 0) {
                             let distance = coordinateDistance(stop.lat, stop.lon, stopB.lat, stopB.lon);
                             await unknownTransfersOutput.write(`Zero duration: ${stop.stopId} - ${stopB.stopId}: ${stop.name} - ${stopB.name}, distance: ${Math.round(distance * 1000)}m\n`, null, "utf8");
                         }
                     }
+                    setDone(stop, stopB);
                 }
             }
-            stopsToCheck = stops.slice(0, 99);
-            stops = stops.slice(99);
+            nextSlice = getNextSlice(stop);
+        }
+    }
+    for (let key of stopsMap.keys()) {
+        if (doneMap.get(key)!.length < stopsMap.get(key)!.length) {
+            throw new Error(`Not all stops processed for ${key.stopId}: ${key.name}`);
         }
     }
     await transfersOutput.close();
