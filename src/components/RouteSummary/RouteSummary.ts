@@ -17,6 +17,8 @@ export class RouteSummary extends HTMLElement {
     private router = AppRouter.getInstance();
     private abortController: AbortController;
     private departureDisplay: DepartureDisplay;
+    private durationContainer: HTMLDivElement;
+    private durationLabel: HTMLSpanElement;
 
     constructor() {
         super();
@@ -31,6 +33,8 @@ export class RouteSummary extends HTMLElement {
             this.departureDisplay = this.querySelector("departure-display");
             this.timeLine = this.querySelector(".route-summary__timeline");
             this.link = this.querySelector("a");
+            this.durationContainer = this.querySelector(".route-summary__duration");
+            this.durationLabel = this.querySelector(".route-summary__duration-label");
             abortableEventListener(this.link, "click", (e) => {
                 e.preventDefault();
                 this.router.router.navigate(`r/${this.itinerary.itineraryUrlEncoded}`, "pockmas - Route");
@@ -57,6 +61,11 @@ export class RouteSummary extends HTMLElement {
             else {
                 // TODO
             }
+            let duration = this.itinerary.itinerary.legs[this.itinerary.itinerary.legs.length - 1].arrivalTime.getTime() - this.itinerary.itinerary.legs[0].plannedDeparture.getTime();
+            let durationMinutes = Math.ceil(duration / 60000);
+            this.durationLabel.innerText = `${durationMinutes}'`;
+            this.durationContainer.title = `Dauer ${durationMinutes} Minuten`;
+            this.durationLabel.innerText = `${durationMinutes}'`;
         }
     }
 

@@ -1,4 +1,11 @@
 <a title="Details zur Route anzeigen">
     <departure-display></departure-display>
-    <route-timeline class="route-summary__timeline"></route-timeline>
+    <div class="route-summary__timeline-container">
+        <route-timeline class="route-summary__timeline"></route-timeline>
+        <div class="route-summary__duration" data-ref="duration-container">
+            <img class="route-summary__icon-duration"
+                src="../../icons/distance.svg" alt="Fahrtdauericon">
+            <span data-ref="duration-label" class="route-summary__duration-label">
+        </div>
+    </div>
 </a>

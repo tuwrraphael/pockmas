@@ -4,8 +4,7 @@ import "../FlipTimeDisplay/FlipTimeDisplay";
 import { RouteAttribute, RouteColorAttribute, TransitDisplay } from "../TransitDisplay/TransitDisplay";
 import { FlipTimeDisplay } from "../FlipTimeDisplay/FlipTimeDisplay";
 import { Departure } from "../../lib/Departure";
-
-const timeFormat = Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit" });
+import { timeFormat } from "../../time-format";
 
 export class DepartureDisplay extends HTMLElement {
     private rendered = false;

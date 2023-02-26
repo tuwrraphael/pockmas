@@ -1,0 +1,1 @@
+export const timeFormat = Intl.DateTimeFormat([], { hour: "2-digit", minute: "2-digit" });
