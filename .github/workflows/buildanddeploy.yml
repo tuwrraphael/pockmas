@@ -1,7 +1,7 @@
 name: Build and Deploy
 
 env:
-  DATA_FORMAT_VERSION : '16'
+  DATA_FORMAT_VERSION : '17'
   NODE_VERSION: 16.x
   GTFSTIDY_EXECUTABLE: ~/go/bin/gtfstidy
 
@@ -69,13 +69,13 @@ jobs:
           sudo chmod -R 777 ors/elevation_cache ors/graphs logs/ors
           sudo docker run -dt -p 8080:8080 \
           --name ors-app \
-          -v $PWD/ors/graphs:/home/ors/ors-core/data/graphs \
-          -v $PWD/ors/elevation_cache:/home/ors/ors-core/data/elevation_cache \
-          -v $PWD/ors/conf:/home/ors/ors-conf \
-          -v $PWD/ors/vienna.osm.pbf:/home/ors/ors-core/data/osm_file.pbf \
+          -v $PWD/ors/graphs:/ors-core/data/graphs \
+          -v $PWD/ors/elevation_cache:/ors-core/data/elevation_cache \
+          -v $PWD/ors/conf:/ors-conf \
+          -v $PWD/ors/vienna.osm.pbf:/ors-core/data/osm_file.pbf \
           -e "JAVA_OPTS=-Djava.awt.headless=true -server -XX:TargetSurvivorRatio=75 -XX:SurvivorRatio=64 -XX:MaxTenuringThreshold=3 -XX:+UseG1GC -XX:+ScavengeBeforeFullGC -XX:ParallelGCThreads=4 -Xms1g -Xmx2g" \
           -e "CATALINA_OPTS=-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9001 -Dcom.sun.management.jmxremote.rmi.port=9001 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=localhost" \
-          openrouteservice/openrouteservice:latest
+          openrouteservice/openrouteservice:v6.8.1
           sudo docker ps
       - name: Preprocess
         if: steps.cache-routing.outputs.cache-hit != 'true'
