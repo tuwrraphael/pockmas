@@ -96,6 +96,8 @@ typedef struct
 typedef struct
 {
     uint32_t realtime_index;
+    int16_t min_delay;
+    int16_t max_delay;
 } real_time_index_t;
 
 typedef struct

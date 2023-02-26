@@ -1,5 +1,6 @@
 #include "catch_trip.h"
 #include "calendar_utils.h"
+#include "realtime.h"
 
 typedef struct
 {
@@ -12,7 +13,7 @@ static realtime_adjusted_departure_t get_adjusted_depature_time(input_data_t *in
 {
     realtime_adjusted_departure_t result;
     stop_time_t *stop_time = &input_data->stop_times[route->stop_time_idx + stop_index + route->stop_count * trip];
-    result.delay = input_data->realtime_offsets[input_data->realtime_index[route_id].realtime_index + trip];
+    result.delay = get_trip_delay(input_data, route_id, trip);
     result.planned_departure = after_date.datetime + stop_time->departure_time;
     result.depature = result.planned_departure + result.delay;
     return result;
@@ -25,12 +26,15 @@ static uint16_t get_lower_bound(input_data_t *input_data, route_t *route, route_
     {
         return 0;
     }
+    // the maximum a trip can be early is stored in the min_delay, it can never be > 0
+    datetime_t search_time = after + input_data->realtime_index[route_id].min_delay;
     uint16_t lower = 0;
     while (lower < upper)
     {
         uint16_t trip = (upper + lower) / 2;
-        realtime_adjusted_departure_t adjusted_departure = get_adjusted_depature_time(input_data, route, route_id, trip, stop_index, after_date);
-        if (adjusted_departure.depature < after)
+        stop_time_t *stop_time = &input_data->stop_times[route->stop_time_idx + stop_index + route->stop_count * trip];
+        datetime_t planned_departure = after_date.datetime + stop_time->departure_time;
+        if (planned_departure < search_time)
         {
             lower = trip + 1;
         }
@@ -54,10 +58,21 @@ static void check_trips_advancing(input_data_t *input_data, route_id_t route_id,
     {
         if (trip_serviced_at_date(input_data, route, trip, after_date.datetime, after_date.weekday))
         {
+            // it can happen that the first_theoretically_catchable_trip is not serviced at
+            // the date, but if it the next trip has a negative delay, it can't be catched.
+            // therefore we need to check again
             realtime_adjusted_departure_t adjusted_time = get_adjusted_depature_time(input_data, route, route_id, trip, stop_index, after_date);
+            if (adjusted_time.depature < after)
+            {
+                continue;
+            }
             if (output->trip != -1 && output->departure < adjusted_time.depature)
             {
-                return;
+                if (output->departure < adjusted_time.planned_departure + input_data->realtime_index[route_id].min_delay)
+                {
+                    return;
+                }
+                continue;
             }
             output->trip = trip;
             output->boarded_date = after_date.datetime;
@@ -79,11 +94,6 @@ caught_trip_t catch_trip(input_data_t *input_data, route_id_t route_id, uint32_t
         .weekday = weekday_before(date_today.weekday)};
     check_trips_advancing(input_data, route_id, stop_index, date_yesterday, after, &earliest_trip);
     check_trips_advancing(input_data, route_id, stop_index, date_today, after, &earliest_trip);
-    // if (earliest_trip.trip != -1)
-    // {
-    //     // consider the same thing here,
-    //     return earliest_trip;
-    // }
     date_t date_tomorrow = {
         .datetime = date_today.datetime + ONE_DAY,
         .weekday = weekday_after(date_today.weekday)};

@@ -30,6 +30,8 @@ void initialize_realtime_memory(input_data_t *input_data)
 	for (uint16_t route_id = 0; route_id < input_data->route_count; route_id++)
 	{
 		input_data->realtime_index[route_id].realtime_index = idx;
+		input_data->realtime_index[route_id].min_delay = 0;
+		input_data->realtime_index[route_id].max_delay = 0;
 		idx += input_data->routes[route_id].trip_count;
 	}
 	input_data->realtime_offsets = malloc(sizeof(int16_t) * idx);
@@ -153,6 +155,16 @@ static void scan_routes(input_data_t *input_data, realtime_route_index_t *realti
 	}
 }
 
+static void set_min_max_delay(input_data_t *input_data, route_id_t route_id, int16_t delay)
+{
+	if (delay < input_data->realtime_index[route_id].min_delay) {
+		input_data->realtime_index[route_id].min_delay = delay;
+	}
+	if (delay > input_data->realtime_index[route_id].max_delay) {
+		input_data->realtime_index[route_id].max_delay = delay;
+	}
+}
+
 void process_stoptime_update(input_data_t *input_data)
 {
 	for (uint8_t i = 0; i < stoptime_update->num_updates; i++)
@@ -163,7 +175,7 @@ void process_stoptime_update(input_data_t *input_data)
 	for (realtime_route_identifier_index = 0; realtime_route_identifier_index < input_data->realtime_route_identifiers_count; realtime_route_identifier_index++)
 	{
 		if (input_data->realtime_route_index[realtime_route_identifier_index].realtime_route_identifier == stoptime_update->realtime_route_identifier &&
-		input_data->realtime_route_index[realtime_route_identifier_index].realtime_route_identifier_type == stoptime_update->realtime_route_identifier_type)
+			input_data->realtime_route_index[realtime_route_identifier_index].realtime_route_identifier_type == stoptime_update->realtime_route_identifier_type)
 		{
 			break;
 		}
@@ -175,7 +187,7 @@ void process_stoptime_update(input_data_t *input_data)
 		best_results[i].set = FALSE;
 		best_results[i].was_last_trip = FALSE;
 	}
-	create_savepoint();	
+	create_savepoint();
 	scan_routes(input_data, realtime_route_index_obj, stoptime_update->date, stoptime_update->weekday, best_results);
 	reset_to_savepoint();
 	for (uint8_t i = 0; i < stoptime_update->num_updates; i++)
@@ -191,8 +203,14 @@ void process_stoptime_update(input_data_t *input_data)
 			}
 			if (stoptime_update->apply)
 			{
-				input_data->realtime_offsets[input_data->realtime_index[best_results[i].route_id].realtime_index + best_results[i].trip] = best_results[i].realtime_offset;
+				int16_t delay = best_results[i].realtime_offset;
+				input_data->realtime_offsets[input_data->realtime_index[best_results[i].route_id].realtime_index + best_results[i].trip] = delay;
+				set_min_max_delay(input_data, best_results[i].route_id, delay);
 			}
 		}
 	}
+}
+
+inline int16_t get_trip_delay(input_data_t *input_data, route_id_t route_id, uint16_t trip) {
+	return input_data->realtime_offsets[input_data->realtime_index[route_id].realtime_index + trip];
 }

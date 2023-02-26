@@ -46,6 +46,8 @@ extern "C"
 
     void process_stoptime_update(input_data_t *input_data);
 
+    int16_t get_trip_delay(input_data_t *input_data, route_id_t route_id, uint16_t trip);
+
 #ifdef __cplusplus
 }
 #endif

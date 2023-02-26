@@ -3,6 +3,7 @@
 #include "schedule_scanner.h"
 #include "bump_allocator.h"
 #include "calendar_utils.h"
+#include "realtime.h"
 
 static int32_t get_next_trip_in_service(input_data_t *input_data, route_t *route, uint16_t trip, uint32_t date, uint8_t weekday)
 {
@@ -37,7 +38,7 @@ static schedule_scanner_departure_t get_departure_at_stop(input_data_t *input_da
             .planned_departure = current_stoptime->departure_time + trips_date,
             .delay = 0};
     }
-    int16_t current_trip_delay = input_data->realtime_offsets[input_data->realtime_index[route_id].realtime_index + trip];
+    int16_t current_trip_delay = get_trip_delay(input_data, route_id, trip);
     return (schedule_scanner_departure_t){
         .planned_departure = current_stoptime->departure_time + trips_date,
         .delay = current_trip_delay};
