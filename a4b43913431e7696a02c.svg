@@ -1,0 +1,7 @@
+<svg width="48" height="48" xmlns="http://www.w3.org/2000/svg">
+<style>rect{fill:#000}@media (prefers-color-scheme:dark){rect{fill:#eee}}</style>
+ <g><rect id="svg_3" height="18" width="4" y="15" x="4" fill="#000000" />
+  <rect id="svg_4" height="4" width="38" y="22" x="4" fill="#000000"/>
+  <rect id="svg_5" height="18" width="4" y="15" x="42" fill="#000000"/>
+ </g>
+</svg>
