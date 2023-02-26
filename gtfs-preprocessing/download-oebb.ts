@@ -45,7 +45,7 @@ export async function getOebbGtfsMetadata(log: (message: string) => void) {
                 modified: string;
             }[]
         };
-    console.log("Found:\n" + gtfsDetail.datenUndResourcen.filter(d => d.type == "ZIP").map(d => d.name).join("\n"));
+    log("Found:\n" + gtfsDetail.datenUndResourcen.filter(d => d.type == "ZIP").map(d => d.name).join("\n"));
     let gtfsZipFile = gtfsDetail.datenUndResourcen.find(d => d.name == "GFTS_Fahrplan_OEBB_2023" && d.type == "ZIP");
     if (!gtfsZipFile?.link) {
         throw new Error(`Could not find OEBB GTFS zip file in opendata detail : ${JSON.stringify(gtfsDetail, null, 2)}`);
