@@ -83,7 +83,7 @@ export class RouteDetails extends HTMLElement {
                             t => t.children[0] instanceof WalkingLegDisplay ? t.children[0] : null,
                             () => new WalkingLegDisplay(),
                             (t, e) => {
-                                t.setAttribute("time", (new Date(walkingLegs[0].plannedDeparture.getTime() + leg.delay * 1000)).toISOString());
+                                t.setAttribute("time", (new Date(walkingLegs[0].plannedDeparture.getTime())).toISOString());
                                 t.setAttribute("slot", "timeline2");
                                 e.update(walkingLegs);
                             });
@@ -108,7 +108,7 @@ export class RouteDetails extends HTMLElement {
             () => new TimelineGoalElement(),
             (t, e) => {
 
-                t.setAttribute("time", (new Date(lastLeg.arrivalTime.getTime() + lastLeg.delay * 1000)).toISOString());
+                t.setAttribute("time", (new Date(lastLeg.arrivalTime.getTime())).toISOString());
                 t.setAttribute("slot", "timeline2");
                 e.setLeg(lastLeg);
             });

@@ -41,7 +41,7 @@ export class RouteDetailsService {
         };
     }
 
-    private reconstructLeg(l: DecodedItinerary["legs"][0], itineraryDepartureStartOfDay: { unixTime: number }, legDepartureTime: Date, legDelay: number) {
+    private reconstructLeg(l: DecodedItinerary["legs"][0], itineraryDepartureStartOfDay: { unixTime: number }, legDepartureTime: Date) {
         switch (l.type) {
             case LegType.Transit: {
                 let departureStoptime = this.getStoptime(l.routeId, l.departureStopId, l.tripId);
@@ -55,7 +55,7 @@ export class RouteDetailsService {
                     departureStop: this.routeInfoStore.getStop(l.departureStopId),
                     arrivalStop: this.routeInfoStore.getStop(l.arrivalStopId),
                     route: this.routeInfoStore.getRoute(l.routeId),
-                    arrivalTime: times.plannedArrival,
+                    arrivalTime: new Date(+times.plannedArrival + arrivalStoptime.delay * 1000),
                     plannedDeparture: times.plannedDeparture,
                     delay: departureStoptime.delay,
                     duration: +times.plannedArrival - +times.plannedDeparture,
@@ -73,7 +73,7 @@ export class RouteDetailsService {
                     tripId: null,
                     plannedDeparture: legDepartureTime,
                     arrivalTime: new Date(+legDepartureTime + (duration * 1000)),
-                    delay: legDelay,
+                    delay: 0,
                     duration: duration * 1000,
                     isRealtime: false
                 };
@@ -86,12 +86,10 @@ export class RouteDetailsService {
         let legs: Leg[] = [];
         let legDepartureTime = decoded.departureTime;
         let itineraryDepartureStartOfDay = this.timezoneUtility.getStartOfDay(decoded.departureTime);
-        let legDelay = 0;
         for (let l of decoded.legs) {
-            let leg = this.reconstructLeg(l, itineraryDepartureStartOfDay, legDepartureTime, legDelay);
+            let leg = this.reconstructLeg(l, itineraryDepartureStartOfDay, legDepartureTime);
             legs.push(leg);
             legDepartureTime = leg.arrivalTime;
-            legDelay = leg.delay;
         }
         return {
             legs: legs
