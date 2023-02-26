@@ -6,6 +6,7 @@ import { possibleTypos } from "./possible-typos";
 import path from "path";
 
 const maxDistance = 0.4;
+const maxHauptbahnhofDistance = 2;
 const maxEditDistance = 0.2;
 const resultsPerNode = 10;
 const maxTypos = 2;
@@ -34,7 +35,11 @@ function canAddToStopGroup(group: StopGroup, stop: GroupedStop) {
         return true;
     }
     if (group.cleanedName.indexOf("hauptbahnhof") > -1 && stop.cleanedName.indexOf("hauptbahnhof") > -1) {
-        return true;
+        for (let g of group.groupedStops) {
+            if (coordinateDistance(g.lat, g.lon, stop.lat, stop.lon) < maxHauptbahnhofDistance) {
+                return true;
+            }
+        }
     }
     for (let g of group.groupedStops) {
         if (coordinateDistance(g.lat, g.lon, stop.lat, stop.lon) > maxDistance) {
@@ -47,7 +52,7 @@ function canAddToStopGroup(group: StopGroup, stop: GroupedStop) {
         } else {
             let tornr1 = parseInt((group.cleanedName.match(/(\d)\s+?tor/))![1]);
             let tornr2 = parseInt((stop.cleanedName.match(/(\d)\s+?tor/))![1]);
-            if (tornr1 != tornr2){
+            if (tornr1 != tornr2) {
                 return false;
             }
         }
