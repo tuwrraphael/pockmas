@@ -14,7 +14,7 @@ import { findBestMatch } from "string-similarity";
 
 export interface RouteRequest {
     departureStops: number[];
-    arrivalStop: number;
+    arrivalStops: number[];
     departureTimes: Date[];
 }
 
@@ -79,7 +79,7 @@ export class RoutingService {
     }
 
     getDepartures(r: { departureStops: { stopId: number, departureTime: Date }[] }): Departure[] {
-        this.setRequest(r);
+        this.setRequest({...r, arrivalStops: []});
         let offset = this.routingInstance.exports.get_departures();
         let view = new DataView(this.routingInstance.exports.memory.buffer, offset, DEPARTURE_RESULTS_SIZE);
         let numResults = view.getUint32(0, true);
@@ -91,19 +91,19 @@ export class RoutingService {
         return departures;
     }
 
-    private setRequest(r: { departureStops: { stopId: number, departureTime: Date }[], arrivalStop?: number }) {
+    private setRequest(r: { departureStops: { stopId: number, departureTime: Date }[], arrivalStops: number [] }) {
         let requestMemory = this.routingInstance.exports.get_request_memory();
         let view = new DataView(this.routingInstance.exports.memory.buffer, requestMemory, 4 + 4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + RAPTOR_MAX_REQUEST_STATIONS * 4);
         view.setUint8(0, 0);
         view.setUint8(1, Math.min(RAPTOR_MAX_REQUEST_STATIONS, r.departureStops.length));
-        view.setUint8(2, 1);
+        view.setUint8(2, Math.min(RAPTOR_MAX_REQUEST_STATIONS, r.arrivalStops.length));
         let startOfDayVienna = this.timezoneUtility.getStartOfDay(r.departureStops[0].departureTime);
         view.setUint8(3, startOfDayVienna.dayOfWeek);
         for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, r.departureStops.length); i++) {
             view.setUint16(4 + i * 2, r.departureStops[i].stopId, true);
         }
-        if (typeof r.arrivalStop == "number") {
-            view.setUint16(4 + RAPTOR_MAX_REQUEST_STATIONS * 2, r.arrivalStop, true);
+        for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, r.arrivalStops.length); i++) {
+            view.setUint16(4 + RAPTOR_MAX_REQUEST_STATIONS * 2 +  i * 2, r.arrivalStops[i], true);
         }
         let departureDate = startOfDayVienna.unixTime / 1000;
         for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, r.departureStops.length); i++) {
@@ -118,7 +118,7 @@ export class RoutingService {
             throw new Error("departureStops and departureTimes must have the same length");
         }
         performance.mark("routing-start");
-        this.setRequest({ departureStops: request.departureStops.map((d, i) => ({ stopId: d, departureTime: request.departureTimes[i] })), arrivalStop: request.arrivalStop });
+        this.setRequest({ departureStops: request.departureStops.map((d, i) => ({ stopId: d, departureTime: request.departureTimes[i] })), arrivalStops: request.arrivalStops });
         let resOffset = this.routingInstance.exports.raptor();
         performance.mark("routing-done");
         performance.measure("routing", "routing-start", "routing-done");

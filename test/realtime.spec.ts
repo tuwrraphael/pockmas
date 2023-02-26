@@ -246,7 +246,7 @@ describe("realtime", () => {
 
         let request = {
             departureStops: departureStops,
-            arrivalStop: stopgroupIndex.find(n => n.name == "Groß-Enzersdorf Busbahnhof").stopIds[0],
+            arrivalStops: stopgroupIndex.find(n => n.name == "Groß-Enzersdorf Busbahnhof").stopIds,
             departureTimes: new Array(departureStops.length).fill(departureTime),
         };
 
@@ -289,7 +289,7 @@ describe("realtime", () => {
 
         let request = {
             departureStops: departureStops,
-            arrivalStop: stopgroupIndex.find(n => n.name == "Kagran").stopIds[0],
+            arrivalStops: stopgroupIndex.find(n => n.name == "Kagran").stopIds,
             departureTimes: new Array(departureStops.length).fill(departureTime)
         };
         let delay =  60 + 33;

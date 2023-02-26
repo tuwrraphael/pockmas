@@ -31,7 +31,7 @@ describe("routing", () => {
 
         let result = routingInstance.route({
             departureStops: departureStops,
-            arrivalStop: stopgroupIndex.find(n => n.name == "Donaustadtstraße").stopIds[0],
+            arrivalStops: stopgroupIndex.find(n => n.name == "Donaustadtstraße").stopIds,
             departureTimes: new Array(departureStops.length).fill(departureTime)
         });
         expect(result.length).toBeGreaterThan(0);
@@ -49,7 +49,7 @@ describe("routing", () => {
         }, vienna));
         let result = routingInstance.route({
             departureStops: departureStops,
-            arrivalStop: stopgroupIndex.find(n => n.name == "Taborstraße").stopIds[0],
+            arrivalStops: stopgroupIndex.find(n => n.name == "Taborstraße").stopIds,
             departureTimes: new Array(departureStops.length).fill(departureTime)
         });
         expect(result.length).toBeGreaterThan(0);
@@ -75,7 +75,7 @@ describe("routing", () => {
         }, vienna));
         let result = routingInstance.route({
             departureStops: departureStops,
-            arrivalStop: stopgroupIndex.find(n => n.name == "Polgarstraße").stopIds[0],
+            arrivalStops: stopgroupIndex.find(n => n.name == "Polgarstraße").stopIds,
             departureTimes: new Array(departureStops.length).fill(departureTime)
         });
         expect(result[0].legs[0].type).toBe(1);

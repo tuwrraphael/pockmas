@@ -227,7 +227,7 @@ static boolean_t reconstruct_itinerary(stop_id_t target_stop, uint8_t round, bac
 	}
 }
 
-static void collect_results(uint8_t rounds, backtracking_t *backtracking[], datetime_t *arrival_times[], stop_id_t target, results_t *results)
+static void collect_results(uint8_t rounds, backtracking_t *backtracking[], datetime_t *arrival_times[], stop_id_t arrival_stations[], uint8_t num_arrival_stations, results_t *results)
 {
 	results->num_itineraries = 0;
 	for (uint8_t i = 0; i < MAX_ITINERARYS; i++)
@@ -237,7 +237,19 @@ static void collect_results(uint8_t rounds, backtracking_t *backtracking[], date
 	for (int8_t i = rounds; i >= 0; i--)
 	{
 		itinerary_t *currentItinerary = &results->itineraries[results->num_itineraries];
-		boolean_t reconstruction_success = reconstruct_itinerary(target, i, backtracking, arrival_times, currentItinerary);
+		stop_id_t best_target;
+		datetime_t best_arrival_time;
+		for (uint8_t j = 0; j < num_arrival_stations; j++)
+		{
+			stop_id_t target = arrival_stations[j];
+			datetime_t arrival_time = arrival_times[i][target];
+			if (j == 0 || arrival_time < best_arrival_time)
+			{
+				best_target = target;
+				best_arrival_time = arrival_time;
+			}
+		}
+		boolean_t reconstruction_success = reconstruct_itinerary(best_target, i, backtracking, arrival_times, currentItinerary);
 		if (reconstruction_success)
 		{
 			results->num_itineraries++;
@@ -498,6 +510,7 @@ results_t *raptor()
 			{
 				transfer_t *transfer = &input_data.transfers[transferIndex];
 				datetime_t arrivalWithTransfer = earliest_known_arrival_times_with_trips[round][stop_id] + transfer->walking_time;
+				// TODO: check if target pruning can be applied
 				if (arrivalWithTransfer < earliest_known_arrival_times[transfer->to])
 				{
 					earliest_known_arrival_times[transfer->to] = arrivalWithTransfer;
@@ -524,7 +537,7 @@ results_t *raptor()
 			break;
 		}
 	}
-	collect_results(round, backtracking, earliest_known_arrival_times_with_trips, request->arrival_stations[0], results);
+	collect_results(round, backtracking, earliest_known_arrival_times_with_trips, request->arrival_stations, request->num_arrival_stations, results);
 	reset_to_savepoint();
 	return results;
 }

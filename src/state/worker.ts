@@ -188,13 +188,13 @@ async function route() {
     let stopGroupStore = await routingServicesFactory.getStopGroupStore();
 
     let departureStops = stopGroupStore.getStopGroup(state.selectedStopgroups.departure.id).stopIds;
-    let arrivalStop = stopGroupStore.getStopGroup(state.selectedStopgroups.arrival.id).stopIds[0];
+    let arrivalStops = stopGroupStore.getStopGroup(state.selectedStopgroups.arrival.id).stopIds;
 
     let routeUrlEncoder = await routingServicesFactory.getRouteUrlEncoder();
 
     await realtimeLookupService.performWithRealtimeLoopkup(async () => {
         let results = routingService.route({
-            arrivalStop: arrivalStop,
+            arrivalStops: arrivalStops,
             departureStops: departureStops,
             departureTimes: departureStops.map(() => _departureTime)
         });
