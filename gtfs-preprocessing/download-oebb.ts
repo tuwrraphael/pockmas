@@ -57,6 +57,30 @@ export async function getOebbGtfsMetadata(log: (message: string) => void) {
     };
 }
 
+async function  findFileRecursive(dir:string, file:string):Promise<string|null> {
+    let files = fs.readdirSync(dir);
+    for (let f of files) {
+        if (f == file) {
+            return dir;
+        }
+        let subPath = path.join(dir, f);
+        if ((await fs.promises.stat(subPath)).isDirectory()) {
+            let res = findFileRecursive(subPath, file);
+            if (null != res) {
+                return res;
+            }
+        }
+    }
+    return null;
+}
+
+async function moveFiles(srcDir:string, targetDir:string) {
+    let files = fs.readdirSync(srcDir);
+    for (let f of files) {
+        await fs.promises.rename(path.join(srcDir, f), path.join(targetDir, f));
+    }
+}
+
 export async function downloadOebbGtfs(gtfsDir: string, log: (message: string) => void) {
     let { gtfsZipFile, restServicesBaseUrl, basicAuth } = await getOebbGtfsMetadata(log);
 
@@ -76,5 +100,14 @@ export async function downloadOebbGtfs(gtfsDir: string, log: (message: string) =
         file: path.join(gtfsDir, "oebb-gtfs.zip")
     });
     await zip.extract(null, gtfsDir);
+
+    let agencyFilePath = await findFileRecursive(gtfsDir, "agency.txt");
+    if (null == agencyFilePath) {
+        throw new Error(`Could not find agency.txt in ${gtfsDir}`);
+    }
+    if (agencyFilePath != gtfsDir) {
+        await moveFiles(agencyFilePath, gtfsDir);
+    }
+    
     zip.close();
 }
