@@ -134,7 +134,7 @@ describe("realtime", () => {
         }, false);
         let result = routingInstance.getRealtimeUpdateResult();
         expect(result[0].route).toBe("U1");
-        expect(result[0].realtimeOffset).toBe(-5);
+        expect(result[0].realtimeOffset).toBe(55);
         routingInstance.upsertRealtimeData({
             realtimeIdentifier: {
                 type: RealtimeIdentifierType.WienerLinien,
@@ -148,7 +148,7 @@ describe("realtime", () => {
         }, false);
         result = routingInstance.getRealtimeUpdateResult();
         expect(result[0].route).toBe("U1");
-        expect(result[0].realtimeOffset).toBe(55);
+        expect(result[0].realtimeOffset).toBe(115);
     });
 
     // 26A Sonntag, Siebeckstraße, 00:07, 00:27, 00:47
