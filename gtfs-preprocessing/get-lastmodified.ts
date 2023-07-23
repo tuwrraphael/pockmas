@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import { getOebbGtfsMetadata } from "./download-oebb";
+import { getOebbZipUrl } from "./download-oebb";
 
 async function getLastModifiedDateWienerlinien() {
     let res = await fetch("http://www.wienerlinien.at/ogd_realtime/doku/ogd/gtfs/gtfs.zip", {
@@ -15,11 +15,16 @@ async function getLastModifiedDateWienerlinien() {
 }
 
 async function getLastModifiedOebb() {
-    let metadata = await getOebbGtfsMetadata(() => { });
-    if (!metadata.gtfsZipFile) {
-        throw new Error("No gtfsZipFile found");
+    let res = await fetch(await getOebbZipUrl(), {
+        method: "HEAD"
+    });
+    let lastModifiedHeader = res.headers.get("last-modified");
+    if (lastModifiedHeader) {
+        return new Date(lastModifiedHeader).getTime();
     }
-    return new Date(metadata.gtfsZipFile.modified).getTime();
+    else {
+        throw new Error("No last-modified header found");
+    }
 }
 
 async function getLastModifiedDate() {
