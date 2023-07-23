@@ -75,6 +75,29 @@ function ensureRouteAgency(routes: any) {
     }
 }
 
+function dedupeCalendarDates(calendarDates:any[]) {
+    // service_id,date,exception_type
+    let deduped: any[] = [];
+    let seen: any = {};
+    let numDuplicates = 0;
+    for (let cd of calendarDates) {
+        let key = `${cd.service_id},${cd.date}`;
+        if (!seen[key]) {
+            seen[key] = cd.exception_type;
+            deduped.push(cd);
+        } else {
+            if (seen[key] != cd.exception_type) {
+                throw new Error(`Duplicate calendar date ${key} with different exception_type`);
+            }
+            numDuplicates++;
+        }
+    }
+    if (numDuplicates > 0) {
+        console.log(`Removed ${numDuplicates} duplicate calendar dates`);
+    }
+    return deduped;
+}
+
 export async function fixGtfs(gtfsDir: string) {
     let agencies = await readAny(gtfsDir, "agency.txt");
     fixTimeZones(agencies);
@@ -83,4 +106,7 @@ export async function fixGtfs(gtfsDir: string) {
     let routes = await (readAny(gtfsDir, "routes.txt"));
     ensureRouteAgency(routes);
     writeGtfs(gtfsDir, "routes.txt", routes);
+    let calendarDates = await (readAny(gtfsDir, "calendar_dates.txt"));
+    calendarDates = dedupeCalendarDates(calendarDates);
+    writeGtfs(gtfsDir, "calendar_dates.txt", calendarDates);
 }
