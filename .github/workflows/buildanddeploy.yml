@@ -65,17 +65,19 @@ jobs:
       - name: Start ORS
         if: steps.cache-routing.outputs.cache-hit != 'true'
         run: |
-          sudo mkdir -p ors/elevation_cache ors/graphs logs/ors
-          sudo chmod -R 777 ors/elevation_cache ors/graphs logs/ors
+          sudo mkdir -p docker/elevation_cache docker/graphs docker/logs/ors docker/logs/tomcat
+          sudo chmod -R 777 docker/elevation_cache docker/graphs docker/logs/ors docker/logs/tomcat
           sudo docker run -dt -p 8080:8080 \
           --name ors-app \
-          -v $PWD/ors/graphs:/ors-core/data/graphs \
-          -v $PWD/ors/elevation_cache:/ors-core/data/elevation_cache \
-          -v $PWD/ors/conf:/ors-conf \
-          -v $PWD/ors/vienna.osm.pbf:/ors-core/data/osm_file.pbf \
-          -e "JAVA_OPTS=-Djava.awt.headless=true -server -XX:TargetSurvivorRatio=75 -XX:SurvivorRatio=64 -XX:MaxTenuringThreshold=3 -XX:+UseG1GC -XX:+ScavengeBeforeFullGC -XX:ParallelGCThreads=4 -Xms1g -Xmx2g" \
+          -v $PWD/docker/graphs:/home/ors/ors-core/data/graphs \
+          -v $PWD/docker/elevation_cache:/home/ors/ors-core/data/elevation_cache \
+          -v $PWD/docker/logs/ors:/home/ors/ors-core/logs/ors \
+          -v $PWD/docker/logs/tomcat:/home/ors/tomcat/logs \
+          -v $PWD/ors/conf:/home/ors/ors-conf \
+          -v $PWD/ors/vienna.osm.pbf:/home/ors/ors-core/data/osm_file.pbf \
+          -e "BUILD_GRAPHS=True" -e "JAVA_OPTS=-Djava.awt.headless=true -server -XX:TargetSurvivorRatio=75 -XX:SurvivorRatio=64 -XX:MaxTenuringThreshold=3 -XX:+UseG1GC -XX:+ScavengeBeforeFullGC -XX:ParallelGCThreads=4 -Xms1g -Xmx2g" \
           -e "CATALINA_OPTS=-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9001 -Dcom.sun.management.jmxremote.rmi.port=9001 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=localhost" \
-          openrouteservice/openrouteservice:v6.8.1
+          openrouteservice/openrouteservice:v7.0.1
           sudo docker ps
       - name: Preprocess
         if: steps.cache-routing.outputs.cache-hit != 'true'
