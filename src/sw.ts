@@ -45,7 +45,7 @@ self.addEventListener("install", function (event) {
     event.waitUntil((async () => {
         let tasks = definedCaches.map(async c => {
             let cache = await caches.open(c.name);
-            await cache.addAll(c.assets);
+            await cache.addAll(Array.from(new Set(c.assets)));
         });
         await Promise.all(tasks);
     })());
