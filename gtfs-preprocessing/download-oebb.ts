@@ -4,7 +4,7 @@ import streamZip from "node-stream-zip";
 import path from "path";
 
 export async function getOebbZipUrl() {
-    return "https://static.oebb.at/open-data/soll-fahrplan-gtfs/GTFS_OP_2023_obb.zip";
+    return "https://static.oebb.at/open-data/soll-fahrplan-gtfs/GTFS_OP_2024_obb.zip";
 }
 
 async function  findFileRecursive(dir:string, file:string):Promise<string|null> {
