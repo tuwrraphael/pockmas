@@ -115,15 +115,15 @@ jobs:
       working-directory: ./raptor
       run: make
       env:
-        LD: wasm-ld-12
-        CC: clang-12
+        LD: wasm-ld-13
+        CC: clang-13
         MODE: PRODUCTION
     - name: Build stopsearch wasm module
       working-directory: ./stopsearch
       run: make
       env:
-        LD: wasm-ld-12
-        CC: clang-12
+        LD: wasm-ld-13
+        CC: clang-13
         MODE: PRODUCTION
     - name: Use Node.js
       uses: actions/setup-node@v1
