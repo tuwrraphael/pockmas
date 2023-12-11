@@ -1,21 +1,6 @@
 {
   "ors": {
-    "info": {
-      "base_url": "https://openrouteservice.org/",
-      "support_mail": "support@openrouteservice.org",
-      "author_tag": "openrouteservice",
-      "content_licence": "LGPL 3.0"
-    },
     "services": {
-      "matrix": {
-        "enabled": true,
-        "maximum_routes": 100,
-        "maximum_routes_flexible": 25,
-        "maximum_search_radius": 5000,
-        "maximum_visited_nodes": 100000,
-        "allow_resolve_locations": true,
-        "attribution": "openrouteservice.org, OpenStreetMap contributors"
-      },
       "isochrones": {
         "enabled": true,
         "maximum_range_distance": [
@@ -66,8 +51,8 @@
               "weightings": "recommended",
               "maxcellnodes": 5000
             },
-            "profile-hgv": {
-              "enabled": true,
+            "hgv": {
+              "enabled": false,
               "threads": 12,
               "weightings": "recommended, shortest",
               "maxcellnodes": 5000
@@ -84,7 +69,7 @@
         "routing_description": "This is a routing file from openrouteservice",
         "routing_name": "openrouteservice routing",
         "sources": [
-          "data/osm_file.pbf"
+          "/home/ors/ors-core/data/osm_file.pbf"
         ],
         "init_threads": 1,
         "attribution": "openrouteservice.org, OpenStreetMap contributors",
@@ -95,9 +80,9 @@
           ],
           "default_params": {
             "encoder_flags_size": 8,
-            "graphs_root_path": "data/graphs",
+            "graphs_root_path": "/home/ors/ors-core/data/graphs",
             "elevation_provider": "multi",
-            "elevation_cache_path": "data/elevation_cache",
+            "elevation_cache_path": "/home/ors/ors-core/data/elevation_cache",
             "elevation_cache_clear": false,
             "instructions": true,
             "maximum_distance": 100000,
@@ -327,46 +312,21 @@
                 "OsmId": {}
               }
             }
+          },
+          "profile-public-transport": {
+            "profiles": "public-transport",
+            "parameters": {
+              "encoder_options": "block_fords=false",
+              "elevation": true,
+              "maximum_visited_nodes": 1000000,
+              "gtfs_file": "ors-api/src/test/files/vrn_gtfs.zip"
+            }
           }
         }
       }
     },
     "logging": {
-      "enabled": true,
-      "level_file": "DEBUG_LOGGING.json",
-      "location": "/var/log/ors",
-      "stdout": true
-    },
-    "system_message": [
-      {
-        "active": false,
-        "text": "This message would be sent with every routing bike fastest request",
-        "condition": {
-          "request_service": "routing",
-          "request_profile": "cycling-regular,cycling-mountain,cycling-road,cycling-electric",
-          "request_preference": "fastest"
-        }
-      },
-      {
-        "active": false,
-        "text": "This message would be sent with every request for geojson response",
-        "condition": {
-          "api_format": "geojson"
-        }
-      },
-      {
-        "active": false,
-        "text": "This message would be sent with every request on API v1 from January 2020 until June 2050",
-        "condition": {
-          "api_version": 1,
-          "time_after": "2020-01-01T00:00:00Z",
-          "time_before": "2050-06-01T00:00:00Z"
-        }
-      },
-      {
-        "active": false,
-        "text": "This message would be sent with every request"
-      }
-    ]
+      "location": "/home/ors/ors-core/logs/ors"
+    }
   }
 }
