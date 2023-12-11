@@ -35,7 +35,7 @@ else
 	LDOPT = -O0
 endif
 
-CFLAGS = $(INCLUDE) $(COPT) $(DEFINE) --target=wasm32 -Wall
+CFLAGS = $(INCLUDE) $(COPT) $(DEFINE) --target=wasm32 -Wall -mbulk-memory
 
 build:
 	mkdir $@

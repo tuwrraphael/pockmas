@@ -31,7 +31,7 @@ else
 endif
 
 
-CFLAGS = $(INCLUDE) $(COPT) $(DEFINE) --target=wasm32
+CFLAGS = $(INCLUDE) $(COPT) $(DEFINE) --target=wasm32 -mbulk-memory
 
 build:
 	mkdir $@
