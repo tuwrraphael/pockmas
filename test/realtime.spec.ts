@@ -70,7 +70,7 @@ describe("realtime", () => {
             routeClassName: "22A",
             headsign: "Aspernstraße",
             times: [
-                new Date("2023-10-28T18:29:02.000+0200")
+                new Date("2024-10-19T18:29:02.000+0200") // saturday
             ],
 
         }, false);
@@ -87,12 +87,12 @@ describe("realtime", () => {
             -2,
             0
         ];
-        let day = "2023-11-21T"; // tuesday
+        let day = "2024-11-19T"; // tuesday
         let planTimes = [
-            "16:49",
-            "16:56",
-            "17:02",
-            "17:09",
+            "18:51",
+            "18:59",
+            "19:06",
+            "19:14",
         ];
         let times = [
             new Date(+new Date(`${day}${planTimes[0]}:00.000+0100`) + realtimes[0] * 1000),
@@ -129,7 +129,8 @@ describe("realtime", () => {
             routeClassName: "U1",
             headsign: "OBERLAA          ",
             times: [
-                new Date("2023-11-26T14:06:55.000+0100"),
+                // sunday
+                new Date("2024-11-24T14:06:55.000+0100"),
             ],
         }, false);
         let result = routingInstance.getRealtimeUpdateResult();
@@ -143,7 +144,8 @@ describe("realtime", () => {
             routeClassName: "U1",
             headsign: "Alaudagasse",
             times: [
-                new Date("2023-11-26T14:12:55.000+0100")
+                // sunday
+                new Date("2024-11-24T14:12:55.000+0100")
             ],
         }, false);
         result = routingInstance.getRealtimeUpdateResult();
@@ -151,15 +153,15 @@ describe("realtime", () => {
         expect(result[0].realtimeOffset).toBe(115);
     });
 
-    // 26A Sonntag, Siebeckstraße, 00:07, 00:27, 00:47
+    // 26A Dienstag/Mittwoch, Siebeckstraße, 00:07, 00:27, 00:47
     [
-        { d: new Date("2023-11-21T00:07:45.000+0100"), o: 45 },
-        { d: new Date("2023-11-21T00:07:00.000+0100"), o: 0 },
-        { d: new Date("2023-11-21T00:06:30.000+0100"), o: -30 },
-        { d: new Date("2023-11-22T00:29:00.000+0100"), o: 120 },
-        { d: new Date("2023-11-22T00:46:00.000+0100"), o: -60 },
-        { d: new Date("2023-11-22T00:49:15.000+0100"), o: 135 },
-        { d: new Date("2023-11-22T00:47:00.000+0100"), o: 0 },
+        { d: new Date("2024-11-19T00:07:45.000+0100"), o: 45 },
+        { d: new Date("2024-11-19T00:07:00.000+0100"), o: 0 },
+        { d: new Date("2024-11-19T00:06:30.000+0100"), o: -30 },
+        { d: new Date("2024-11-20T00:29:00.000+0100"), o: 7*60 },
+        { d: new Date("2024-11-20T00:46:00.000+0100"), o: -60 },
+        { d: new Date("2024-11-20T00:49:15.000+0100"), o: 135 },
+        { d: new Date("2024-11-20T00:47:00.000+0100"), o: 0 },
     ].map((v, i) => {
         it(`updates trip with departure time > 24h (${i})`, () => {
             routingInstance.upsertRealtimeData({
@@ -182,6 +184,7 @@ describe("realtime", () => {
 
 
     it("distributes correctly if sequence belongs to different routes", () => {
+        let day = "04"; // monday
         routingInstance.upsertRealtimeData({
             headsign: "Rennweg",
             realtimeIdentifier: {
@@ -190,11 +193,11 @@ describe("realtime", () => {
             },
             routeClassName: "77A",
             times: [
-                new Date("2023-11-06T15:03:46.000+0100"),
-                new Date("2023-11-06T15:13:11.000+0100"),
-                new Date("2023-11-06T15:23:15.000+0100"),
-                new Date("2023-11-06T15:33:14.000+0100"),
-                new Date("2023-11-06T15:43:00.000+0100"),
+                new Date(`2024-11-${day}T15:03:46.000+0100`),
+                new Date(`2024-11-${day}T15:13:11.000+0100`),
+                new Date(`2024-11-${day}T15:23:15.000+0100`),
+                new Date(`2024-11-${day}T15:33:14.000+0100`),
+                new Date(`2024-11-${day}T15:43:00.000+0100`),
             ]
         }, false);
         let result = routingInstance.getRealtimeUpdateResult();
@@ -210,12 +213,13 @@ describe("realtime", () => {
     });
 
     [
-        { d: new Date("2023-12-06T01:04:00.000+0100"), o: 60 },
-        { d: new Date("2023-12-06T00:59:00.000+0100"), o: -4 * 60 },
+        // saturday
+        { d: new Date("2024-11-16T01:12:00.000+0100"), o: 60 },
+        { d: new Date("2024-11-16T01:07:00.000+0100"), o: -4 * 60 },
     ].map((v, i) => {
         it(`updates first nightline (${i})`, () => {
             routingInstance.upsertRealtimeData({
-                headsign: "Eßling Schule",
+                headsign: "Eßling, Stadtgrenze",
                 realtimeIdentifier: {
                     type: RealtimeIdentifierType.WienerLinien,
                     value: 60200627
@@ -233,13 +237,13 @@ describe("realtime", () => {
     });
 
     it("get realtime route from Aspernstraße to Groß-Enzersdorf", () => {
-
+        let day = 22; // tuesday
         let departureStops = stopgroupIndex.find(n => n.name == "Aspernstraße").stopIds;
         let departureTime = new Date(getUnixTime({
-            year: 2023,
+            year: 2024,
             month: 10,
-            day: 24,
-            hours: 18,
+            day: day,
+            hours: 19,
             minutes: 36,
             seconds: 0,
         }, vienna));
@@ -260,28 +264,29 @@ describe("realtime", () => {
             },
             routeClassName: "26A",
             times: [
-                new Date("2023-10-24T18:30:33.000+0200"),
-                new Date("2023-10-24T18:37:29.000+0200"),
-                new Date("2023-10-24T18:44:04.000+0200"),
-                new Date("2023-10-24T18:50:20.000+0200"),
-                new Date("2023-10-24T18:57:00.000+0200"),
+                new Date(`2024-10-${day}T19:34:33.000+0200`),
+                new Date(`2024-10-${day}T19:39:29.000+0200`),
+                new Date(`2024-10-${day}T19:49:04.000+0200`),
+                new Date(`2024-10-${day}T19:55:20.000+0200`),
+                new Date(`2024-10-${day}T20:04:00.000+0200`),
             ]
         }, true);
 
         let result = routingInstance.route(request);
 
-        expect(resultBeforeRealtime[0].legs[0].plannedDeparture).toEqual(new Date("2023-10-24T18:37:00.000+0200"));
+        expect(resultBeforeRealtime[0].legs[0].plannedDeparture).toEqual(new Date(`2024-10-${day}T19:39:00.000+0200`));
         expect(resultBeforeRealtime[0].legs[0].delay).toEqual(0);
-        expect(result[0].legs[0].plannedDeparture).toEqual(new Date("2023-10-24T18:37:00.000+0200"));
+        expect(result[0].legs[0].plannedDeparture).toEqual(new Date(`2024-10-${day}T19:39:00.000+0200`));
         expect(result[0].legs[0].delay).toEqual(29);
     });
 
     it("realtime route in the morning from Polgarstraße to Kagran", () => {
+        let d = 7; // thursday
         let departureStops = stopgroupIndex.find(n => n.name == "Polgarstraße").stopIds;
         let departureTime = new Date(getUnixTime({
-            year: 2023,
+            year: 2024,
             month: 11,
-            day: 9,
+            day: d,
             hours: 9,
             minutes: 39,
             seconds: 0,
@@ -292,9 +297,9 @@ describe("realtime", () => {
             arrivalStops: stopgroupIndex.find(n => n.name == "Kagran").stopIds,
             departureTimes: new Array(departureStops.length).fill(departureTime)
         };
-        let delay =  60 + 33;
+        let delay = 60 + 33;
         let planTime = "09:39";
-        let day = "2023-11-09T";// donnerstag
+        let day = `2024-11-${String(d).padStart(2, "0")}T`;// donnerstag
         routingInstance.upsertRealtimeData({
             headsign: "Kagran",
             realtimeIdentifier: {
@@ -305,7 +310,7 @@ describe("realtime", () => {
             times: [
                 new Date(+new Date(`${day}${planTime}:00.000+0100`) + delay * 1000)
             ]
-        }, true);
+        }, true);        
         let result = routingInstance.route(request);
         expect(result[0].legs[0].route.name).toBe("26A");
         expect(result[0].legs[0].delay).toEqual(delay);

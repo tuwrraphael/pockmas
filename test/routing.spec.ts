@@ -19,7 +19,7 @@ describe("routing", () => {
     it("can get home on halloween", () => {
 
         let departureTime = new Date(getUnixTime({
-            year: 2023,
+            year: 2024,
             month: 11,
             day: 1,
             hours: 0,
@@ -40,7 +40,7 @@ describe("routing", () => {
     it("uses the U4 -> U2 transfer at Schottenring", () => {
         let departureStops = stopgroupIndex.find(n => n.name == "Friedensbrücke").stopIds;
         let departureTime = new Date(getUnixTime({
-            year: 2023,
+            year: 2024,
             month: 11,
             day: 1,
             hours: 0,
@@ -64,11 +64,12 @@ describe("routing", () => {
     });
 
     it("can hop on after midnight journey of before serviceday", () => {
+        let day = 8; // friday
         let departureStops = stopgroupIndex.find(n => n.name == "Siebeckstraße").stopIds;
         let departureTime = new Date(getUnixTime({
-            year: 2023,
+            year: 2024,
             month: 11,
-            day: 10,
+            day: day,
             hours: 0,
             minutes: 1,
             seconds: 0,
@@ -80,6 +81,6 @@ describe("routing", () => {
         });
         expect(result[0].legs[0].type).toBe(1);
         expect(result[0].legs[0].route.name).toBe("26A");
-        expect(result[0].legs[0].plannedDeparture).toEqual(new Date("2023-11-10T00:07:00.000+0100"));
+        expect(result[0].legs[0].plannedDeparture).toEqual(new Date(`2024-11-${String(day).padStart(2, "0")}T00:07:00.000+0100`));
     });
 });
