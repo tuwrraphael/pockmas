@@ -11,6 +11,7 @@ import { RealtimeIdentifierType } from "./RealtimeIdentifierType";
 import { ResolvedRealtimeData } from "./ResolvedRealtimeData";
 import { RouteInfoStore } from "./RouteInfoStore";
 import { findBestMatch } from "string-similarity";
+import { MAX_REQUEST_STATIONS } from "../../raptor/config";
 
 export interface RouteRequest {
     departureStops: number[];
@@ -18,7 +19,7 @@ export interface RouteRequest {
     departureTimes: Date[];
 }
 
-const RAPTOR_MAX_REQUEST_STATIONS = 20;
+const RAPTOR_MAX_REQUEST_STATIONS = MAX_REQUEST_STATIONS;
 
 const RAPTOR_LEG_SIZE = 24;
 const RAPTOR_MAX_LEGS = 10;
@@ -79,7 +80,7 @@ export class RoutingService {
     }
 
     getDepartures(r: { departureStops: { stopId: number, departureTime: Date }[] }): Departure[] {
-        this.setRequest({...r, arrivalStops: []});
+        this.setRequest({ ...r, arrivalStops: [] });
         let offset = this.routingInstance.exports.get_departures();
         let view = new DataView(this.routingInstance.exports.memory.buffer, offset, DEPARTURE_RESULTS_SIZE);
         let numResults = view.getUint32(0, true);
@@ -91,7 +92,7 @@ export class RoutingService {
         return departures;
     }
 
-    private setRequest(r: { departureStops: { stopId: number, departureTime: Date }[], arrivalStops: number [] }) {
+    private setRequest(r: { departureStops: { stopId: number, departureTime: Date }[], arrivalStops: number[] }) {
         let requestMemory = this.routingInstance.exports.get_request_memory();
         let view = new DataView(this.routingInstance.exports.memory.buffer, requestMemory, 4 + 4 + (RAPTOR_MAX_REQUEST_STATIONS + RAPTOR_MAX_REQUEST_STATIONS) * 2 + RAPTOR_MAX_REQUEST_STATIONS * 4);
         view.setUint8(0, 0);
@@ -103,7 +104,7 @@ export class RoutingService {
             view.setUint16(4 + i * 2, r.departureStops[i].stopId, true);
         }
         for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, r.arrivalStops.length); i++) {
-            view.setUint16(4 + RAPTOR_MAX_REQUEST_STATIONS * 2 +  i * 2, r.arrivalStops[i], true);
+            view.setUint16(4 + RAPTOR_MAX_REQUEST_STATIONS * 2 + i * 2, r.arrivalStops[i], true);
         }
         let departureDate = startOfDayVienna.unixTime / 1000;
         for (let i = 0; i < Math.min(RAPTOR_MAX_REQUEST_STATIONS, r.departureStops.length); i++) {
@@ -125,7 +126,8 @@ export class RoutingService {
         console.log(`routing took ${(performance.getEntriesByName("routing")[0]).duration}ms`);
         performance.clearMarks();
         performance.clearMeasures();
-        return this.readResults(this.routingInstance.exports.memory, resOffset);
+        let results = this.readResults(this.routingInstance.exports.memory, resOffset);
+        return results;
     }
 
     private async getRealtimeForWienerLinien(divas: number[]): Promise<RealtimeData[]> {

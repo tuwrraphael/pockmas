@@ -4,6 +4,7 @@ import { coordinateDistance } from "./coordinate-distance";
 import fs from "fs";
 import { possibleTypos } from "./possible-typos";
 import path from "path";
+import { MAX_REQUEST_STATIONS } from "../raptor/config";
 
 const maxDistance = 0.4;
 const maxHauptbahnhofDistance = 2;
@@ -265,6 +266,9 @@ export async function createSearchIndex(gtfsPath: string, outputPath: string) {
         for (let g of groupedStops) {
             if (canAddToStopGroup(g, candidate)) {
                 g.groupedStops.push(candidate);
+                if (g.groupedStops.length > MAX_REQUEST_STATIONS) {
+                    throw new Error(`Too many stops in group ${g.name}`);
+                }
                 added = true;
                 break;
             }

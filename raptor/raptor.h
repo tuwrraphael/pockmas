@@ -7,7 +7,10 @@
 #define MAX_INTERCHANGES (11)
 #define MAX_LEGS (MAX_INTERCHANGES - 1)
 #define MAX_ITINERARYS (8)
-#define MAX_REQUEST_STATIONS (20)
+
+// must match config.ts
+#define MAX_REQUEST_STATIONS (30)
+
 #define MAX_DEPARTURE_RESULTS (10)
 
 typedef struct
