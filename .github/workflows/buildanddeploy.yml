@@ -25,7 +25,7 @@ jobs:
       - name: Get last modified header
         id: getlastmodified
         run: |
-          echo "lastmodified=$(node gtfs-preprocessing/dist/get-lastmodified.js)" >> $GITHUB_OUTPUT
+          echo "lastmodified=$(node gtfs-preprocessing/dist/gtfs-preprocessing/get-lastmodified.js)" >> $GITHUB_OUTPUT
       - name: Cache preprocessed routing data
         id: cache-routing
         uses: actions/cache@v3
@@ -35,11 +35,11 @@ jobs:
       - name: Get bounding box
         id: getboundingbox
         run: |
-          echo "boundingbox=$(node gtfs-preprocessing/dist/get-osmium-boundingbox.js)" >> $GITHUB_OUTPUT
+          echo "boundingbox=$(node gtfs-preprocessing/dist/gtfs-preprocessing/get-osmium-boundingbox.js)" >> $GITHUB_OUTPUT
       - name: Get map cache key
         id: getmapcachekey
         run: |
-          echo "mapcachekey=$(node gtfs-preprocessing/dist/get-map-cachekey.js)" >> $GITHUB_OUTPUT
+          echo "mapcachekey=$(node gtfs-preprocessing/dist/gtfs-preprocessing/get-map-cachekey.js)" >> $GITHUB_OUTPUT
       - name: Cache map data
         if: steps.cache-routing.outputs.cache-hit != 'true'
         id: cache-map

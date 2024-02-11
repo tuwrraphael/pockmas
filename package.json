@@ -61,8 +61,8 @@
     "test": "karma start --single-run --browsers ChromeHeadless",
     "build": "webpack",
     "start": "webpack serve --mode development --env development",
-    "preprocess": "node gtfs-preprocessing/dist/index.js",
-    "check-dependencies": "node gtfs-preprocessing/dist/check-gtfstidy.js",
+    "preprocess": "node gtfs-preprocessing/dist/gtfs-preprocessing/index.js",
+    "check-dependencies": "node gtfs-preprocessing/dist/gtfs-preprocessing/check-gtfstidy.js",
     "build-preprocess": "tsc --p gtfs-preprocessing/tsconfig.json"
   },
   "author": "",
