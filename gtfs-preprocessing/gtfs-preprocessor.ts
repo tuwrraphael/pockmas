@@ -203,7 +203,7 @@ export async function preprocessGtfs(gtfsPath: string, outputPath: string) {
         tripRoutes: trips.map(t => t.routeId),
         direction: trips[0].directionId,
         headsign: trips[0].tripHeadsign,
-        routeName: trips[0].tripShortName || routesWithNames[trips[0].routeId].routeShortName
+        routeName: routesWithNames[trips[0].routeId].routeShortName
     }));
     await fs.promises.writeFile(path.join(outputPath, "routeIdMap.json"), JSON.stringify(routeIdMap));
     console.log("Writing routes");

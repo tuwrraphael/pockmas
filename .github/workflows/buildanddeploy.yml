@@ -1,7 +1,7 @@
 name: Build and Deploy
 
 env:
-  DATA_FORMAT_VERSION : '19'
+  DATA_FORMAT_VERSION : '20'
   NODE_VERSION: 16.x
   GTFSTIDY_EXECUTABLE: ~/go/bin/gtfstidy
 
