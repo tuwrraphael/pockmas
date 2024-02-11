@@ -35,17 +35,17 @@ let steps = [
 if (process.argv.length > 2) {
     steps = process.argv.slice(2);
 }
-const destDir = path.join(__dirname, "../../preprocessing-dist");
+const destDir = path.join(__dirname, "../../../preprocessing-dist");
 if (!fs.existsSync(destDir)) {
     fs.mkdirSync(destDir);
 }
-const gtfsDir = path.join(__dirname, "../gtfs");
+const gtfsDir = path.join(__dirname, "../../gtfs");
 if (!fs.existsSync(gtfsDir)) {
     fs.mkdirSync(gtfsDir);
 }
-const gtfsWienerLinienDir = path.join(__dirname, "../gtfs-wienerlinien");
-const gtfsOebbDir = path.join(__dirname, "../gtfs-oebb");
-const rtDir = path.join(__dirname, "../");
+const gtfsWienerLinienDir = path.join(__dirname, "../../gtfs-wienerlinien");
+const gtfsOebbDir = path.join(__dirname, "../../gtfs-oebb");
+const rtDir = path.join(__dirname, "../../");
 async function doSteps() {
 
     for (let step of steps) {
