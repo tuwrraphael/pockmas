@@ -50,6 +50,12 @@ jobs:
       - name: Install osmium-tool
         run: sudo apt-get install -y osmium-tool
         if: steps.cache-routing.outputs.cache-hit != 'true' && steps.cache-map.outputs.cache-hit != 'true'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '^1.18'
+        if: steps.cache-routing.outputs.cache-hit != 'true'
+      - run: go version
+        if: steps.cache-routing.outputs.cache-hit != 'true'
       - name: Install gtfstidy
         run: go install github.com/patrickbr/gtfstidy@latest
         if: steps.cache-routing.outputs.cache-hit != 'true'
