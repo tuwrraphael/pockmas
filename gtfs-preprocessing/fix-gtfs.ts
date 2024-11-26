@@ -98,6 +98,19 @@ function dedupeCalendarDates(calendarDates:any[]) {
     return deduped;
 }
 
+function ensureStopNames(stops: any[]) {
+    let num = 0;
+    for (let s of stops) {
+        if (!s.stop_name) {
+            s.stop_name = "Unbekannt";
+            num++;
+        }
+    }
+    if (num > 0) {
+        console.log(`Fixed ${num} stops without stop_name`);
+    }
+}
+
 export async function fixGtfs(gtfsDir: string) {
     let agencies = await readAny(gtfsDir, "agency.txt");
     fixTimeZones(agencies);
@@ -109,4 +122,8 @@ export async function fixGtfs(gtfsDir: string) {
     let calendarDates = await (readAny(gtfsDir, "calendar_dates.txt"));
     calendarDates = dedupeCalendarDates(calendarDates);
     writeGtfs(gtfsDir, "calendar_dates.txt", calendarDates);
+
+    let stops = await (readAny(gtfsDir, "stops.txt"));
+    ensureStopNames(stops);
+    writeGtfs(gtfsDir, "stops.txt", stops);
 }
