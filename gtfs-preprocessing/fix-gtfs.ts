@@ -111,6 +111,16 @@ function ensureStopNames(stops: any[]) {
     }
 }
 
+function removeParentStation(stops: any[]) {
+    let num = 0;
+    for (let s of stops) {
+        s.parent_station = undefined;
+    }
+    if (num > 0) {
+        console.log(`Removed parent_station from ${num} stops`);
+    }
+}
+
 export async function fixGtfs(gtfsDir: string) {
     let agencies = await readAny(gtfsDir, "agency.txt");
     fixTimeZones(agencies);
@@ -125,5 +135,8 @@ export async function fixGtfs(gtfsDir: string) {
 
     let stops = await (readAny(gtfsDir, "stops.txt"));
     ensureStopNames(stops);
+    removeParentStation(stops);
     writeGtfs(gtfsDir, "stops.txt", stops);
+
+
 }
