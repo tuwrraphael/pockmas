@@ -94,7 +94,7 @@ jobs:
         if: steps.cache-routing.outputs.cache-hit != 'true'
         run: tar -cvzf preprocessing-dist.tar.gz preprocessing-dist
       - name: Upload preprocessed routing data
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: preprocessing-dist
           path: preprocessing-dist.tar.gz
