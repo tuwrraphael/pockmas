@@ -111,17 +111,17 @@ function ensureStopNames(stops: any[]) {
     }
 }
 
-function removeParentStation(stops: any[]) {
+function prefixParentStations(stops: any[],parentPrefix:string) {
     let num = 0;
     for (let s of stops) {
-        s.parent_station = undefined;
+        s.parent_station = parentPrefix + s.parent_station;
     }
     if (num > 0) {
-        console.log(`Removed parent_station from ${num} stops`);
+        console.log(`Prefixed ${num} parent stations with ${parentPrefix}`);
     }
 }
 
-export async function fixGtfs(gtfsDir: string) {
+export async function fixGtfs(gtfsDir: string, prefix : string) {
     let agencies = await readAny(gtfsDir, "agency.txt");
     fixTimeZones(agencies);
     ensureAgencyUrl(agencies);
@@ -135,7 +135,7 @@ export async function fixGtfs(gtfsDir: string) {
 
     let stops = await (readAny(gtfsDir, "stops.txt"));
     ensureStopNames(stops);
-    removeParentStation(stops);
+    prefixParentStations(stops,`${prefix}#`);
     writeGtfs(gtfsDir, "stops.txt", stops);
 
 

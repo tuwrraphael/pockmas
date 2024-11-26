@@ -46,6 +46,9 @@ if (!fs.existsSync(gtfsDir)) {
 const gtfsWienerLinienDir = path.join(__dirname, "../../gtfs-wienerlinien");
 const gtfsOebbDir = path.join(__dirname, "../../gtfs-oebb");
 const rtDir = path.join(__dirname, "../../");
+
+let allGftsDirs = [gtfsOebbDir, gtfsWienerLinienDir];
+
 async function doSteps() {
 
     for (let step of steps) {
@@ -57,11 +60,11 @@ async function doSteps() {
                 await downloadWienerlinienGtfs(gtfsWienerLinienDir);
                 break;
             case "fix-gtfs":
-                await fixGtfs(gtfsOebbDir);
-                await fixGtfs(gtfsWienerLinienDir);
+                await fixGtfs(gtfsOebbDir,allGftsDirs.indexOf(gtfsOebbDir).toString());
+                await fixGtfs(gtfsWienerLinienDir,allGftsDirs.indexOf(gtfsWienerLinienDir).toString());
                 break;
             case "gtfstidy":
-                await gtfsTidy(pathToGtfsTidyExecutable, [gtfsOebbDir, gtfsWienerLinienDir], gtfsDir);
+                await gtfsTidy(pathToGtfsTidyExecutable, allGftsDirs, gtfsDir);
                 break;
             case "stop-popularity":
                 console.log("Calculating stop popularity");
