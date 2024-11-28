@@ -157,10 +157,12 @@ static void scan_routes(input_data_t *input_data, realtime_route_index_t *realti
 
 static void set_min_max_delay(input_data_t *input_data, route_id_t route_id, int16_t delay)
 {
-	if (delay < input_data->realtime_index[route_id].min_delay) {
+	if (delay < input_data->realtime_index[route_id].min_delay)
+	{
 		input_data->realtime_index[route_id].min_delay = delay;
 	}
-	if (delay > input_data->realtime_index[route_id].max_delay) {
+	if (delay > input_data->realtime_index[route_id].max_delay)
+	{
 		input_data->realtime_index[route_id].max_delay = delay;
 	}
 }
@@ -192,8 +194,19 @@ void process_stoptime_update(input_data_t *input_data)
 	reset_to_savepoint();
 	for (uint8_t i = 0; i < stoptime_update->num_updates; i++)
 	{
+
 		if (best_results[i].set == TRUE)
 		{
+			if (best_results[i].realtime_offset > INT16_MAX)
+			{
+				stoptime_update->num_matches[i] = 0;
+				continue;
+			}
+			if (best_results[i].realtime_offset < INT16_MIN)
+			{
+				stoptime_update->num_matches[i] = 0;
+				continue;
+			}
 			stoptime_update->results[i].trip = best_results[i].trip;
 			stoptime_update->results[i].route_id = best_results[i].route_id;
 			stoptime_update->results[i].realtime_offset = (int16_t)best_results[i].realtime_offset;
@@ -211,6 +224,7 @@ void process_stoptime_update(input_data_t *input_data)
 	}
 }
 
-inline int16_t get_trip_delay(input_data_t *input_data, route_id_t route_id, uint16_t trip) {
+inline int16_t get_trip_delay(input_data_t *input_data, route_id_t route_id, uint16_t trip)
+{
 	return input_data->realtime_offsets[input_data->realtime_index[route_id].realtime_index + trip];
 }

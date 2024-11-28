@@ -10,7 +10,7 @@ import { RealtimeIdentifier } from "./RealtimeIdentifier";
 import { RealtimeIdentifierType } from "./RealtimeIdentifierType";
 import { ResolvedRealtimeData } from "./ResolvedRealtimeData";
 import { RouteInfoStore } from "./RouteInfoStore";
-import { findBestMatch } from "string-similarity";
+import { compareTwoStrings } from "string-similarity";
 import { MAX_REQUEST_STATIONS } from "../../raptor/config";
 
 export interface RouteRequest {
@@ -334,13 +334,27 @@ export class RoutingService {
         }
         let headsignCleaned = realtimeData.headsign.replace(/^Wien /, "").trim().toLowerCase();
         let headsignVariantsCleaned = matchingRouteClass.headsignVariants.map(h => h.replace(/^Wien /, "").toLowerCase());
-        let bestHeadsignVariantMatch = findBestMatch(headsignCleaned, headsignVariantsCleaned);
-        this.upsertResolvedRealtimeData({
-            headsignVariant: bestHeadsignVariantMatch.bestMatchIndex,
-            realtimeIdentifier: realtimeData.realtimeIdentifier,
-            routeClass: matchingRouteClass.id,
-            times: realtimeData.times
-        }, apply);
+        let similarities : number[] = headsignVariantsCleaned.map(h => compareTwoStrings(headsignCleaned, h));
+        // let bestHeadsignVariantMatch = findBestMatch(headsignCleaned, headsignVariantsCleaned);
+        let sortedIndices = similarities.map((v, i) => ({variantIndex:i, similarity:v})).sort((a, b) => b.similarity - a.similarity);
+        for (let candidate of sortedIndices){
+            this.upsertResolvedRealtimeData({
+                headsignVariant: candidate.variantIndex,
+                realtimeIdentifier: realtimeData.realtimeIdentifier,
+                routeClass: matchingRouteClass.id,
+                times: realtimeData.times
+            }, false);
+            let res = this.getRealtimeUpdateResult();
+            if (res.some(r => r.numMatches > 0)) {
+                this.upsertResolvedRealtimeData({
+                    headsignVariant: candidate.variantIndex,
+                    realtimeIdentifier: realtimeData.realtimeIdentifier,
+                    routeClass: matchingRouteClass.id,
+                    times: realtimeData.times
+                }, apply);
+                return;
+            }
+        }
         // performance.mark("realtime-upsert-end");
         // performance.measure("realtime-upsert", "realtime-upsert-start", "realtime-upsert-end");
         // console.log(`Realtime upsert took ${performance.getEntriesByName("realtime-upsert", "measure")[0].duration}ms`);
