@@ -5,7 +5,16 @@ import csvWriteStream from "csv-write-stream";
 import stripBom from "strip-bom-stream";
 
 async function readAny(gtfsPath: string, file: string) {
-    const routesStream = fs.createReadStream(path.join(gtfsPath, file));
+    // create a copy if not exists
+    let copyFile = path.join(gtfsPath, file + ".copy");
+    let readpath = path.join(gtfsPath, file);
+    if (!fs.existsSync(copyFile)) {
+
+        fs.copyFileSync(path.join(gtfsPath, file), copyFile);
+    } else {
+        readpath = copyFile;
+    }
+    const routesStream = fs.createReadStream(readpath);
     return new Promise<any>(resolve => {
         let res: any = [];
         routesStream
@@ -47,14 +56,20 @@ function ensureAgencyUrl(agencies: any[]) {
 }
 
 function writeGtfs(gtfsPath: string, file: string, data: any[]) {
-    const writeStream = fs.createWriteStream(path.join(gtfsPath, file));
-    const headers: string[] = Array.from(data.reduce((prev, cur) => new Set<string>([...prev, ...Object.keys(cur)]), new Set<string>()));
-    const writer = csvWriteStream({ headers: headers });
-    writer.pipe(writeStream);
-    for (let a of data) {
-        writer.write(a);
-    }
-    writer.end();
+    return new Promise((resolve, reject) => {
+        const writeStream = fs.createWriteStream(path.join(gtfsPath, file));
+        const headers: string[] = Array.from(data.reduce((prev, cur) => new Set<string>([...prev, ...Object.keys(cur)]), new Set<string>()));
+        const writer = csvWriteStream({ headers: headers });
+        writer.pipe(writeStream);
+        for (let a of data) {
+            writer.write(a);
+        }
+        writer.end();
+        writer.once('finish', () => {
+            resolve(null);
+        });
+    });
+
 }
 
 function ensureRouteAgency(routes: any) {
@@ -75,7 +90,7 @@ function ensureRouteAgency(routes: any) {
     }
 }
 
-function dedupeCalendarDates(calendarDates:any[]) {
+function dedupeCalendarDates(calendarDates: any[]) {
     // service_id,date,exception_type
     let deduped: any[] = [];
     let seen: any = {};
@@ -111,32 +126,19 @@ function ensureStopNames(stops: any[]) {
     }
 }
 
-function prefixParentStations(stops: any[],parentPrefix:string) {
-    let num = 0;
-    for (let s of stops) {
-        s.parent_station = parentPrefix + s.parent_station;
-    }
-    if (num > 0) {
-        console.log(`Prefixed ${num} parent stations with ${parentPrefix}`);
-    }
-}
-
-export async function fixGtfs(gtfsDir: string, prefix : string) {
+export async function fixGtfs(gtfsDir: string) {
     let agencies = await readAny(gtfsDir, "agency.txt");
     fixTimeZones(agencies);
     ensureAgencyUrl(agencies);
-    writeGtfs(gtfsDir, "agency.txt", agencies);
+    await writeGtfs(gtfsDir, "agency.txt", agencies);
     let routes = await (readAny(gtfsDir, "routes.txt"));
     ensureRouteAgency(routes);
-    writeGtfs(gtfsDir, "routes.txt", routes);
+    await writeGtfs(gtfsDir, "routes.txt", routes);
     let calendarDates = await (readAny(gtfsDir, "calendar_dates.txt"));
     calendarDates = dedupeCalendarDates(calendarDates);
-    writeGtfs(gtfsDir, "calendar_dates.txt", calendarDates);
+    await writeGtfs(gtfsDir, "calendar_dates.txt", calendarDates);
 
     let stops = await (readAny(gtfsDir, "stops.txt"));
     ensureStopNames(stops);
-    prefixParentStations(stops,`${prefix}#`);
-    writeGtfs(gtfsDir, "stops.txt", stops);
-
-
+    await writeGtfs(gtfsDir, "stops.txt", stops);
 }

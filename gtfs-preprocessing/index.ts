@@ -14,6 +14,7 @@ import fs from "fs";
 import { createCalendar } from "./create-calendar";
 import { createRoutes } from "./create-routes";
 import { createStops } from "./create-stops";
+import { removePast } from "./remove-past";
 
 let pathToGtfsTidyExecutable = env.GTFSTIDY_EXECUTABLE || "gtfstidy";
 
@@ -21,6 +22,7 @@ let steps = [
     "download-oebb",
     "download-wienerlinien",
     "fix-gtfs",
+    "remove-past",
     "gtfstidy",
     "stop-popularity",
     "search-index",
@@ -60,8 +62,12 @@ async function doSteps() {
                 await downloadWienerlinienGtfs(gtfsWienerLinienDir);
                 break;
             case "fix-gtfs":
-                await fixGtfs(gtfsOebbDir,allGftsDirs.indexOf(gtfsOebbDir).toString());
-                await fixGtfs(gtfsWienerLinienDir,allGftsDirs.indexOf(gtfsWienerLinienDir).toString());
+                await fixGtfs(gtfsOebbDir);
+                await fixGtfs(gtfsWienerLinienDir);
+                break;
+            case "remove-past":
+                await removePast(gtfsWienerLinienDir);
+                await removePast(gtfsOebbDir);
                 break;
             case "gtfstidy":
                 await gtfsTidy(pathToGtfsTidyExecutable, allGftsDirs, gtfsDir);
