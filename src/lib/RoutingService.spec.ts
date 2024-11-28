@@ -22,10 +22,10 @@ describe("RoutingService", () => {
     describe("getDepartures", () => {
 
         it("offers departures", () => {
-            let day = 19;// tuesday
+            let day = 10;// tuesday
             let departureTime = new Date(getUnixTime({
                 year: 2024,
-                month: 11,
+                month: 12,
                 day: day, // tuesday
                 hours: 23,
                 minutes: 52,
@@ -45,15 +45,15 @@ describe("RoutingService", () => {
 
             let u1directionOberlaaAlaudaGasse = result.filter(r => r.route.name == "U1" && (r.route.headsign == "Wien Oberlaa" || r.route.headsign == "Wien Alaudagasse"));
             expect(u1directionOberlaaAlaudaGasse.length).toBe(2);
-            expect(u1directionOberlaaAlaudaGasse[0].plannedDeparture).toEqual(new Date(`2024-11-${day}T23:57:00.000+0100`));
-            expect(u1directionOberlaaAlaudaGasse[1].plannedDeparture).toEqual(new Date(`2024-11-${day + 1}T00:05:00.000+0100`));
+            expect(u1directionOberlaaAlaudaGasse[0].plannedDeparture).toEqual(new Date(`2024-12-${day}T23:57:00.000+0100`));
+            expect(u1directionOberlaaAlaudaGasse[1].plannedDeparture).toEqual(new Date(`2024-12-${day + 1}T00:05:00.000+0100`));
             // expect(u1directionOberlaaAlaudaGasse[2].plannedDeparture).toEqual(new Date("2023-11-22T00:07:00.000+0100"));
             // expect(u1directionOberlaaAlaudaGasse[3].plannedDeparture).toEqual(new Date("2022-10-18T00:14:00.000+0200"));
 
             let u1directionLeopoldau = result.filter(r => r.route.name == "U1" && r.route.headsign == "Wien Leopoldau");
             expect(u1directionLeopoldau.length).toBe(2);
-            expect(u1directionLeopoldau[0].plannedDeparture).toEqual(new Date(`2024-11-${day}T23:53:00.000+0100`));
-            expect(u1directionLeopoldau[1].plannedDeparture).toEqual(new Date(`2024-11-${day + 1}T00:01:00.000+0100`));
+            expect(u1directionLeopoldau[0].plannedDeparture).toEqual(new Date(`2024-12-${day}T23:53:00.000+0100`));
+            expect(u1directionLeopoldau[1].plannedDeparture).toEqual(new Date(`2024-12-${day + 1}T00:01:00.000+0100`));
             // expect(u1directionLeopoldau[2].plannedDeparture).toEqual(new Date("2024-11-22T00:08:00.000+0100"));
             // expect(u1directionLeopoldau[3].plannedDeparture).toEqual(new Date("2022-10-18T00:14:00.000+0200"));
 

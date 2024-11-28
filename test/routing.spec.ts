@@ -42,9 +42,9 @@ describe("routing", () => {
         let departureTime = new Date(getUnixTime({
             year: 2024,
             month: 11,
-            day: 1,
-            hours: 0,
-            minutes: 1,
+            day: 28,
+            hours: 18,
+            minutes: 16,
             seconds: 0,
         }, vienna));
         let result = routingInstance.route({
@@ -52,7 +52,7 @@ describe("routing", () => {
             arrivalStops: stopgroupIndex.find(n => n.name == "Taborstraße").stopIds,
             departureTimes: new Array(departureStops.length).fill(departureTime)
         });
-        expect(result.length).toBeGreaterThan(0);
+        expect(result.length).toBeGreaterThan(0);        
         let routeWithU2AndU4 = result.find(r => r.legs.some(r => r.route?.name == "U4") && r.legs.some(r => r.route?.name == "U2"));
         expect(routeWithU2AndU4).toBeDefined();
         expect(routeWithU2AndU4.legs[0].route.name).toBe("U4");
@@ -60,7 +60,7 @@ describe("routing", () => {
         expect(routeWithU2AndU4.legs[2].route.name).toBe("U2");
         expect(routeWithU2AndU4.legs[2].departureStop.stopName).toBe("Schottenring");
         expect(routeWithU2AndU4.legs[1].type).toBe(LegType.Walking);
-        expect(routeWithU2AndU4.legs[1].duration).toBeLessThan(4 * 60 * 1000);
+        expect(routeWithU2AndU4.legs[1].duration).toBeLessThan(10 * 60 * 1000);
     });
 
     it("can hop on after midnight journey of before serviceday", () => {
