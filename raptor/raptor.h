@@ -9,7 +9,7 @@
 #define MAX_ITINERARYS (8)
 
 // must match config.ts
-#define MAX_REQUEST_STATIONS (30)
+#define MAX_REQUEST_STATIONS (35)
 
 #define MAX_DEPARTURE_RESULTS (10)
 

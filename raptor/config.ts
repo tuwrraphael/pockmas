@@ -1,2 +1,2 @@
 // must match raptor.h
-export const MAX_REQUEST_STATIONS = 30;
+export const MAX_REQUEST_STATIONS = 35;
