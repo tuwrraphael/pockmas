@@ -267,7 +267,7 @@ export async function createSearchIndex(gtfsPath: string, outputPath: string) {
             if (canAddToStopGroup(g, candidate)) {
                 g.groupedStops.push(candidate);
                 if (g.groupedStops.length > MAX_REQUEST_STATIONS) {
-                    throw new Error(`Too many stops in group ${g.name}`);
+                    throw new Error(`Too many stops in group ${g.name}: ${g.groupedStops.length}/${MAX_REQUEST_STATIONS}`);
                 }
                 added = true;
                 break;

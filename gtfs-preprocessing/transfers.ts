@@ -87,6 +87,7 @@ export async function getTransfers(gtfsPath: string, outputPath: string, orsBase
         }
         let nextSlice = getNextSlice(stop);
         while (nextSlice.length > 0) {
+            // console.log(stop.lon, stop.lat);
             let res = await fetch(orsBaseUrl + "/v2/matrix/foot-walking", {
                 method: "POST",
                 headers: {
@@ -99,6 +100,8 @@ export async function getTransfers(gtfsPath: string, outputPath: string, orsBase
                 }),
             });
             if (!res.ok) {
+                let errorBody = await res.text();
+                console.error(errorBody);
                 for (let stopB of nextSlice) {
                     await unknownTransfersOutput.write(`HTTP 500: ${stop.stopId} - ${stopB.stopId}: ${stop.name} - ${stopB.name}\n`, null, "utf8");
                     setDone(stop, stopB);
@@ -116,7 +119,10 @@ export async function getTransfers(gtfsPath: string, outputPath: string, orsBase
                     else {
                         if (time === 0) {
                             let distance = coordinateDistance(stop.lat, stop.lon, stopB.lat, stopB.lon);
-                            if (distance < (30 / 1000)) {
+                            if (distance === 0) {
+                                time = 1;    
+                            }
+                            if (distance < (50 / 1000)) {
                                 time = Math.round((distance * 1000) / (walkingSpeed / 3.6));
                             }
                         }
