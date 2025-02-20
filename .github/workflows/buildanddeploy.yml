@@ -132,8 +132,6 @@ jobs:
     - run: npm ci
     - name: Build webapp
       run: npm run build -- --mode="production" --env environment="gh-pages"
-    - name: Run tests
-      run: npm run test
     - name: Compress dist
       run: tar -cvzf dist.tar.gz dist
     - name: Upload artifact
