@@ -41,11 +41,11 @@ export class RouteResults extends HTMLElement {
         if (!this.rendered) {
             this.innerHTML = template;
             this.rendered = true;
-            this.addMinBtn = this.querySelector("#add-5-min");
+            // this.addMinBtn = this.querySelector("#add-5-min");
             this.tabTitleAbfahrten = this.querySelector("#tab-title-abfahrten");
             this.tabTitleRouten = this.querySelector("#tab-title-routen");
             this.header = this.querySelector(".route-results__header");
-            abortableEventListener(this.addMinBtn, "click", () => { this.store.postAction(new SetDepartureTime(5 * 60000)); }, this.abortController.signal);
+            // abortableEventListener(this.addMinBtn, "click", () => { this.store.postAction(new SetDepartureTime(5 * 60000)); }, this.abortController.signal);
             abortableEventListener(this.tabTitleAbfahrten, "click", e => {
                 e.preventDefault();
                 this.appRouter.search(this.departureStopGroupId, null);

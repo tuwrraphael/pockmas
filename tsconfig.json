@@ -10,10 +10,10 @@
     ],
     "noImplicitAny": true,
     "skipLibCheck": true,
-    "module": "esnext",
     "target": "es2017",
     "allowJs": true,
-    "moduleResolution": "NodeNext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "sourceMap": true,
     "types": [
       "@types/node",
@@ -22,4 +22,9 @@
     ],
     "allowSyntheticDefaultImports": true
   },
+  "include": [
+    "src/**/*",
+    "typings.d.ts",
+    "node_modules/timezone-support/dist/*"
+  ],
 }
