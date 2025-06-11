@@ -78,6 +78,10 @@ export class AppRouter {
 
 
             async resolve(lastRoute: string, currentRoute: string, router: Router<any>, s: { searchParams: URLSearchParams }): Promise<false | HTMLElement> {
+                if ("features" === currentRoute) {
+                    let { Features } = await import("./components/Features/Features");
+                    return self.setCurrentElement(new Features());
+                }
                 if (/^r\/(\S+)$/.test(currentRoute)) {
                     let itineraryUrl = RegExp.$1;
                     self.store.postAction(new RouteDetailsOpened(itineraryUrl));

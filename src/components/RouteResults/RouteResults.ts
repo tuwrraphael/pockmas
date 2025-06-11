@@ -15,7 +15,7 @@ enum DisplayMode {
 
 export class RouteResults extends HTMLElement {
     private rendered = false;
-    private displayMode : DisplayMode = null;
+    private displayMode: DisplayMode = null;
     private store: Store;
     private appRouter: AppRouter;
     private abortController: AbortController;
@@ -41,11 +41,11 @@ export class RouteResults extends HTMLElement {
         if (!this.rendered) {
             this.innerHTML = template;
             this.rendered = true;
-            // this.addMinBtn = this.querySelector("#add-5-min");
+            this.addMinBtn = this.querySelector("#add-5-min");
             this.tabTitleAbfahrten = this.querySelector("#tab-title-abfahrten");
             this.tabTitleRouten = this.querySelector("#tab-title-routen");
             this.header = this.querySelector(".route-results__header");
-            // abortableEventListener(this.addMinBtn, "click", () => { this.store.postAction(new SetDepartureTime(5 * 60000)); }, this.abortController.signal);
+            abortableEventListener(this.addMinBtn, "click", () => { this.store.postAction(new SetDepartureTime(new Date(+this.store.state.departureTime + 5 * 60000))); }, this.abortController.signal);
             abortableEventListener(this.tabTitleAbfahrten, "click", e => {
                 e.preventDefault();
                 this.appRouter.search(this.departureStopGroupId, null);
@@ -75,7 +75,7 @@ export class RouteResults extends HTMLElement {
         this.tabTitleRouten.style.display = this.hasRouten ? "" : "none";
         this.header.style.display = this.hasAbfahrten || this.hasRouten ? "" : "none";
 
-        
+
 
         if (displayRouten && this.displayMode != DisplayMode.Routes) {
             this.displayMode = DisplayMode.Routes;
@@ -93,6 +93,7 @@ export class RouteResults extends HTMLElement {
             this.departureResultsList.remove();
             this.departureResultsList = null;
         }
+        this.addMinBtn.style.display = this.displayMode != DisplayMode.Departures ? "" : "none";
 
     }
 

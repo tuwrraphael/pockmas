@@ -25,7 +25,6 @@ type Actions = InitializeStopSearch
     | RefreshRouteDetails;
 
 let stopSearchInstance: WebAssemblyInstance<StopSearchExports>;
-let _departureTime: Date = null;
 
 const routingServicesFactory = new RoutingServicesFactory();
 
@@ -47,6 +46,7 @@ async function initStopSearch() {
 
 let lastValue: string = "";
 let state: State = {
+    departureTime: new Date(),
     arrivalStopResults: [],
     departureStopResults: [],
     results: [],
@@ -127,7 +127,7 @@ async function searchInputChanged() {
 
             await realtimeLookupService.performWithRealtimeLoopkup(async () => {
                 let results = routingService.getDepartures({
-                    departureStops: departureStops.map(d => ({ departureTime: _departureTime, stopId: d })),
+                    departureStops: departureStops.map(d => ({ departureTime: state.departureTime, stopId: d })),
                 });
                 updateState(() => ({ departures: results }));
                 return results.map(r => r.stop.stopId);
@@ -168,17 +168,17 @@ async function stopsSelected(d: number, a: number) {
         selectedStopgroups: {
             departure: d == null ? null : { id: d, name: stopGroupStore.getStopGroup(d).name },
             arrival: a == null ? null : { id: a, name: stopGroupStore.getStopGroup(a).name }
-        }
+        },
+        departureTime: new Date()
     }));
-    _departureTime = new Date();
     await searchInputChanged();
 }
 
-async function departureTimeInc(inc: number) {
-    if (null == _departureTime) {
+async function setDepartureTime(time: Date) {
+    if (null == state.departureTime) {
         return;
     }
-    _departureTime = new Date(_departureTime.getTime() + inc);
+    updateState(s => ({ departureTime: time }));
     await searchInputChanged();
 }
 
@@ -196,7 +196,7 @@ async function route() {
         let results = routingService.route({
             arrivalStops: arrivalStops,
             departureStops: departureStops,
-            departureTimes: departureStops.map(() => _departureTime)
+            departureTimes: departureStops.map(() => state.departureTime)
         });
         updateState(() => ({ results: results.map(i => ({ itineraryUrlEncoded: routeUrlEncoder.encode(i), itinerary: i })) }));
         return results.reduce((stopIds, r) => [...stopIds, ...r.legs.map(l => l.departureStop.stopId)], []);
@@ -247,7 +247,7 @@ async function handleMessage(msg: Actions) {
             break;
         }
         case ActionType.SetDepartureTime: {
-            await departureTimeInc(msg.increment);
+            await setDepartureTime(msg.time);
             break;
         }
         case ActionType.RouteDetailsOpened: {

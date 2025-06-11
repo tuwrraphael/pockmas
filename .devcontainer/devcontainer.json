@@ -2,6 +2,7 @@
 	"name": "Node.js",
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
 	"features": {
-		"ghcr.io/devcontainers-community/features/llvm:3": {}
+		"ghcr.io/devcontainers-community/features/llvm:3": {},
+		"ghcr.io/kreemer/features/chrometesting:1": {}
 	}
 }

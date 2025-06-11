@@ -76,6 +76,9 @@ export class DepartureResultsList extends HTMLElement {
                 this.moreRequestedAt = 0;
             }
         }
+        if (c.includes("departureTime")) {
+            this.moreRequestedAt = 0;
+        }
     }
 
     private init(s: State) {

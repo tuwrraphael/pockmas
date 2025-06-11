@@ -26,16 +26,7 @@ ol {
 }
 
 .header {
-    background-color: var(--primary);
-    margin: 0;
-    display: flex;
-    justify-content: center;
-    padding: 1em;
     align-self: stretch;
-
-    &>* {
-        background-color: var(--background);
-    }
 }
 
 .content {

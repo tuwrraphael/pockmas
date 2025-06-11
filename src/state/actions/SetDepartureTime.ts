@@ -4,6 +4,6 @@ import { ActionType } from "./ActionType";
 
 
 export class SetDepartureTime implements Action {
-    constructor(public increment: number) { }
+    constructor(public time: Date) { }
     readonly type = ActionType.SetDepartureTime;
 }

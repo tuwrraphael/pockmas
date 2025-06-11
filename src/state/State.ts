@@ -2,6 +2,7 @@ import { Departure } from "../lib/Departure";
 import { ItineraryDisplayModel } from "./models/ItineraryDisplayModel";
 
 export interface State {
+    departureTime: Date;
     departureStopResults: { name: string, id: number }[];
     arrivalStopResults: { name: string, id: number }[];
     departures: Departure[];
