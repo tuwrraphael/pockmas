@@ -8,6 +8,8 @@ env:
 on:
   push:
   workflow_dispatch:
+  schedule:
+    - cron: "10 16 * * 6"
 
 jobs:
   routingdata:
