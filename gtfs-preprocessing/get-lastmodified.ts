@@ -2,8 +2,8 @@ import fetch from "node-fetch";
 import { getOebbZipUrl } from "./download-oebb";
 
 async function getLastModifiedDateWienerlinien() {
-    let res = await fetch("http://www.wienerlinien.at/ogd_realtime/doku/ogd/gtfs/gtfs.zip", {
-        method: "HEAD"
+    let res = await fetch("https://www.wienerlinien.at/ogd_realtime/doku/ogd/gtfs/gtfs.zip", {
+        method: "GET"
     });
     let lastModifiedHeader = res.headers.get("last-modified");
     if (lastModifiedHeader) {
@@ -28,8 +28,14 @@ async function getLastModifiedOebb() {
 }
 
 async function getLastModifiedDate() {
-    let sorted = (await Promise.all([getLastModifiedDateWienerlinien(), getLastModifiedOebb()])).sort();
-    return sorted[sorted.length - 1];
+    try {
+        let sorted = (await Promise.all([getLastModifiedDateWienerlinien(), getLastModifiedOebb()])).sort();
+        return sorted[sorted.length - 1];
+    }
+    catch (e) {
+        console.error("Error getting last modified dates:", e);
+        return new Date().getTime().toString();
+    }
 }
 
 getLastModifiedDate().then(d => console.log(d));
